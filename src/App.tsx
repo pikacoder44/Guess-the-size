@@ -59,21 +59,40 @@ type Gesture =
   | { kind: "resize"; id: number; sy: number; originGuess: number };
 
 /** Keep the (scaled) box fully inside the stage. */
-function clampPos(pos: Pos, scale: number, stage: Size): Pos {
+function clampPos(pos: Pos, scale: number, stage: Size, zoom = 1): Pos {
   if (!stage.width || !stage.height) return pos;
   const boxW = BASE_TARGET_WIDTH * scale;
   const boxH = BASE_TARGET_HEIGHT * scale;
+  const visibleWidth = stage.width / zoom;
+  const visibleLeft = Math.max(0, (stage.width - visibleWidth) / 2);
+  const visibleRight = Math.min(
+    stage.width - boxW,
+    (stage.width + visibleWidth) / 2 - boxW,
+  );
+  const visibleBottom = Math.max(0, stage.height - stage.height / zoom);
   return {
-    x: clamp(pos.x, 0, Math.max(0, (stage.width - boxW) / stage.width)),
-    y: clamp(pos.y, 0, Math.max(0, stage.height - boxH)),
+    x: clamp(
+      pos.x,
+      visibleLeft / stage.width,
+      Math.max(visibleLeft, visibleRight) / stage.width,
+    ),
+    y: clamp(
+      pos.y,
+      visibleBottom,
+      Math.max(visibleBottom, stage.height - boxH),
+    ),
   };
 }
 
 /** Largest guess whose box still fits when grown up/right from its bottom-left anchor. */
-function maxGuessAt(pos: Pos, stage: Size): number {
+function maxGuessAt(pos: Pos, stage: Size, zoom = 1): number {
   if (!stage.width || !stage.height) return MAX_GUESS;
   const byHeight = (stage.height - pos.y) / BASE_TARGET_HEIGHT;
-  const byWidth = ((1 - pos.x) * stage.width) / BASE_TARGET_WIDTH;
+  const visibleRight = Math.min(
+    stage.width,
+    (stage.width + stage.width / zoom) / 2,
+  );
+  const byWidth = (visibleRight - pos.x * stage.width) / BASE_TARGET_WIDTH;
   return clamp(
     Math.min(byHeight, byWidth) * UNITS_PER_SCALE,
     MIN_GUESS,
@@ -113,8 +132,8 @@ function Game({
   const actualScale = guessToScale(puzzle.target.dimension);
   const revealed = roundResults[round];
 
-  const latest = useRef({ scale, guess });
-  latest.current = { scale, guess };
+  const latest = useRef({ scale, guess, zoom });
+  latest.current = { scale, guess, zoom };
 
   // Measure LAYOUT size (clientWidth/Height ignore ancestor transforms; getBoundingClientRect does not).
   useLayoutEffect(() => {
@@ -122,7 +141,14 @@ function Game({
     if (!el) return;
     const measure = () => {
       stageSize.current = { width: el.clientWidth, height: el.clientHeight };
-      setPos((p) => clampPos(p, latest.current.scale, stageSize.current));
+      setPos((p) =>
+        clampPos(
+          p,
+          latest.current.scale,
+          stageSize.current,
+          latest.current.zoom,
+        ),
+      );
     };
     measure();
     const ro = new ResizeObserver(measure);
@@ -185,15 +211,18 @@ function Game({
           { x: g.origin.x + dx / stage.width, y: g.origin.y + dy },
           scale,
           stage,
+          zoom,
         ),
       );
     } else {
-      setGuess(
-        clamp(
-          g.originGuess + dy * GUESS_PER_PX,
-          MIN_GUESS,
-          maxGuessAt(pos, stage),
-        ),
+      const nextGuess = clamp(
+        g.originGuess + dy * GUESS_PER_PX,
+        MIN_GUESS,
+        maxGuessAt(pos, stage, zoom),
+      );
+      setGuess(nextGuess);
+      setPos((current) =>
+        clampPos(current, guessToScale(nextGuess), stage, zoom),
       );
     }
   };
@@ -202,9 +231,17 @@ function Game({
     if (e.key !== "ArrowUp" && e.key !== "ArrowDown") return;
     e.preventDefault();
     const step = e.key === "ArrowUp" ? 0.1 : -0.1;
-    setGuess((g) =>
-      clamp(g + step, MIN_GUESS, maxGuessAt(pos, stageSize.current)),
-    );
+    setGuess((g) => {
+      const nextGuess = clamp(
+        g + step,
+        MIN_GUESS,
+        maxGuessAt(pos, stageSize.current, zoom),
+      );
+      setPos((current) =>
+        clampPos(current, guessToScale(nextGuess), stageSize.current, zoom),
+      );
+      return nextGuess;
+    });
   };
 
   // ── styles: layout box (never transformed) vs. art (transformed) ──
