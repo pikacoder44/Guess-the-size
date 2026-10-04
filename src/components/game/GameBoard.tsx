@@ -136,7 +136,7 @@ export function GameBoard({ game }: { game: GameApi }) {
   return (
     <div
       ref={viewportRef}
-      className="game-viewport relative aspect-[4/3] w-full touch-none select-none overflow-hidden sm:aspect-[16/9]"
+      className="game-viewport relative aspect-4/3 w-full touch-none select-none overflow-hidden sm:aspect-video"
       onPointerMove={onPointerMove}
       onPointerUp={endDrag}
       onPointerCancel={endDrag}
