@@ -4,13 +4,15 @@ import { rectToScreen, screenToWorld, sizeFor, type Rect, type Vec } from "@/gam
 import { correctRect, guessRect, referenceRect, type GameApi } from "@/game/useGame";
 import { formatMeasurement } from "@/game/scoring";
 import { SilhouetteSvg } from "./Silhouette";
+import { CameraControls } from "./CameraControls";
 import type { GameObject } from "@/game/types";
 
 const KEY_MOVE_PX = 10;
 const KEY_RESIZE = 1.04;
 
 function boxStyle(rect: Rect, game: GameApi): CSSProperties {
-  const s = game.state!;
+  const s = game.state;
+  if (!s) return {};
   const b = rectToScreen(rect, s.camera, s.viewport);
   return {
     width: b.width,
@@ -20,8 +22,8 @@ function boxStyle(rect: Rect, game: GameApi): CSSProperties {
 }
 
 type DragState =
-  | { kind: "move"; grabOffset: Vec }
-  | { kind: "resize"; startX: number; startY: number; scale: number; diagPx: number };
+  | { kind: "move"; pointerId: number; grabOffset: Vec }
+  | { kind: "resize"; pointerId: number; startX: number; startY: number; scale: number; diagPx: number };
 
 export function GameBoard({ game }: { game: GameApi }) {
   const viewportRef = useRef<HTMLDivElement>(null);
@@ -35,7 +37,7 @@ export function GameBoard({ game }: { game: GameApi }) {
     return { x: e.clientX - r.left, y: e.clientY - r.top };
   };
 
-  // Measure the fixed viewport; init the round on first measure.
+  // Measure the fixed viewport; init the round on first measure without wiping active rounds.
   useEffect(() => {
     const el = viewportRef.current;
     if (!el) return;
@@ -43,10 +45,12 @@ export function GameBoard({ game }: { game: GameApi }) {
     const measure = () => {
       const vp = { width: el.clientWidth, height: el.clientHeight };
       if (!vp.width || !vp.height) return;
-      if (!initialised) {
+      if (!initialised && !game.state) {
         initialised = true;
         game.init(pickRandomPuzzle(), vp);
-      } else game.setViewport(vp);
+      } else {
+        game.setViewport(vp);
+      }
     };
     measure();
     const ro = new ResizeObserver(measure);
@@ -58,13 +62,14 @@ export function GameBoard({ game }: { game: GameApi }) {
   const playing = state?.phase === "PLAYING";
 
   const onTargetDown = (e: PointerEvent<HTMLDivElement>) => {
-    if (!state || !playing) return;
+    if (!state || !playing || e.button !== 0) return;
     e.currentTarget.setPointerCapture(e.pointerId);
     const screenPt = getScreenPt(e);
     if (!screenPt) return;
     const worldPt = screenToWorld(screenPt, state.camera, state.viewport);
     drag.current = {
       kind: "move",
+      pointerId: e.pointerId,
       grabOffset: {
         x: state.targetCenter.x - worldPt.x,
         y: state.targetCenter.y - worldPt.y,
@@ -73,12 +78,13 @@ export function GameBoard({ game }: { game: GameApi }) {
   };
 
   const onHandleDown = (e: PointerEvent<HTMLButtonElement>) => {
-    if (!state || !playing) return;
+    if (!state || !playing || e.button !== 0) return;
     e.stopPropagation();
     e.currentTarget.setPointerCapture(e.pointerId);
     const size = sizeFor(state.puzzle.target, state.guessScale);
     drag.current = {
       kind: "resize",
+      pointerId: e.pointerId,
       startX: e.clientX,
       startY: e.clientY,
       scale: state.guessScale,
@@ -88,7 +94,8 @@ export function GameBoard({ game }: { game: GameApi }) {
 
   const onPointerMove = (e: PointerEvent) => {
     const d = drag.current;
-    if (!d || !state) return;
+    if (!d || !state || e.pointerId !== d.pointerId) return;
+
     if (d.kind === "move") {
       const screenPt = getScreenPt(e);
       if (!screenPt) return;
@@ -106,7 +113,13 @@ export function GameBoard({ game }: { game: GameApi }) {
     }
   };
 
-  const endDrag = () => {
+  const endDrag = (e: PointerEvent) => {
+    if (drag.current && drag.current.pointerId === e.pointerId) {
+      drag.current = null;
+    }
+  };
+
+  const cancelDrag = () => {
     drag.current = null;
   };
 
@@ -139,22 +152,26 @@ export function GameBoard({ game }: { game: GameApi }) {
       className="game-viewport relative aspect-4/3 w-full touch-none select-none overflow-hidden sm:aspect-video"
       onPointerMove={onPointerMove}
       onPointerUp={endDrag}
-      onPointerCancel={endDrag}
+      onPointerCancel={cancelDrag}
+      onLostPointerCapture={cancelDrag}
       role="application"
       aria-label="Game board"
     >
       {state && (
         <>
+          {/* Reference Object */}
           <SceneBox rect={referenceRect(state)} game={game} className="text-reference">
             <SilhouetteSvg object={state.puzzle.reference} />
             <ObjectLabel object={state.puzzle.reference} showMeasure />
           </SceneBox>
 
+          {/* Target: Interactive during PLAYING, Compared during RESULT */}
           {playing ? (
             <div
               className="target-box absolute left-0 top-0 cursor-grab text-target active:cursor-grabbing"
               style={boxStyle(guessRect(state), game)}
               onPointerDown={onTargetDown}
+              onLostPointerCapture={cancelDrag}
               onKeyDown={onTargetKey}
               tabIndex={0}
               role="group"
@@ -165,8 +182,9 @@ export function GameBoard({ game }: { game: GameApi }) {
               <button
                 type="button"
                 className="resize-handle"
-                aria-label="Resize target (drag up to enlarge)"
+                aria-label="Resize target (drag up-right to enlarge)"
                 onPointerDown={onHandleDown}
+                onLostPointerCapture={cancelDrag}
                 onKeyDown={(e) => {
                   if (e.key === "ArrowUp" || e.key === "ArrowRight") {
                     e.preventDefault();
@@ -182,19 +200,27 @@ export function GameBoard({ game }: { game: GameApi }) {
             </div>
           ) : (
             <>
+              {/* Correct silhouette (Solid) */}
               <SceneBox rect={correctRect(state)} game={game} className="text-correct">
                 <SilhouetteSvg object={state.puzzle.target} />
+                <span className="object-label text-correct font-semibold">Actual</span>
               </SceneBox>
-              <SceneBox rect={guessRect(state)} game={game} className="text-target opacity-45">
-                <SilhouetteSvg object={state.puzzle.target} />
+              {/* Player's final guess silhouette (Ghost) */}
+              <SceneBox rect={guessRect(state)} game={game} className="text-target">
+                <SilhouetteSvg object={state.puzzle.target} isGhost />
+                <span className="object-label text-target opacity-75">Your guess</span>
               </SceneBox>
             </>
           )}
+
+          {/* Floating Canvas Camera Controls */}
+          <div className="absolute bottom-3 right-3 z-20 pointer-events-auto backdrop-blur-md bg-card/85 border border-border/70 rounded-xl p-1 shadow-lg shadow-black/25">
+            <CameraControls game={game} />
+          </div>
         </>
       )}
     </div>
   );
-
 }
 
 function SceneBox({ rect, game, className, children }: { rect: Rect; game: GameApi; className: string; children: ReactNode }) {
@@ -203,7 +229,7 @@ function SceneBox({ rect, game, className, children }: { rect: Rect; game: GameA
       {children}
     </div>
   );
-  }
+}
 
 function ObjectLabel({ object, showMeasure }: { object: GameObject; showMeasure?: boolean }) {
   return (
