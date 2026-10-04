@@ -1,6 +1,6 @@
 import { useEffect, type ReactNode, useRef, type CSSProperties, type KeyboardEvent, type PointerEvent } from "react";
 import { pickRandomPuzzle } from "@/game/puzzles";
-import { rectToScreen, sizeFor, type Rect } from "@/game/geometry";
+import { rectToScreen, screenToWorld, sizeFor, type Rect, type Vec } from "@/game/geometry";
 import { correctRect, guessRect, referenceRect, type GameApi } from "@/game/useGame";
 import { SilhouetteSvg } from "./Silhouette";
 import type { GameObject } from "@/game/types";
@@ -19,13 +19,20 @@ function boxStyle(rect: Rect, game: GameApi): CSSProperties {
 }
 
 type DragState =
-  | { kind: "move"; startX: number; startY: number; cx: number; cy: number }
+  | { kind: "move"; grabOffset: Vec }
   | { kind: "resize"; startX: number; startY: number; scale: number; diagPx: number };
 
 export function GameBoard({ game }: { game: GameApi }) {
   const viewportRef = useRef<HTMLDivElement>(null);
   const drag = useRef<DragState | null>(null);
   const { state } = game;
+
+  const getScreenPt = (e: PointerEvent): Vec | null => {
+    const el = viewportRef.current;
+    if (!el) return null;
+    const r = el.getBoundingClientRect();
+    return { x: e.clientX - r.left, y: e.clientY - r.top };
+  };
 
   // Measure the fixed viewport; init the round on first measure.
   useEffect(() => {
@@ -52,7 +59,16 @@ export function GameBoard({ game }: { game: GameApi }) {
   const onTargetDown = (e: PointerEvent<HTMLDivElement>) => {
     if (!state || !playing) return;
     e.currentTarget.setPointerCapture(e.pointerId);
-    drag.current = { kind: "move", startX: e.clientX, startY: e.clientY, cx: state.targetCenter.x, cy: state.targetCenter.y };
+    const screenPt = getScreenPt(e);
+    if (!screenPt) return;
+    const worldPt = screenToWorld(screenPt, state.camera, state.viewport);
+    drag.current = {
+      kind: "move",
+      grabOffset: {
+        x: state.targetCenter.x - worldPt.x,
+        y: state.targetCenter.y - worldPt.y,
+      },
+    };
   };
 
   const onHandleDown = (e: PointerEvent<HTMLButtonElement>) => {
@@ -72,12 +88,17 @@ export function GameBoard({ game }: { game: GameApi }) {
   const onPointerMove = (e: PointerEvent) => {
     const d = drag.current;
     if (!d || !state) return;
-    const dx = e.clientX - d.startX;
-    const dy = e.clientY - d.startY;
     if (d.kind === "move") {
-      const z = state.camera.zoom;
-      game.moveTarget({ x: d.cx + dx / z, y: d.cy - dy / z });
+      const screenPt = getScreenPt(e);
+      if (!screenPt) return;
+      const worldPt = screenToWorld(screenPt, state.camera, state.viewport);
+      game.moveTarget({
+        x: worldPt.x + d.grabOffset.x,
+        y: worldPt.y + d.grabOffset.y,
+      });
     } else {
+      const dx = e.clientX - d.startX;
+      const dy = e.clientY - d.startY;
       // Up/right grows, down/left shrinks; one authoritative scale value.
       const factor = Math.max(0.01, (d.diagPx + (dx - dy)) / d.diagPx);
       game.resizeTarget(d.scale * factor);

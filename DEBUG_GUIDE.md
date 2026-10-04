@@ -39,8 +39,9 @@ flowchart TD
   * **Key Functions:**
     * `screenToWorld` / `worldToScreen` / `rectToScreen`: Transforms coordinates using `Camera` (`cx`, `cy`, `zoom` in px/metre) and `Viewport` dimensions.
     * `sizeFor` / `measurementFor`: Calculates bounding dimensions based on whether an object scales along its `height` or `length`.
-    * `fitCamera` / `clampCamera` / `zoomLimits`: Controls zooming bounds and auto-fitting objects with margins and padding (`VIEW_PADDING`, `MIN_TARGET_PX`).
-  * **Debug Tip:** If silhouette sizing looks stretched, or dragging/resizing behaves erratically on window resize, inspect `rectToScreen` and `fitZoom`.
+    * `fitCamera` / `clampCamera` / `zoomLimits`: Controls zooming bounds and auto-fitting objects with margins and padding (`VIEW_PADDING`, `MIN_ZOOM_FRACTION`, `MAX_ZOOM_MULTIPLIER`).
+    * `minScaleForPx`: Computes minimum target scale ensuring target stays above screen pixel threshold (`MIN_TARGET_PX`).
+  * **Debug Tip:** If silhouette sizing looks stretched, or dragging/resizing behaves erratically on window resize, inspect `rectToScreen`, `screenToWorld`, and `fitZoom`.
 
 * **[src/game/useGame.ts](file:///mnt/old_d/code/guessthesize/src/game/useGame.ts)**
   * **Role:** Central state machine hook (`useReducer`) powering the game loop.

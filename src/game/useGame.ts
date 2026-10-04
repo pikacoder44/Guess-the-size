@@ -1,10 +1,11 @@
 import { useReducer } from "react";
 import {
-  MIN_TARGET_PX,
   clampCamera,
   clampCenter,
   fitCamera,
+  fitZoom,
   maxScaleFactorAt,
+  minScaleForPx,
   rectFromCenter,
   sizeFor,
   unionRects,
@@ -113,8 +114,7 @@ function reducer(state: GameState | null, action: Action): GameState | null {
       const current = sizeFor(target, state.guessScale);
       const bounds = visibleWorldRect(state.camera, state.viewport);
       const maxScale = state.guessScale * maxScaleFactorAt(state.targetCenter, current, bounds);
-      const minScale =
-        (state.guessScale * MIN_TARGET_PX) / (Math.min(current.w, current.h) * state.camera.zoom);
+      const minScale = minScaleForPx(state.guessScale, current, state.camera.zoom);
       const scale = Math.min(Math.max(action.scale, minScale), Math.max(maxScale, minScale));
       return { ...state, guessScale: scale };
     }
@@ -137,11 +137,12 @@ function reducer(state: GameState | null, action: Action): GameState | null {
 export function useGame() {
   const [state, dispatch] = useReducer(reducer, null);
   const zoomInfo = state ? zoomLimits(sceneRect(state), state.viewport) : null;
+  const fitBaseZoom = state ? fitZoom(sceneRect(state), state.viewport) : null;
   return {
     state,
     canZoomIn: !!state && !!zoomInfo && state.camera.zoom < zoomInfo.max * 0.999,
     canZoomOut: !!state && !!zoomInfo && state.camera.zoom > zoomInfo.min * 1.001,
-    zoomPercent: state && zoomInfo ? Math.round((state.camera.zoom / zoomInfo.max) * 100) : 0,
+    zoomPercent: state && fitBaseZoom ? Math.round((state.camera.zoom / fitBaseZoom) * 100) : 0,
     init: (puzzle: Puzzle, viewport: Viewport) => dispatch({ type: "init", puzzle, viewport }),
     setViewport: (viewport: Viewport) => dispatch({ type: "viewport", viewport }),
     moveTarget: (center: Vec) => dispatch({ type: "moveTarget", center }),
