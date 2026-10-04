@@ -69,7 +69,7 @@ export function App() {
                   <button
                     type="button"
                     className="lock-btn"
-                    onClick={() => game.init(pickRandomPuzzle(), state.viewport)}
+                    onClick={() => game.init(pickRandomPuzzle(state.puzzle.id), state.viewport)}
                   >
                     Next Round →
                   </button>

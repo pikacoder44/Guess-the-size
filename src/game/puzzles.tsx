@@ -69,7 +69,7 @@ const bicycle: GameObject = {
   actualMeasurement: 1.75,
   axis: "length",
   silhouette: {
-    viewBox: { x: 0, y: 12, width: 180, height: 88 },
+    viewBox: { x: 1, y: 12, width: 178, height: 87 },
     Shape: () => (
       <>
         <g fill="none" stroke="currentColor" strokeWidth="6" strokeLinejoin="round">
@@ -109,6 +109,10 @@ export const PUZZLES: Puzzle[] = [
   { id: "horse-car", reference: horse, target: car },
 ];
 
-export function pickRandomPuzzle(): Puzzle {
-  return PUZZLES[Math.floor(Math.random() * PUZZLES.length)] ?? PUZZLES[0]!;
+export function pickRandomPuzzle(currentId?: string): Puzzle {
+  const pool =
+    currentId && PUZZLES.length > 1
+      ? PUZZLES.filter((p) => p.id !== currentId)
+      : PUZZLES;
+  return pool[Math.floor(Math.random() * pool.length)] ?? PUZZLES[0]!;
 }
