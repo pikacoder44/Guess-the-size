@@ -12,7 +12,8 @@
   "dependencies": {
     "motion": "^14.0.0",
     "react": "^19.2.8",
-    "react-dom": "^19.2.8"
+    "react-dom": "^19.2.8",
+    "react-rnd": "^10.5.3"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.3.3",

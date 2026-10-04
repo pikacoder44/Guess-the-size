@@ -1,9 +1,8 @@
 import type { GameResult, Statistics } from "./types";
 import { defaultStatistics } from "./game";
 
-const STATS_KEY = "scaleguess:statistics";
-const RESULT_KEY = "scaleguess:last-result";
-const DAILY_KEY = "scaleguess:daily-result";
+const STATS_KEY = "scaleguess:statistics:v2";
+const DAILY_KEY = "scaleguess:daily:v2";
 
 export function loadStatistics(): Statistics {
   try {
@@ -16,27 +15,37 @@ export function loadStatistics(): Statistics {
   }
 }
 
-export function saveGameResult(result: GameResult, statistics: Statistics) {
-  localStorage.setItem(STATS_KEY, JSON.stringify(statistics));
-  localStorage.setItem(RESULT_KEY, JSON.stringify(result));
-  if (result.mode === "daily" && result.date)
-    localStorage.setItem(`${DAILY_KEY}:${result.date}`, JSON.stringify(result));
-}
-
-export function loadLastResult() {
+export function saveStatistics(stats: Statistics): void {
   try {
-    const saved = localStorage.getItem(RESULT_KEY);
-    return saved ? (JSON.parse(saved) as GameResult) : null;
+    localStorage.setItem(STATS_KEY, JSON.stringify(stats));
   } catch {
-    return null;
+    // Storage may be full or disabled
   }
 }
 
-export function loadDailyResult(date: string) {
+export function saveGameResult(result: GameResult, statistics: Statistics): void {
+  saveStatistics(statistics);
+  if (result.mode === "daily" && result.date) {
+    try {
+      localStorage.setItem(
+        `${DAILY_KEY}:${result.date}`,
+        JSON.stringify(result),
+      );
+    } catch {
+      // ignore
+    }
+  }
+}
+
+export function loadDailyResult(date: string): GameResult | null {
   try {
     const saved = localStorage.getItem(`${DAILY_KEY}:${date}`);
     return saved ? (JSON.parse(saved) as GameResult) : null;
   } catch {
     return null;
   }
+}
+
+export function hasDailyBeenCompleted(date: string): boolean {
+  return localStorage.getItem(`${DAILY_KEY}:${date}`) !== null;
 }
