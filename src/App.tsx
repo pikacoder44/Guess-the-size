@@ -10,9 +10,10 @@ import { BALANCED_PUZZLES, getObjectById, OBJECTS } from "./data/objects";
 import { computeScore } from "./utils/scoring";
 import { useTargetTransform } from "./hooks/useTargetTransform";
 import { GameHeader } from "./components/game/GameHeader";
-import { GameBoard, REFERENCE_PX, GROUND_Y, FIXED_CANVAS_HEIGHT } from "./components/game/GameBoard";
+import { GameBoard } from "./components/game/GameBoard";
 import { ControlPanel } from "./components/game/ControlPanel";
 import { ResultView } from "./components/game/ResultView";
+import { REFERENCE_PX, GROUND_Y, FIXED_CANVAS_HEIGHT, getGluedTargetX } from "./constants/board";
 import "./App.css";
 
 // Select balanced, visually manageable puzzle pairs (ratio 0.3x - 3.0x, e.g. car vs bus, dog vs horse)
@@ -48,7 +49,7 @@ export function App() {
     resizeHandlers,
     resetTransform,
   } = useTargetTransform({
-    initialPosition: { x: 340, y: 0 },
+    initialPosition: { x: getGluedTargetX(INITIAL_PUZZLE.reference), y: 0 },
     initialScale: 1.0,
     locked: phase === "RESULT",
     canvasBounds: {
@@ -83,7 +84,7 @@ export function App() {
     setPhase("PLAYING");
     setCapturedGuessScale(null);
     setResultData(null);
-    resetTransform({ x: 340, y: 0 }, 1.0);
+    resetTransform({ x: getGluedTargetX(nextPuzzle.reference), y: 0 }, 1.0);
   }, [puzzle.target.id, resetTransform]);
 
   return (
