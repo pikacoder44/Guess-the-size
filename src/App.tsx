@@ -95,16 +95,23 @@ function TargetObject({
   color = TARGET_COLOR,
   label,
   showHandle = true,
-  defaultPos = { x: 0, y: 0 },
-}: TargetObjectProps & { defaultPos?: { x: number; y: number } }) {
+  position,
+  onPositionChange,
+}: TargetObjectProps & { position?: { x: number; y: number }; onPositionChange?: (pos: { x: number; y: number }) => void }) {
   // Scale is stored in a ref for performance — no React re-render on every pointer event
   const scaleRef = useRef(INITIAL_SCALE);
   const [renderScale, setRenderScale] = useState(INITIAL_SCALE);
   const dragRef = useRef<{ startY: number; startScale: number } | null>(null);
   
-  // Position state for moving
-  const posRef = useRef(defaultPos);
-  const [position, setPosition] = useState(defaultPos);
+  // Position state for moving (fallback if uncontrolled)
+  const [internalPos, setInternalPos] = useState({ x: 0, y: 0 });
+  const currentPos = position ?? internalPos;
+  const posRef = useRef(currentPos);
+  
+  useEffect(() => {
+    posRef.current = currentPos;
+  }, [currentPos]);
+
   const moveDragRef = useRef<{ startX: number; startY: number; startPosX: number; startPosY: number } | null>(null);
 
   const wrapperRef = useRef<HTMLDivElement>(null);
@@ -156,12 +163,17 @@ function TargetObject({
     if (!moveDragRef.current) return;
     e.preventDefault();
     const deltaX = e.clientX - moveDragRef.current.startX;
-    const deltaY = e.clientY - moveDragRef.current.startY;
+    const deltaY = moveDragRef.current.startY - e.clientY; // bottom-based: mouse up -> increase y
+    
     const newX = Math.max(0, moveDragRef.current.startPosX + deltaX);
     const newY = Math.max(0, moveDragRef.current.startPosY + deltaY);
-    posRef.current = { x: newX, y: newY };
-    setPosition({ x: newX, y: newY });
-  }, []);
+    
+    if (onPositionChange) {
+      onPositionChange({ x: newX, y: newY });
+    } else {
+      setInternalPos({ x: newX, y: newY });
+    }
+  }, [onPositionChange]);
 
   // Pointer up to stop moving
   const handleMovePointerUp = useCallback((e: React.PointerEvent) => {
@@ -236,9 +248,8 @@ function TargetObject({
         width: wrapperW,
         height: wrapperH,
         position: "absolute",
-        left: position.x,
-        top: position.y,
-        transform: "translateY(-100%)", // Anchor bottom-left
+        left: currentPos.x,
+        bottom: currentPos.y,
         cursor: locked ? 'default' : (moveDragRef.current ? 'grabbing' : 'grab'),
         touchAction: 'none',
         flexShrink: 0,
@@ -316,16 +327,16 @@ function Game({
   const isLast = round === 4;
   const viewportRef = useRef<HTMLDivElement>(null);
 
-  const GROUND_Y = 1000;
-  const CANVAS_MIN_W = 1600;
-  const CANVAS_MIN_H = 1200;
+  // Bottom-up coordinate system
+  const START_X = 200; // Ref object position
+  const GROUND_Y = 50;  // Pixels from bottom
+
+  const [targetPos, setTargetPos] = useState({ x: START_X + 150, y: GROUND_Y });
 
   useEffect(() => {
-    if (viewportRef.current) {
-      // Scroll to center the action on the ground line
-      viewportRef.current.scrollTop = GROUND_Y - 300; 
-      viewportRef.current.scrollLeft = CANVAS_MIN_W / 2 - viewportRef.current.clientWidth / 2;
-    }
+    // Reset positions on new round
+    setTargetPos({ x: START_X + 150, y: GROUND_Y });
+    setScale(INITIAL_SCALE);
   }, [round]);
 
   // Compute the current estimate:
@@ -392,28 +403,28 @@ function Game({
         <div 
           className="board-stage-viewport" 
           ref={viewportRef}
-          style={{ width: '100%', height: '450px', overflow: 'auto', position: 'relative' }}
+          style={{ width: '100%', height: '450px', overflow: 'auto', position: 'relative', display: 'flex', flexDirection: 'column-reverse' }}
         >
           <div 
             className="board-stage-canvas" 
             style={{
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              minWidth: CANVAS_MIN_W,
-              minHeight: CANVAS_MIN_H,
+              position: 'relative',
+              minWidth: '100%',
+              minHeight: '100%',
+              width: `${Math.max(100, targetPos.x + (REFERENCE_PX * scale * puzzle.target.aspectRatio) + 100)}px`,
+              height: `${Math.max(100, targetPos.y + (REFERENCE_PX * scale) + 100)}px`,
               background: 'repeating-linear-gradient(0deg, transparent, transparent 39px, var(--border) 39px, var(--border) 40px)'
             }}
           >
             <div 
               className="stage-ground-line" 
               aria-hidden="true" 
-              style={{ position: 'absolute', top: GROUND_Y, left: 0, right: 0, height: '2px', background: 'linear-gradient(90deg, var(--ref-color) 50%, var(--target-color) 50%)', opacity: 0.3 }} 
+              style={{ position: 'absolute', bottom: GROUND_Y, left: 0, right: 0, height: '2px', background: 'linear-gradient(90deg, var(--ref-color) 50%, var(--target-color) 50%)', opacity: 0.3 }} 
             />
             <div 
               className="stage-divider" 
               aria-hidden="true" 
-              style={{ position: 'absolute', top: 0, bottom: 0, left: CANVAS_MIN_W / 2, width: '1px', background: 'var(--border)', opacity: 0.5 }} 
+              style={{ position: 'absolute', top: 0, bottom: 0, left: START_X, width: '1px', background: 'var(--border)', opacity: 0.5 }} 
             />
 
             {/* Reference object — fixed, not resizable */}
@@ -421,9 +432,9 @@ function Game({
               className="reference-object"
               style={{ 
                 position: 'absolute', 
-                top: GROUND_Y, 
-                left: CANVAS_MIN_W / 2 - 40, 
-                transform: 'translate(-100%, -100%)' 
+                bottom: GROUND_Y, 
+                left: START_X - 40, 
+                transform: 'translateX(-100%)' 
               }}
             >
               <div
@@ -448,9 +459,8 @@ function Game({
                 className="reveal-comparison"
                 style={{ 
                   position: 'absolute', 
-                  top: GROUND_Y, 
-                  left: CANVAS_MIN_W / 2 + 40, 
-                  transform: 'translate(0, -100%)',
+                  bottom: GROUND_Y, 
+                  left: START_X + 40, 
                   display: 'flex',
                   alignItems: 'flex-end',
                   gap: '24px'
@@ -506,7 +516,8 @@ function Game({
                 referencePx={REFERENCE_PX}
                 locked={locked}
                 onScaleChange={setScale}
-                defaultPos={{ x: CANVAS_MIN_W / 2 + 40, y: GROUND_Y }}
+                position={targetPos}
+                onPositionChange={setTargetPos}
               />
             )}
           </div>
