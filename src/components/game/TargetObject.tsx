@@ -64,6 +64,7 @@ export const TargetObject: React.FC<TargetObjectProps> = ({
           silhouette={target.silhouette}
           label={target.name}
           color={color}
+          aspectRatio={target.aspectRatio}
         />
       </div>
 

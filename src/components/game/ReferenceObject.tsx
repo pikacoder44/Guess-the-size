@@ -41,6 +41,7 @@ export const ReferenceObject: React.FC<ReferenceObjectProps> = ({
           silhouette={reference.silhouette}
           label={reference.name}
           color={color}
+          aspectRatio={reference.aspectRatio}
         />
       </div>
 

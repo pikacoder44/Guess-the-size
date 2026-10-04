@@ -61,10 +61,18 @@ export function useTargetTransform({
     const deltaX = e.clientX - posDragRef.current.pointerX;
     // Bottom-relative coordinate: mouse moving up (smaller clientY) increases Y
     const deltaY = posDragRef.current.pointerY - e.clientY;
+    let nextY = posDragRef.current.startPosY + deltaY;
+
+    // Magnetic baseline snapping:
+    // If the object is within 24px of the baseline or dragged downwards,
+    // lock it cleanly to y = 0 so it stays attached to the base while sliding horizontally
+    if (nextY < 24) {
+      nextY = 0;
+    }
 
     setPosition({
       x: posDragRef.current.startPosX + deltaX,
-      y: posDragRef.current.startPosY + deltaY,
+      y: nextY,
     });
   }, [locked]);
 

@@ -166,6 +166,7 @@ export const ResultView: React.FC<ResultViewProps> = ({
                 silhouette={reference.silhouette}
                 label={reference.name}
                 color="#7cb8e8"
+                aspectRatio={reference.aspectRatio}
               />
             </div>
             <div style={{ textAlign: "center" }}>
@@ -216,6 +217,7 @@ export const ResultView: React.FC<ResultViewProps> = ({
                 silhouette={target.silhouette}
                 label="Your guess"
                 color="#e47b5f"
+                aspectRatio={target.aspectRatio}
               />
             </div>
             <div style={{ textAlign: "center" }}>
@@ -265,6 +267,7 @@ export const ResultView: React.FC<ResultViewProps> = ({
                 silhouette={target.silhouette}
                 label="Correct size"
                 color="#6dc98a"
+                aspectRatio={target.aspectRatio}
               />
             </div>
             <div style={{ textAlign: "center" }}>

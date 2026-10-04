@@ -13,11 +13,48 @@ type Props = {
   silhouette: string;
   label: string;
   color: string;
+  aspectRatio?: number;
+};
+
+const SILHOUETTE_BASE_Y: Record<string, number> = {
+  human: 92,
+  child: 90,
+  cat: 94,
+  dog: 96,
+  horse: 96,
+  giraffe: 96,
+  elephant: 96,
+  penguin: 94,
+  "polar-bear": 96,
+  "blue-whale": 70,
+  bicycle: 88,
+  motorcycle: 88,
+  car: 88,
+  bus: 90,
+  truck: 90,
+  airplane: 80,
+  ship: 82,
+  house: 92,
+  lighthouse: 90,
+  tower: 92,
+  skyscraper: 92,
+  "eiffel-tower": 92,
+  chair: 96,
+  door: 92,
+  refrigerator: 92,
+  piano: 90,
+  "football-pitch": 90,
+  "tennis-court": 90,
+  tree: 96,
+  mountain: 92,
+  volcano: 92,
+  rocket: 74,
+  satellite: 70,
 };
 
 const f = "currentColor";
 
-export function ObjectSilhouette({ silhouette, label, color }: Props) {
+export function ObjectSilhouette({ silhouette, label, color, aspectRatio }: Props) {
   let art: React.ReactNode;
 
   switch (silhouette) {
@@ -514,14 +551,19 @@ export function ObjectSilhouette({ silhouette, label, color }: Props) {
       );
   }
 
+  const baseY = SILHOUETTE_BASE_Y[silhouette] ?? 96;
+  const ar = aspectRatio ?? 1.0;
+  const viewBoxWidth = baseY * ar;
+  const minX = 50 - viewBoxWidth / 2;
+
   return (
     <svg
       className="silhouette"
-      viewBox="0 0 100 100"
-      preserveAspectRatio="xMidYMid meet"
+      viewBox={`${minX} 0 ${viewBoxWidth} ${baseY}`}
+      preserveAspectRatio="xMidYMax meet"
       role="img"
       aria-label={label}
-      style={{ color, width: "100%", height: "100%", display: "block" }}
+      style={{ color, width: "100%", height: "100%", display: "block", overflow: "visible" }}
     >
       {art}
     </svg>
