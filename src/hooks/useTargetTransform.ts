@@ -5,16 +5,26 @@ export const MIN_SCALE = 0.05;
 export const MAX_SCALE = 25.0;
 export const DRAG_SCALE_SENSITIVITY = 0.006;
 
+export interface CanvasBounds {
+  width: number;
+  height: number;
+  groundY: number;
+  referencePx: number;
+  aspectRatio: number;
+}
+
 export interface UseTargetTransformOptions {
   initialPosition?: Position;
   initialScale?: number;
   locked?: boolean;
+  canvasBounds?: CanvasBounds;
 }
 
 export function useTargetTransform({
   initialPosition = { x: 380, y: 0 },
   initialScale = 1.0,
   locked = false,
+  canvasBounds,
 }: UseTargetTransformOptions = {}) {
   const [position, setPosition] = useState<Position>(initialPosition);
   const [scale, setScale] = useState<number>(initialScale);
@@ -61,20 +71,31 @@ export function useTargetTransform({
     const deltaX = e.clientX - posDragRef.current.pointerX;
     // Bottom-relative coordinate: mouse moving up (smaller clientY) increases Y
     const deltaY = posDragRef.current.pointerY - e.clientY;
+    let nextX = posDragRef.current.startPosX + deltaX;
     let nextY = posDragRef.current.startPosY + deltaY;
 
+    // Strict fixed canvas boundary enforcement:
+    // Entire target bounding box must remain inside the canvas
+    if (canvasBounds) {
+      const targetW = canvasBounds.referencePx * scale * canvasBounds.aspectRatio;
+      const targetH = canvasBounds.referencePx * scale;
+      const maxX = Math.max(0, canvasBounds.width - targetW);
+      const maxY = Math.max(0, canvasBounds.height - canvasBounds.groundY - targetH);
+      nextX = Math.min(maxX, Math.max(0, nextX));
+      nextY = Math.min(maxY, Math.max(0, nextY));
+    }
+
     // Magnetic baseline snapping:
-    // If the object is within 24px of the baseline or dragged downwards,
-    // lock it cleanly to y = 0 so it stays attached to the base while sliding horizontally
-    if (nextY < 24) {
+    // If the object is within 20px of the baseline, lock it cleanly to y = 0
+    if (nextY < 20) {
       nextY = 0;
     }
 
     setPosition({
-      x: posDragRef.current.startPosX + deltaX,
+      x: nextX,
       y: nextY,
     });
-  }, [locked]);
+  }, [locked, scale, canvasBounds]);
 
   const handleMovePointerUp = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
     if (posDragRef.current) {
@@ -108,13 +129,22 @@ export function useTargetTransform({
 
     // Dragging handle upward (smaller clientY) increases scale
     const deltaY = resizeDragRef.current.pointerY - e.clientY;
+
+    // Bound scale so target cannot exceed the fixed canvas
+    let maxScaleAllowed = MAX_SCALE;
+    if (canvasBounds) {
+      const maxScaleW = (canvasBounds.width - position.x) / (canvasBounds.referencePx * canvasBounds.aspectRatio);
+      const maxScaleH = (canvasBounds.height - canvasBounds.groundY - position.y) / canvasBounds.referencePx;
+      maxScaleAllowed = Math.max(MIN_SCALE, Math.min(MAX_SCALE, maxScaleW, maxScaleH));
+    }
+
     const newScale = Math.min(
-      MAX_SCALE,
+      maxScaleAllowed,
       Math.max(MIN_SCALE, resizeDragRef.current.startScale + deltaY * DRAG_SCALE_SENSITIVITY)
     );
 
     setScale(newScale);
-  }, [locked]);
+  }, [locked, position.x, position.y, canvasBounds]);
 
   const handleResizePointerUp = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
     if (resizeDragRef.current) {
@@ -132,14 +162,22 @@ export function useTargetTransform({
   const handleResizeKeyDown = useCallback((e: React.KeyboardEvent<HTMLDivElement>) => {
     if (locked) return;
     const step = e.shiftKey ? 0.2 : 0.05;
+
+    let maxScaleAllowed = MAX_SCALE;
+    if (canvasBounds) {
+      const maxScaleW = (canvasBounds.width - position.x) / (canvasBounds.referencePx * canvasBounds.aspectRatio);
+      const maxScaleH = (canvasBounds.height - canvasBounds.groundY - position.y) / canvasBounds.referencePx;
+      maxScaleAllowed = Math.max(MIN_SCALE, Math.min(MAX_SCALE, maxScaleW, maxScaleH));
+    }
+
     if (e.key === "ArrowUp") {
       e.preventDefault();
-      setScale((s) => Math.min(MAX_SCALE, s + step));
+      setScale((s) => Math.min(maxScaleAllowed, s + step));
     } else if (e.key === "ArrowDown") {
       e.preventDefault();
       setScale((s) => Math.max(MIN_SCALE, s - step));
     }
-  }, [locked]);
+  }, [locked, position.x, position.y, canvasBounds]);
 
   const resetTransform = useCallback((pos = initialPosition, sc = initialScale) => {
     setPosition(pos);

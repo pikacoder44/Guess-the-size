@@ -451,3 +451,23 @@ export const PUZZLE_POOL: Array<{ referenceId: string; targetId: string }> = [
 export function getObjectById(id: string): ScaleObject | undefined {
   return OBJECTS.find((o) => o.id === id);
 }
+
+/**
+ * Curated list of visually manageable, balanced puzzle pairs.
+ * Scale ratios are within realistic 0.3x - 3.0x bounds (e.g. car vs bus, dog vs horse, bicycle vs motorcycle).
+ * Avoids absurd scale comparisons like human vs mountain peak or rocket.
+ */
+export const BALANCED_PUZZLES: Array<{ referenceId: string; targetId: string }> = [
+  { referenceId: "car", targetId: "bus" },
+  { referenceId: "dog", targetId: "horse" },
+  { referenceId: "bicycle", targetId: "motorcycle" },
+  { referenceId: "human", targetId: "door" },
+  { referenceId: "human", targetId: "refrigerator" },
+  { referenceId: "human", targetId: "chair" },
+  { referenceId: "human", targetId: "bicycle" },
+  { referenceId: "cat", targetId: "dog" },
+  { referenceId: "chair", targetId: "piano" },
+  { referenceId: "human", targetId: "horse" },
+  { referenceId: "human", targetId: "child" },
+];
+
