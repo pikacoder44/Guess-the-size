@@ -2,6 +2,7 @@ import { useEffect, type ReactNode, useRef, type CSSProperties, type KeyboardEve
 import { pickRandomPuzzle } from "@/game/puzzles";
 import { rectToScreen, screenToWorld, sizeFor, type Rect, type Vec } from "@/game/geometry";
 import { correctRect, guessRect, referenceRect, type GameApi } from "@/game/useGame";
+import { formatMeasurement } from "@/game/scoring";
 import { SilhouetteSvg } from "./Silhouette";
 import type { GameObject } from "@/game/types";
 
@@ -211,9 +212,7 @@ function ObjectLabel({ object, showMeasure }: { object: GameObject; showMeasure?
       {showMeasure && (
         <span className="font-mono text-muted-foreground">
           {" · "}
-          {object.actualMeasurement < 1
-            ? `${Math.round(object.actualMeasurement * 100)} cm`
-            : `${object.actualMeasurement} m`}{" "}
+          {formatMeasurement(object.actualMeasurement)}{" "}
           {object.axis}
         </span>
       )}

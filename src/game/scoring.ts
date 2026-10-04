@@ -1,5 +1,6 @@
 /** Signed percentage error of a guess relative to the correct value. */
 export function percentError(guess: number, correct: number): number {
+  if (correct <= 0) return 0;
   return ((guess - correct) / correct) * 100;
 }
 
@@ -14,5 +15,7 @@ export function calculateScore(guess: number, correct: number): number {
 }
 
 export function formatMeasurement(metres: number): string {
-  return metres < 1 ? `${Math.round(metres * 100)} cm` : `${metres.toFixed(2)} m`;
+  if (metres <= 0) return "0 cm";
+  const cm = Math.round(metres * 100);
+  return cm < 100 ? `${cm} cm` : `${(cm / 100).toFixed(2)} m`;
 }
