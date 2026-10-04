@@ -135,13 +135,28 @@
       linear-gradient(90deg, var(--board-grid) 1px, transparent 1px);
     background-size: 32px 32px;
   }
+  .ghost {
+    opacity: 0.42;
+    filter: saturate(0.85);
+    pointer-events: none;
+  }
   .target-box { position: absolute; }
   .target-box:focus-visible { outline: 1px dashed var(--target); outline-offset: 4px; }
   .resize-handle {
-    position: absolute; top: -8px; right: -8px;
-    width: 18px; height: 18px; border-radius: 9999px;
+    position: absolute; top: -10px; right: -10px;
+    width: 20px; height: 20px; border-radius: 9999px;
     background: var(--target); border: 3px solid var(--board);
     cursor: nesw-resize; touch-action: none;
+    box-shadow: 0 0 0 1px oklch(0.82 0.15 75 / 0.35), 0 2px 8px rgba(0, 0, 0, 0.45);
+    transition: transform 120ms ease, box-shadow 120ms ease;
+  }
+  .resize-handle:hover {
+    transform: scale(1.18);
+    box-shadow: 0 0 12px var(--target), 0 2px 8px rgba(0, 0, 0, 0.6);
+  }
+  .resize-handle:active {
+    transform: scale(1.08);
+    box-shadow: 0 0 18px var(--target);
   }
   .resize-handle::before { content: ""; position: absolute; inset: -10px; }
   .object-label {
@@ -153,20 +168,24 @@
     display: inline-flex; align-items: center; justify-content: center;
     height: 2.25rem; min-width: 2.25rem; border-radius: var(--radius-md);
     border: 1px solid var(--color-border); background: var(--secondary); color: var(--foreground);
-    transition: background-color 150ms;
+    transition: background-color 150ms, transform 100ms;
   }
   .ctrl-btn:hover:not(:disabled) { background: var(--accent); }
+  .ctrl-btn:active:not(:disabled) { transform: scale(0.96); }
   .ctrl-btn:disabled, .lock-btn:disabled { opacity: 0.4; cursor: not-allowed; }
   .lock-btn {
     height: 2.75rem; padding: 0 1.5rem; border-radius: var(--radius-md);
     background: var(--primary); color: var(--primary-foreground);
-    font-weight: 600; letter-spacing: 0.01em; transition: filter 150ms;
+    font-weight: 600; letter-spacing: 0.01em; transition: filter 150ms, transform 100ms;
   }
   .lock-btn:hover:not(:disabled) { filter: brightness(1.08); }
+  .lock-btn:active:not(:disabled) { transform: scale(0.98); }
   .result-panel {
     display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem;
-    padding: 1rem 1.25rem; border-radius: var(--radius-xl);
-    border: 1px solid var(--color-border); background: var(--card);
+    padding: 1.25rem 1.5rem; border-radius: var(--radius-2xl);
+    border: 1px solid var(--color-border); background: color-mix(in oklch, var(--card) 90%, transparent);
+    backdrop-filter: blur(16px);
+    box-shadow: 0 12px 36px rgba(0, 0, 0, 0.35);
   }
   @media (min-width: 640px) { .result-panel { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
 }
