@@ -1,6 +1,5 @@
 import { useGame } from "@/game/useGame";
 import { GameBoard } from "@/components/game/GameBoard";
-import { CameraControls } from "@/components/game/CameraControls";
 import { ResultPanel } from "@/components/game/ResultPanel";
 import { pickRandomPuzzle } from "@/game/puzzles";
 
@@ -19,12 +18,17 @@ export function App() {
               ScaleGuess
             </span>
           </div>
-          <span className="text-[11px] font-mono uppercase tracking-wider px-2 py-0.5 rounded-full bg-secondary text-muted-foreground border border-border">
+          <span className="text-[11px] font-mono uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-secondary text-muted-foreground border border-border">
             {playing ? "Estimating" : "Result"}
           </span>
         </div>
-
-        <CameraControls game={game} />
+        {state && (
+          <div className="hidden sm:flex items-center gap-1.5 text-xs font-mono text-muted-foreground">
+            <span>{state.puzzle.reference.name}</span>
+            <span className="opacity-40">/</span>
+            <span className="text-primary font-medium">{state.puzzle.target.name}</span>
+          </div>
+        )}
       </header>
 
       {/* ── Main Game Area ── */}
@@ -63,18 +67,10 @@ export function App() {
             </div>
           ) : (
             state && (
-              <div className="flex flex-col gap-4 animate-in fade-in duration-300">
-                <ResultPanel state={state} />
-                <div className="flex justify-end">
-                  <button
-                    type="button"
-                    className="lock-btn"
-                    onClick={() => game.init(pickRandomPuzzle(state.puzzle.id), state.viewport)}
-                  >
-                    Next Round →
-                  </button>
-                </div>
-              </div>
+              <ResultPanel
+                state={state}
+                onNextRound={() => game.init(pickRandomPuzzle(state.puzzle.id), state.viewport)}
+              />
             )
           )}
         </div>
