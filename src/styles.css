@@ -1,0 +1,172 @@
+@import "tailwindcss" source(none);
+@source "../src";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+/*
+ * Design system definition.
+ *
+ * The @theme inline block maps CSS custom properties to Tailwind utility
+ * classes (e.g. --color-primary -> bg-primary, text-primary).
+ *
+ * The :root and .dark blocks define the actual color values using oklch.
+ * All colors MUST use oklch format.
+ *
+ * To add a new semantic color:
+ * 1. Add the variable to :root (light value) and .dark (dark value)
+ * 2. Register it in @theme inline as --color-<name>: var(--<name>)
+ */
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+  --radius-3xl: calc(var(--radius) + 12px);
+  --radius-4xl: calc(var(--radius) + 16px);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-ring-offset-background: var(--background);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-board: var(--board);
+  --color-reference: var(--reference);
+  --color-target: var(--target);
+  --color-correct: var(--correct);
+  --font-display: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+}
+
+:root {
+  --radius: 0.5rem;
+  --background: oklch(0.17 0.01 255);
+  --foreground: oklch(0.95 0.005 255);
+  --card: oklch(0.21 0.012 255);
+  --card-foreground: oklch(0.95 0.005 255);
+  --popover: oklch(0.21 0.012 255);
+  --popover-foreground: oklch(0.95 0.005 255);
+  --primary: oklch(0.82 0.15 75);
+  --primary-foreground: oklch(0.18 0.02 75);
+  --secondary: oklch(0.26 0.012 255);
+  --secondary-foreground: oklch(0.95 0.005 255);
+  --muted: oklch(0.26 0.012 255);
+  --muted-foreground: oklch(0.66 0.015 255);
+  --accent: oklch(0.3 0.014 255);
+  --accent-foreground: oklch(0.95 0.005 255);
+  --destructive: oklch(0.65 0.2 25);
+  --destructive-foreground: oklch(0.98 0 0);
+  --border: oklch(0.3 0.012 255);
+  --input: oklch(0.3 0.012 255);
+  --ring: oklch(0.82 0.15 75);
+  --board: oklch(0.2 0.011 255);
+  --board-grid: oklch(0.25 0.012 255);
+  --reference: oklch(0.72 0.02 255);
+  --target: oklch(0.82 0.15 75);
+  --correct: oklch(0.93 0.01 160);
+  --chart-1: oklch(0.646 0.222 41.116);
+  --chart-2: oklch(0.6 0.118 184.704);
+  --chart-3: oklch(0.398 0.07 227.392);
+  --chart-4: oklch(0.828 0.189 84.429);
+  --chart-5: oklch(0.769 0.188 70.08);
+  --sidebar: oklch(0.21 0.012 255);
+  --sidebar-foreground: oklch(0.95 0.005 255);
+  --sidebar-primary: oklch(0.82 0.15 75);
+  --sidebar-primary-foreground: oklch(0.18 0.02 75);
+  --sidebar-accent: oklch(0.26 0.012 255);
+  --sidebar-accent-foreground: oklch(0.95 0.005 255);
+  --sidebar-border: oklch(0.3 0.012 255);
+  --sidebar-ring: oklch(0.82 0.15 75);
+}
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+  }
+}
+
+@layer base {
+  html, body { overflow-x: hidden; font-family: var(--font-sans); }
+  :focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+}
+
+@layer components {
+  .game-viewport {
+    border-radius: var(--radius-xl);
+    border: 1px solid var(--color-border);
+    background-color: var(--board);
+    background-image:
+      linear-gradient(var(--board-grid) 1px, transparent 1px),
+      linear-gradient(90deg, var(--board-grid) 1px, transparent 1px);
+    background-size: 32px 32px;
+  }
+  .target-box { position: absolute; }
+  .target-box:focus-visible { outline: 1px dashed var(--target); outline-offset: 4px; }
+  .resize-handle {
+    position: absolute; top: -8px; right: -8px;
+    width: 18px; height: 18px; border-radius: 9999px;
+    background: var(--target); border: 3px solid var(--board);
+    cursor: nesw-resize; touch-action: none;
+  }
+  .resize-handle::before { content: ""; position: absolute; inset: -10px; }
+  .object-label {
+    position: absolute; left: 0; bottom: 100%; margin-bottom: 4px;
+    white-space: nowrap; font-size: 11px; color: var(--muted-foreground);
+    pointer-events: none;
+  }
+  .ctrl-btn {
+    display: inline-flex; align-items: center; justify-content: center;
+    height: 2.25rem; min-width: 2.25rem; border-radius: var(--radius-md);
+    border: 1px solid var(--color-border); background: var(--secondary); color: var(--foreground);
+    transition: background-color 150ms;
+  }
+  .ctrl-btn:hover:not(:disabled) { background: var(--accent); }
+  .ctrl-btn:disabled, .lock-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .lock-btn {
+    height: 2.75rem; padding: 0 1.5rem; border-radius: var(--radius-md);
+    background: var(--primary); color: var(--primary-foreground);
+    font-weight: 600; letter-spacing: 0.01em; transition: filter 150ms;
+  }
+  .lock-btn:hover:not(:disabled) { filter: brightness(1.08); }
+  .result-panel {
+    display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem;
+    padding: 1rem 1.25rem; border-radius: var(--radius-xl);
+    border: 1px solid var(--color-border); background: var(--card);
+  }
+  @media (min-width: 640px) { .result-panel { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+}
