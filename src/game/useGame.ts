@@ -97,8 +97,11 @@ function reducer(state: GameState | null, action: Action): GameState | null {
     case "viewport": {
       const { width, height } = action.viewport;
       if (width === state.viewport.width && height === state.viewport.height) return state;
-      // Keep the same framing: scale zoom with the viewport width.
-      const zoom = state.camera.zoom * (width / state.viewport.width);
+      // Keep the same framing: scale zoom with the viewport width if valid.
+      const zoom =
+        state.viewport.width > 0 && width > 0
+          ? state.camera.zoom * (width / state.viewport.width)
+          : state.camera.zoom;
       const next = { ...state, viewport: action.viewport, camera: { ...state.camera, zoom } };
       return { ...next, camera: clampCamera(next.camera, sceneRect(next), next.viewport) };
     }
