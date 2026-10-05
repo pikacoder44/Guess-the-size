@@ -267,7 +267,7 @@ export function GameBoard({ game }: { game: GameApi }) {
           )}
 
           {/* Floating Canvas Camera Controls */}
-          <div className="absolute bottom-3 right-3 z-20 pointer-events-auto backdrop-blur-md bg-card/85 border border-border/70 rounded-xl p-1 shadow-lg shadow-black/25">
+          <div className="absolute top-3 right-3 z-20 pointer-events-auto backdrop-blur-md bg-card/85 border border-border/70 rounded-xl p-1 shadow-lg shadow-black/25">
             <CameraControls game={game} />
           </div>
         </>
