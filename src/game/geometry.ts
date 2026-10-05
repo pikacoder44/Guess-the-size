@@ -9,12 +9,12 @@ export type Viewport = { width: number; height: number };
 
 /** Screen-space gap objects keep from the viewport edge. */
 export const VIEW_PADDING = 12;
-/** Min zoom as a fraction of the zoom that fits the scene. */
 export const MIN_ZOOM_FRACTION = 0.2;
-/** Max zoom multiplier over the zoom that fits the scene. */
 export const MAX_ZOOM_MULTIPLIER = 4;
-/** Smallest on-screen side length of the target, in px. */
 export const MIN_TARGET_PX = 14;
+
+export const FLOOR_BOTTOM_PADDING_PX = 32;
+export const FLOOR_LEFT_PADDING_PX = 5;
 
 /** Converts a point from viewport screen pixels (y down, origin at top-left) to world metres (y up). */
 export function screenToWorld(pt: Vec, camera: Camera, vp: Viewport): Vec {
@@ -63,7 +63,12 @@ export function minScaleForPx(
 }
 
 export function rectFromCenter(c: Vec, s: Size): Rect {
-  return { minX: c.x - s.w / 2, maxX: c.x + s.w / 2, minY: c.y - s.h / 2, maxY: c.y + s.h / 2 };
+  return {
+    minX: c.x - s.w / 2,
+    maxX: c.x + s.w / 2,
+    minY: c.y - s.h / 2,
+    maxY: c.y + s.h / 2,
+  };
 }
 
 /** Computes the minimal bounding box enclosing all provided rectangles. */
@@ -84,7 +89,10 @@ export function unionRects(...rects: Rect[]): Rect {
 export function fitZoom(rect: Rect, vp: Viewport, pad = VIEW_PADDING): number {
   const rw = Math.max(rect.maxX - rect.minX, 1e-6);
   const rh = Math.max(rect.maxY - rect.minY, 1e-6);
-  return Math.max(1e-6, Math.min((vp.width - 2 * pad) / rw, (vp.height - 2 * pad) / rh));
+  return Math.max(
+    1e-6,
+    Math.min((vp.width - 2 * pad) / rw, (vp.height - 2 * pad) / rh),
+  );
 }
 
 export function fitCamera(rect: Rect, vp: Viewport, margin = 1): Camera {
@@ -95,29 +103,65 @@ export function fitCamera(rect: Rect, vp: Viewport, margin = 1): Camera {
   };
 }
 
-export function zoomLimits(rect: Rect, vp: Viewport): { min: number; max: number } {
-  const fit = fitZoom(rect, vp);
-  return { min: fit * MIN_ZOOM_FRACTION, max: fit * MAX_ZOOM_MULTIPLIER };
+export function zoomLimits(
+  scene: Rect,
+  vp: Viewport,
+  refRect?: Rect,
+): { min: number; max: number } {
+  const availH = Math.max(1, vp.height - FLOOR_BOTTOM_PADDING_PX - 40);
+  const availW = Math.max(1, vp.width - FLOOR_LEFT_PADDING_PX - 20);
+
+  // Reference dimensions
+  const ref = refRect ?? scene;
+  const refW = Math.max(0.01, ref.maxX - ref.minX);
+  const refH = Math.max(0.01, ref.maxY - 0); // baseline is y = 0
+
+  // 1. MAX ZOOM (Zoom In Limit):
+  const max = Math.min(availW / refW, availH / refH);
+
+  // 2. MIN ZOOM (Zoom Out Limit):
+  const sceneW = Math.max(0.1, scene.maxX - scene.minX);
+  const sceneH = Math.max(0.1, scene.maxY - 0);
+  const fitZoomVal = Math.min(availW / sceneW, availH / sceneH);
+
+  const min = Math.min(max * 0.3, fitZoomVal * 0.9);
+
+  return { min, max: Math.max(min, max) };
 }
 
-/** Moves the camera centre so `rect` stays fully visible at the camera's zoom. */
-export function clampCamera(cam: Camera, rect: Rect, vp: Viewport, pad = VIEW_PADDING): Camera {
-  const halfW = (vp.width / 2 - pad) / cam.zoom;
-  const halfH = (vp.height / 2 - pad) / cam.zoom;
-  const clampAxis = (v: number, lo: number, hi: number) =>
-    lo > hi ? (lo + hi) / 2 : Math.min(Math.max(v, lo), hi);
-  return {
-    ...cam,
-    cx: clampAxis(cam.cx, rect.maxX - halfW, rect.minX + halfW),
-    cy: clampAxis(cam.cy, rect.maxY - halfH, rect.minY + halfH),
-  };
+/** Moves the camera centre so baseline and left padding stay anchored cleanly. */
+export function clampCamera(
+  camera: Camera,
+  scene: Rect,
+  vp: Viewport,
+  refRect?: Rect,
+): Camera {
+  const { zoom } = camera;
+
+  // y-axis: keep baseline y = 0 fixed near the bottom
+  const cy = (vp.height / 2 - FLOOR_BOTTOM_PADDING_PX) / zoom;
+
+  // x-axis: pin the reference object's left edge (ref.minX) to FLOOR_LEFT_PADDING_PX
+  const leftEdgeWorld = refRect ? refRect.minX : scene.minX;
+  const cx = leftEdgeWorld + (vp.width / 2 - FLOOR_LEFT_PADDING_PX) / zoom;
+
+  return { cx, cy, zoom };
 }
 
 /** World rect currently visible, inset by padding. */
-export function visibleWorldRect(cam: Camera, vp: Viewport, pad = VIEW_PADDING): Rect {
+export function visibleWorldRect(
+  cam: Camera,
+  vp: Viewport,
+  pad = VIEW_PADDING,
+): Rect {
   const halfW = (vp.width / 2 - pad) / cam.zoom;
   const halfH = (vp.height / 2 - pad) / cam.zoom;
-  return { minX: cam.cx - halfW, maxX: cam.cx + halfW, minY: cam.cy - halfH, maxY: cam.cy + halfH };
+  return {
+    minX: cam.cx - halfW,
+    maxX: cam.cx + halfW,
+    minY: cam.cy - halfH,
+    maxY: cam.cy + halfH,
+  };
 }
 
 /** Clamps a centre so a box of `size` stays inside `bounds`. */

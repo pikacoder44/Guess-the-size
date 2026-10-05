@@ -174,7 +174,12 @@ function reducer(state: GameState | null, action: Action): GameState | null {
       };
       return {
         ...next,
-        camera: clampCamera(next.camera, sceneRect(next), next.viewport),
+        camera: clampCamera(
+          next.camera,
+          sceneRect(next),
+          next.viewport,
+          referenceRect(next),
+        ),
       };
     }
     case "moveTarget": {
@@ -229,14 +234,20 @@ function reducer(state: GameState | null, action: Action): GameState | null {
     }
     case "zoom": {
       const scene = sceneRect(state);
-      const { min, max } = zoomLimits(scene, state.viewport);
+      const ref = referenceRect(state);
+      const { min, max } = zoomLimits(scene, state.viewport, ref);
       const zoom = Math.min(
         Math.max(state.camera.zoom * action.factor, min),
         max,
       );
       return {
         ...state,
-        camera: clampCamera({ ...state.camera, zoom }, scene, state.viewport),
+        camera: clampCamera(
+          { ...state.camera, zoom },
+          scene,
+          state.viewport,
+          ref,
+        ),
       };
     }
     case "fit":
@@ -296,14 +307,15 @@ export function useGame() {
   const smoothZoom = (factor: number) => {
     if (!state) return;
     const scene = sceneRect(state);
-    const { min, max } = zoomLimits(scene, state.viewport);
+    const ref = referenceRect(state);
+    const { min, max } = zoomLimits(scene, state.viewport, ref);
     const targetZoom = Math.min(Math.max(state.camera.zoom * factor, min), max);
 
-    // Calculate clamped camera for target zoom level
     const targetCam = clampCamera(
       { ...state.camera, zoom: targetZoom },
       scene,
       state.viewport,
+      ref,
     );
 
     animateCameraTo(targetCam, 250);
@@ -312,7 +324,11 @@ export function useGame() {
   // Smooth Fit Both
   const smoothFit = () => {
     if (!state) return;
-    const targetCam = fitCameraToFloor(sceneRect(state), state.viewport, FIT_MARGIN);
+    const targetCam = fitCameraToFloor(
+      sceneRect(state),
+      state.viewport,
+      FIT_MARGIN,
+    );
     animateCameraTo(targetCam, 400);
   };
 
@@ -326,7 +342,10 @@ export function useGame() {
     };
 
     const targetRect = correctRect(lockedState);
-    const availH = Math.max(1, state.viewport.height - FLOOR_BOTTOM_PADDING_PX - 40);
+    const availH = Math.max(
+      1,
+      state.viewport.height - FLOOR_BOTTOM_PADDING_PX - 40,
+    );
     const availW = Math.max(1, state.viewport.width * FIT_MARGIN);
 
     const rectW = Math.max(0.1, targetRect.maxX - targetRect.minX);
@@ -348,15 +367,21 @@ export function useGame() {
     };
   }, []);
 
-  const zoomInfo = state ? zoomLimits(sceneRect(state), state.viewport) : null;
+  const zoomInfo = state
+    ? zoomLimits(sceneRect(state), state.viewport, referenceRect(state))
+    : null;
   const fitBaseZoom = state ? fitZoom(sceneRect(state), state.viewport) : null;
 
   return {
     state,
-    canZoomIn: !!state && !!zoomInfo && state.camera.zoom < zoomInfo.max * 0.999,
-    canZoomOut: !!state && !!zoomInfo && state.camera.zoom > zoomInfo.min * 1.001,
+    canZoomIn:
+      !!state && !!zoomInfo && state.camera.zoom < zoomInfo.max * 0.999,
+    canZoomOut:
+      !!state && !!zoomInfo && state.camera.zoom > zoomInfo.min * 1.001,
     zoomPercent:
-      state && fitBaseZoom ? Math.round((state.camera.zoom / fitBaseZoom) * 100) : 0,
+      state && fitBaseZoom
+        ? Math.round((state.camera.zoom / fitBaseZoom) * 100)
+        : 0,
     init: (puzzle: Puzzle, viewport: Viewport) =>
       dispatch({ type: "init", puzzle, viewport }),
     setViewport: (viewport: Viewport) =>
