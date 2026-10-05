@@ -39,7 +39,6 @@ function boxStyle(rect: Rect, game: GameApi): CSSProperties {
     transform: `translate3d(${b.left}px, ${b.top}px, 0)`,
   };
 }
-
 type DragState =
   | { kind: "move"; pointerId: number; grabOffset: Vec }
   | {
@@ -194,11 +193,6 @@ export function GameBoard({ game }: { game: GameApi }) {
             aria-hidden="true"
           >
             <div className="baseline-line w-full border-b border-border/70" />
-            <div className=" absolute right-4 -top-3">
-              <span className="baseline-text text-xs text-muted-foreground/75 font-mono select-none">
-                Baseline
-              </span>
-            </div>
           </div>
 
           {/* Reference Object */}

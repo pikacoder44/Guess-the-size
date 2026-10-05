@@ -1,4 +1,4 @@
-import { useReducer } from "react";
+import { useReducer, useRef, useEffect } from "react";
 import {
   clampCamera,
   clampCenter,
@@ -34,7 +34,6 @@ export type GameState = {
   /** Captured on Lock In; never overwritten. */
   finalGuessScale: number | null;
 };
-
 type Action =
   | { type: "init"; puzzle: Puzzle; viewport: Viewport }
   | { type: "viewport"; viewport: Viewport }
@@ -42,7 +41,8 @@ type Action =
   | { type: "resizeTarget"; scale: number }
   | { type: "zoom"; factor: number }
   | { type: "fit" }
-  | { type: "lockIn" };
+  | { type: "lockIn" }
+  | { type: "setCamera"; camera: Camera };
 
 /* ---------- Floor-Anchored Camera Helper ---------- */
 
@@ -112,7 +112,9 @@ export function correctRect(s: GameState): Rect {
 
 export function sceneRect(s: GameState): Rect {
   const rects = [referenceRect(s), guessRect(s)];
-  if (s.phase === "RESULT") rects.push(correctRect(s));
+  if (s.phase === "RESULT") {
+    rects.push(correctRect(s));
+  }
   return unionRects(...rects);
 }
 
@@ -244,28 +246,93 @@ function reducer(state: GameState | null, action: Action): GameState | null {
       };
     case "lockIn": {
       if (state.phase !== "PLAYING") return state;
-      const locked: GameState = {
+      return {
         ...state,
         phase: "RESULT",
         finalGuessScale: state.guessScale,
       };
-      return {
-        ...locked,
-        // Frame both the reference, the player's guess, and the actual silhouette on the floor
-        camera: fitCameraToFloor(
-          sceneRect(locked),
-          locked.viewport,
-          FIT_MARGIN,
-        ),
-      };
     }
+    case "setCamera":
+      return { ...state, camera: action.camera };
   }
 }
 
 export function useGame() {
   const [state, dispatch] = useReducer(reducer, null);
+  const animRef = useRef<number | null>(null);
+
+  const lockIn = () => {
+    if (!state || state.phase !== "PLAYING") return;
+
+    // 1. Prepare locked state to compute the exact bounding box of the actual silhouette
+    const lockedState: GameState = {
+      ...state,
+      phase: "RESULT",
+      finalGuessScale: state.guessScale,
+    };
+
+    // 2. Target ONLY the actual silhouette rect, NOT the whole scene!
+    const targetRect = correctRect(lockedState);
+
+    // Fit height with comfortable margin (FIT_MARGIN = 0.85)
+    const availH = Math.max(
+      1,
+      state.viewport.height - FLOOR_BOTTOM_PADDING_PX - 40,
+    );
+    const availW = Math.max(1, state.viewport.width * FIT_MARGIN);
+
+    const rectW = Math.max(0.1, targetRect.maxX - targetRect.minX);
+    const rectH = Math.max(0.1, targetRect.maxY - 0); // baseline is at y = 0
+
+    const zoom = Math.min(availW / rectW, availH / rectH);
+    const cy = (state.viewport.height / 2 - FLOOR_BOTTOM_PADDING_PX) / zoom;
+    // Center camera directly on the actual silhouette
+    const cx = (targetRect.minX + targetRect.maxX) / 2;
+
+    const targetCamera: Camera = { cx, cy, zoom };
+
+    // 3. Lock state so actual silhouette mounts
+    dispatch({ type: "lockIn" });
+
+    // 4. Smoothly glide directly into the actual silhouette
+    const startCam = { ...state.camera };
+    const duration = 900;
+    const startTime = performance.now();
+
+    const animate = (now: number) => {
+      const elapsed = now - startTime;
+      const progress = Math.min(1, elapsed / duration);
+
+      // Quintic ease-out curve
+      const ease = 1 - Math.pow(1 - progress, 5);
+
+      const nextCamera: Camera = {
+        cx: startCam.cx + (targetCamera.cx - startCam.cx) * ease,
+        cy: startCam.cy + (targetCamera.cy - startCam.cy) * ease,
+        zoom: startCam.zoom + (targetCamera.zoom - startCam.zoom) * ease,
+      };
+
+      dispatch({ type: "setCamera", camera: nextCamera });
+
+      if (progress < 1) {
+        animRef.current = requestAnimationFrame(animate);
+      }
+    };
+
+    if (animRef.current) cancelAnimationFrame(animRef.current);
+    animRef.current = requestAnimationFrame(animate);
+  };
+
+  // Clean up any running animation on unmount
+  useEffect(() => {
+    return () => {
+      if (animRef.current) cancelAnimationFrame(animRef.current);
+    };
+  }, []);
+
   const zoomInfo = state ? zoomLimits(sceneRect(state), state.viewport) : null;
   const fitBaseZoom = state ? fitZoom(sceneRect(state), state.viewport) : null;
+
   return {
     state,
     canZoomIn:
@@ -285,7 +352,7 @@ export function useGame() {
     zoomIn: () => dispatch({ type: "zoom", factor: 1.25 }),
     zoomOut: () => dispatch({ type: "zoom", factor: 0.8 }),
     fitBoth: () => dispatch({ type: "fit" }),
-    lockIn: () => dispatch({ type: "lockIn" }),
+    lockIn,
   };
 }
 
