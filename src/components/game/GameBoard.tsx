@@ -194,7 +194,7 @@ export function GameBoard({ game }: { game: GameApi }) {
             aria-hidden="true"
           >
             <div className="baseline-line w-full border-b border-border/70" />
-            <div className="baseline-badge absolute right-4 -top-3">
+            <div className=" absolute right-4 -top-3">
               <span className="baseline-text text-xs text-muted-foreground/75 font-mono select-none">
                 Baseline
               </span>
