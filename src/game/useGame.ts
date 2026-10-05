@@ -251,6 +251,7 @@ function reducer(state: GameState | null, action: Action): GameState | null {
       };
       return {
         ...locked,
+        // Frame both the reference, the player's guess, and the actual silhouette on the floor
         camera: fitCameraToFloor(
           sceneRect(locked),
           locked.viewport,
