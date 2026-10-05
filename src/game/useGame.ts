@@ -261,50 +261,20 @@ export function useGame() {
   const [state, dispatch] = useReducer(reducer, null);
   const animRef = useRef<number | null>(null);
 
-  const lockIn = () => {
-    if (!state || state.phase !== "PLAYING") return;
+  // Smoothly interpolates the camera over a given duration
+  const animateCameraTo = (targetCamera: Camera, duration = 300) => {
+    if (!state) return;
+    if (animRef.current) cancelAnimationFrame(animRef.current);
 
-    // 1. Prepare locked state to compute the exact bounding box of the actual silhouette
-    const lockedState: GameState = {
-      ...state,
-      phase: "RESULT",
-      finalGuessScale: state.guessScale,
-    };
-
-    // 2. Target ONLY the actual silhouette rect, NOT the whole scene!
-    const targetRect = correctRect(lockedState);
-
-    // Fit height with comfortable margin (FIT_MARGIN = 0.85)
-    const availH = Math.max(
-      1,
-      state.viewport.height - FLOOR_BOTTOM_PADDING_PX - 40,
-    );
-    const availW = Math.max(1, state.viewport.width * FIT_MARGIN);
-
-    const rectW = Math.max(0.1, targetRect.maxX - targetRect.minX);
-    const rectH = Math.max(0.1, targetRect.maxY - 0); // baseline is at y = 0
-
-    const zoom = Math.min(availW / rectW, availH / rectH);
-    const cy = (state.viewport.height / 2 - FLOOR_BOTTOM_PADDING_PX) / zoom;
-    // Center camera directly on the actual silhouette
-    const cx = (targetRect.minX + targetRect.maxX) / 2;
-
-    const targetCamera: Camera = { cx, cy, zoom };
-
-    // 3. Lock state so actual silhouette mounts
-    dispatch({ type: "lockIn" });
-
-    // 4. Smoothly glide directly into the actual silhouette
     const startCam = { ...state.camera };
-    const duration = 900;
     const startTime = performance.now();
 
-    const animate = (now: number) => {
+    const step = (now: number) => {
       const elapsed = now - startTime;
       const progress = Math.min(1, elapsed / duration);
 
-      // Quintic ease-out curve
-      const ease = 1 - Math.pow(1 - progress, 5);
+      // Smooth ease-out cubic curve
+      const ease = 1 - Math.pow(1 - progress, 3);
 
       const nextCamera: Camera = {
         cx: startCam.cx + (targetCamera.cx - startCam.cx) * ease,
@@ -315,15 +285,63 @@ export function useGame() {
       dispatch({ type: "setCamera", camera: nextCamera });
 
       if (progress < 1) {
-        animRef.current = requestAnimationFrame(animate);
+        animRef.current = requestAnimationFrame(step);
       }
     };
 
-    if (animRef.current) cancelAnimationFrame(animRef.current);
-    animRef.current = requestAnimationFrame(animate);
+    animRef.current = requestAnimationFrame(step);
   };
 
-  // Clean up any running animation on unmount
+  // Smooth Zoom By Factor
+  const smoothZoom = (factor: number) => {
+    if (!state) return;
+    const scene = sceneRect(state);
+    const { min, max } = zoomLimits(scene, state.viewport);
+    const targetZoom = Math.min(Math.max(state.camera.zoom * factor, min), max);
+
+    // Calculate clamped camera for target zoom level
+    const targetCam = clampCamera(
+      { ...state.camera, zoom: targetZoom },
+      scene,
+      state.viewport,
+    );
+
+    animateCameraTo(targetCam, 250);
+  };
+
+  // Smooth Fit Both
+  const smoothFit = () => {
+    if (!state) return;
+    const targetCam = fitCameraToFloor(sceneRect(state), state.viewport, FIT_MARGIN);
+    animateCameraTo(targetCam, 400);
+  };
+
+  const lockIn = () => {
+    if (!state || state.phase !== "PLAYING") return;
+
+    const lockedState: GameState = {
+      ...state,
+      phase: "RESULT",
+      finalGuessScale: state.guessScale,
+    };
+
+    const targetRect = correctRect(lockedState);
+    const availH = Math.max(1, state.viewport.height - FLOOR_BOTTOM_PADDING_PX - 40);
+    const availW = Math.max(1, state.viewport.width * FIT_MARGIN);
+
+    const rectW = Math.max(0.1, targetRect.maxX - targetRect.minX);
+    const rectH = Math.max(0.1, targetRect.maxY - 0);
+
+    const zoom = Math.min(availW / rectW, availH / rectH);
+    const cy = (state.viewport.height / 2 - FLOOR_BOTTOM_PADDING_PX) / zoom;
+    const cx = (targetRect.minX + targetRect.maxX) / 2;
+
+    const targetCamera: Camera = { cx, cy, zoom };
+
+    dispatch({ type: "lockIn" });
+    animateCameraTo(targetCamera, 900);
+  };
+
   useEffect(() => {
     return () => {
       if (animRef.current) cancelAnimationFrame(animRef.current);
@@ -335,23 +353,19 @@ export function useGame() {
 
   return {
     state,
-    canZoomIn:
-      !!state && !!zoomInfo && state.camera.zoom < zoomInfo.max * 0.999,
-    canZoomOut:
-      !!state && !!zoomInfo && state.camera.zoom > zoomInfo.min * 1.001,
+    canZoomIn: !!state && !!zoomInfo && state.camera.zoom < zoomInfo.max * 0.999,
+    canZoomOut: !!state && !!zoomInfo && state.camera.zoom > zoomInfo.min * 1.001,
     zoomPercent:
-      state && fitBaseZoom
-        ? Math.round((state.camera.zoom / fitBaseZoom) * 100)
-        : 0,
+      state && fitBaseZoom ? Math.round((state.camera.zoom / fitBaseZoom) * 100) : 0,
     init: (puzzle: Puzzle, viewport: Viewport) =>
       dispatch({ type: "init", puzzle, viewport }),
     setViewport: (viewport: Viewport) =>
       dispatch({ type: "viewport", viewport }),
     moveTarget: (center: Vec) => dispatch({ type: "moveTarget", center }),
     resizeTarget: (scale: number) => dispatch({ type: "resizeTarget", scale }),
-    zoomIn: () => dispatch({ type: "zoom", factor: 1.25 }),
-    zoomOut: () => dispatch({ type: "zoom", factor: 0.8 }),
-    fitBoth: () => dispatch({ type: "fit" }),
+    zoomIn: () => smoothZoom(1.25),
+    zoomOut: () => smoothZoom(0.8),
+    fitBoth: smoothFit,
     lockIn,
   };
 }
