@@ -1,7 +1,26 @@
-import { useEffect, type ReactNode, useRef, type CSSProperties, type KeyboardEvent, type PointerEvent } from "react";
+import {
+  useEffect,
+  type ReactNode,
+  useRef,
+  type CSSProperties,
+  type KeyboardEvent,
+  type PointerEvent,
+} from "react";
 import { pickRandomPuzzle } from "@/game/puzzles";
-import { rectToScreen, screenToWorld, sizeFor, type Rect, type Vec } from "@/game/geometry";
-import { correctRect, guessRect, referenceRect, type GameApi } from "@/game/useGame";
+import {
+  rectToScreen,
+  screenToWorld,
+  worldToScreen,
+  sizeFor,
+  type Rect,
+  type Vec,
+} from "@/game/geometry";
+import {
+  correctRect,
+  guessRect,
+  referenceRect,
+  type GameApi,
+} from "@/game/useGame";
 import { formatMeasurement } from "@/game/scoring";
 import { SilhouetteSvg } from "./Silhouette";
 import { CameraControls } from "./CameraControls";
@@ -23,7 +42,14 @@ function boxStyle(rect: Rect, game: GameApi): CSSProperties {
 
 type DragState =
   | { kind: "move"; pointerId: number; grabOffset: Vec }
-  | { kind: "resize"; pointerId: number; startX: number; startY: number; scale: number; diagPx: number };
+  | {
+      kind: "resize";
+      pointerId: number;
+      startX: number;
+      startY: number;
+      scale: number;
+      diagPx: number;
+    };
 
 export function GameBoard({ game }: { game: GameApi }) {
   const viewportRef = useRef<HTMLDivElement>(null);
@@ -159,8 +185,28 @@ export function GameBoard({ game }: { game: GameApi }) {
     >
       {state && (
         <>
+          {/* Baseline: visible light stroke on which both objects sit initially */}
+          <div
+            className="baseline-stroke absolute inset-x-0 z-0 pointer-events-none"
+            style={{
+              top: `${worldToScreen({ x: 0, y: 0 }, state.camera, state.viewport).y}px`,
+            }}
+            aria-hidden="true"
+          >
+            <div className="baseline-line w-full border-b border-border/70" />
+            <div className="baseline-badge absolute right-4 -top-3">
+              <span className="baseline-text text-xs text-muted-foreground/75 font-mono select-none">
+                Baseline
+              </span>
+            </div>
+          </div>
+
           {/* Reference Object */}
-          <SceneBox rect={referenceRect(state)} game={game} className="text-reference">
+          <SceneBox
+            rect={referenceRect(state)}
+            game={game}
+            className="text-reference"
+          >
             <SilhouetteSvg object={state.puzzle.reference} />
             <ObjectLabel object={state.puzzle.reference} showMeasure />
           </SceneBox>
@@ -201,14 +247,26 @@ export function GameBoard({ game }: { game: GameApi }) {
           ) : (
             <>
               {/* Correct silhouette (Solid) */}
-              <SceneBox rect={correctRect(state)} game={game} className="text-correct">
+              <SceneBox
+                rect={correctRect(state)}
+                game={game}
+                className="text-correct"
+              >
                 <SilhouetteSvg object={state.puzzle.target} />
-                <span className="object-label text-correct font-semibold">Actual</span>
+                <span className="object-label text-correct font-semibold">
+                  Actual
+                </span>
               </SceneBox>
               {/* Player's final guess silhouette (Ghost) */}
-              <SceneBox rect={guessRect(state)} game={game} className="text-target">
+              <SceneBox
+                rect={guessRect(state)}
+                game={game}
+                className="text-target"
+              >
                 <SilhouetteSvg object={state.puzzle.target} isGhost />
-                <span className="object-label text-target opacity-75">Your guess</span>
+                <span className="object-label text-target opacity-75">
+                  Your guess
+                </span>
               </SceneBox>
             </>
           )}
@@ -223,23 +281,41 @@ export function GameBoard({ game }: { game: GameApi }) {
   );
 }
 
-function SceneBox({ rect, game, className, children }: { rect: Rect; game: GameApi; className: string; children: ReactNode }) {
+function SceneBox({
+  rect,
+  game,
+  className,
+  children,
+}: {
+  rect: Rect;
+  game: GameApi;
+  className: string;
+  children: ReactNode;
+}) {
   return (
-    <div className={`pointer-events-none absolute left-0 top-0 ${className}`} style={boxStyle(rect, game)}>
+    <div
+      className={`pointer-events-none absolute left-0 top-0 ${className}`}
+      style={boxStyle(rect, game)}
+    >
       {children}
     </div>
   );
 }
 
-function ObjectLabel({ object, showMeasure }: { object: GameObject; showMeasure?: boolean }) {
+function ObjectLabel({
+  object,
+  showMeasure,
+}: {
+  object: GameObject;
+  showMeasure?: boolean;
+}) {
   return (
     <span className="object-label">
       {object.name}
       {showMeasure && (
         <span className="font-mono text-muted-foreground">
           {" · "}
-          {formatMeasurement(object.actualMeasurement)}{" "}
-          {object.axis}
+          {formatMeasurement(object.actualMeasurement)} {object.axis}
         </span>
       )}
     </span>

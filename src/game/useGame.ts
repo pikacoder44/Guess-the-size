@@ -2,9 +2,7 @@ import { useReducer } from "react";
 import {
   clampCamera,
   clampCenter,
-  fitCamera,
   fitZoom,
-  maxScaleFactorAt,
   minScaleForPx,
   rectFromCenter,
   sizeFor,
@@ -18,9 +16,10 @@ import {
 } from "./geometry";
 import type { GamePhase, Puzzle } from "./types";
 
-const INITIAL_MARGIN = 0.6;
+const INITIAL_MARGIN = 0.85;
 const FIT_MARGIN = 0.9;
 const REFERENCE_GAP = 0.25; // fraction of reference width between objects
+const FLOOR_BOTTOM_PADDING_PX = 32; // Exact pixel clearance from bottom border
 
 export type GameState = {
   puzzle: Puzzle;
@@ -43,6 +42,31 @@ type Action =
   | { type: "zoom"; factor: number }
   | { type: "fit" }
   | { type: "lockIn" };
+
+/* ---------- Floor-Anchored Camera Helper ---------- */
+
+/**
+ * Fits the scene horizontally & vertically while aligning y = 0
+ * to sit `FLOOR_BOTTOM_PADDING_PX` above the bottom edge of the viewport.
+ */
+function fitCameraToFloor(rect: Rect, vp: Viewport, margin = FIT_MARGIN): Camera {
+  // Available height excluding bottom floor margin and top breathing room
+  const availH = Math.max(1, vp.height - FLOOR_BOTTOM_PADDING_PX - 40);
+  const availW = Math.max(1, vp.width * margin);
+  
+  const zoomW = availW / Math.max(0.1, rect.maxX - rect.minX);
+  const zoomH = availH / Math.max(0.1, rect.maxY - 0); // Ground baseline is at y = 0
+  const zoom = Math.min(zoomW, zoomH);
+
+  // In screen space: yScreen = (vp.h / 2) - (yWorld - cy) * zoom
+  // We want yWorld = 0 to land at yScreen = (vp.h - FLOOR_BOTTOM_PADDING_PX):
+  // vp.h - FLOOR_BOTTOM_PADDING_PX = (vp.h / 2) + cy * zoom
+  // cy * zoom = (vp.h / 2) - FLOOR_BOTTOM_PADDING_PX
+  const cy = (vp.height / 2 - FLOOR_BOTTOM_PADDING_PX) / zoom;
+  const cx = (rect.minX + rect.maxX) / 2;
+
+  return { cx, cy, zoom };
+}
 
 /* ---------- derived scene geometry (pure) ---------- */
 
@@ -76,17 +100,20 @@ function createInitialState(puzzle: Puzzle, viewport: Viewport): GameState {
     puzzle.target.axis === "height" ? refSize.h : refSize.h * (startSize.w / startSize.h);
   const targetSize = sizeFor(puzzle.target, guessScale);
   const gap = refSize.w * REFERENCE_GAP;
+
   const base: GameState = {
     puzzle,
     phase: "PLAYING",
     viewport,
     camera: { cx: 0, cy: 0, zoom: 1 },
+    // Both objects sit flush on the baseline y = 0
     referenceCenter: { x: 0, y: refSize.h / 2 },
     targetCenter: { x: refSize.w / 2 + gap + targetSize.w / 2, y: targetSize.h / 2 },
     guessScale,
     finalGuessScale: null,
   };
-  return { ...base, camera: fitCamera(sceneRect(base), viewport, INITIAL_MARGIN) };
+
+  return { ...base, camera: fitCameraToFloor(sceneRect(base), viewport, INITIAL_MARGIN) };
 }
 
 function reducer(state: GameState | null, action: Action): GameState | null {
@@ -97,7 +124,6 @@ function reducer(state: GameState | null, action: Action): GameState | null {
     case "viewport": {
       const { width, height } = action.viewport;
       if (width === state.viewport.width && height === state.viewport.height) return state;
-      // Keep the same framing: scale zoom with the viewport width if valid.
       const zoom =
         state.viewport.width > 0 && width > 0
           ? state.camera.zoom * (width / state.viewport.width)
@@ -109,17 +135,37 @@ function reducer(state: GameState | null, action: Action): GameState | null {
       if (state.phase !== "PLAYING") return state;
       const bounds = visibleWorldRect(state.camera, state.viewport);
       const size = sizeFor(state.puzzle.target, state.guessScale);
-      return { ...state, targetCenter: clampCenter(action.center, size, bounds) };
+      // Keep object on or above the baseline (y >= 0)
+      const clamped = clampCenter(action.center, size, bounds);
+      return { ...state, targetCenter: { x: clamped.x, y: clamped.y } };
     }
     case "resizeTarget": {
       if (state.phase !== "PLAYING") return state;
       const target = state.puzzle.target;
       const current = sizeFor(target, state.guessScale);
       const bounds = visibleWorldRect(state.camera, state.viewport);
-      const maxScale = state.guessScale * maxScaleFactorAt(state.targetCenter, current, bounds);
+      
+      // Bottom remains fixed to the baseline during resize
+      const bottomY = Math.max(0, state.targetCenter.y - current.h / 2);
+      const maxFactorY = current.h > 0 ? Math.max(0, (bounds.maxY - bottomY) / current.h) : 1;
+      const maxFactorX = current.w > 0
+        ? Math.max(0, Math.min(
+            (2 * (state.targetCenter.x - bounds.minX)) / current.w,
+            (2 * (bounds.maxX - state.targetCenter.x)) / current.w
+          ))
+        : 1;
+
+      const maxScale = state.guessScale * Math.min(maxFactorY, maxFactorX);
       const minScale = minScaleForPx(state.guessScale, current, state.camera.zoom);
       const scale = Math.min(Math.max(action.scale, minScale), Math.max(maxScale, minScale));
-      return { ...state, guessScale: scale };
+      const nextSize = sizeFor(target, scale);
+      
+      const nextCenter = clampCenter(
+        { x: state.targetCenter.x, y: bottomY + nextSize.h / 2 },
+        nextSize,
+        bounds
+      );
+      return { ...state, guessScale: scale, targetCenter: nextCenter };
     }
     case "zoom": {
       const scene = sceneRect(state);
@@ -128,11 +174,11 @@ function reducer(state: GameState | null, action: Action): GameState | null {
       return { ...state, camera: clampCamera({ ...state.camera, zoom }, scene, state.viewport) };
     }
     case "fit":
-      return { ...state, camera: fitCamera(sceneRect(state), state.viewport, FIT_MARGIN) };
+      return { ...state, camera: fitCameraToFloor(sceneRect(state), state.viewport, FIT_MARGIN) };
     case "lockIn": {
       if (state.phase !== "PLAYING") return state;
       const locked: GameState = { ...state, phase: "RESULT", finalGuessScale: state.guessScale };
-      return { ...locked, camera: fitCamera(sceneRect(locked), locked.viewport, FIT_MARGIN) };
+      return { ...locked, camera: fitCameraToFloor(sceneRect(locked), locked.viewport, FIT_MARGIN) };
     }
   }
 }
