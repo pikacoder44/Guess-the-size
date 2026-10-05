@@ -93,9 +93,21 @@ export function guessRect(s: GameState): Rect {
 
 /** Correct object shares the guess's bottom-centre anchor. */
 export function correctRect(s: GameState): Rect {
-  const size = sizeFor(s.puzzle.target, s.puzzle.target.actualMeasurement);
-  const g = guessRect(s);
-  return rectFromCenter({ x: s.targetCenter.x, y: g.minY + size.h / 2 }, size);
+  const actualSize = sizeFor(
+    s.puzzle.target,
+    s.puzzle.target.actualMeasurement,
+  );
+  const ref = referenceRect(s);
+
+  // Convert 2 screen pixels into world units so it's always ~2px on screen
+  const gapMeters = 2 / s.camera.zoom;
+
+  // Left edge touches ref.maxX + gapMeters
+  const centerX = ref.maxX + gapMeters + actualSize.w / 2;
+  // Bottom sits flush on baseline y = 0
+  const centerY = actualSize.h / 2;
+
+  return rectFromCenter({ x: centerX, y: centerY }, actualSize);
 }
 
 export function sceneRect(s: GameState): Rect {
@@ -168,7 +180,10 @@ function reducer(state: GameState | null, action: Action): GameState | null {
       const bounds = visibleWorldRect(state.camera, state.viewport);
       const size = sizeFor(state.puzzle.target, state.guessScale);
       // Freely movable anywhere within visible screen bounds (above, below, or on baseline)
-      return { ...state, targetCenter: clampCenter(action.center, size, bounds) };
+      return {
+        ...state,
+        targetCenter: clampCenter(action.center, size, bounds),
+      };
     }
     case "resizeTarget": {
       if (state.phase !== "PLAYING") return state;

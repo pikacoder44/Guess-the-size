@@ -250,21 +250,22 @@ export function GameBoard({ game }: { game: GameApi }) {
               <SceneBox
                 rect={correctRect(state)}
                 game={game}
-                className="text-correct"
+                className="text-white opacity-30"
               >
                 <SilhouetteSvg object={state.puzzle.target} />
-                <span className="object-label text-correct font-semibold">
+                <span className="object-label text-white/70 font-semibold">
                   Actual
                 </span>
               </SceneBox>
-              {/* Player's final guess silhouette (Ghost) */}
+
+              {/* Player's guess: 100% opacity, wherever the player sized and placed it */}
               <SceneBox
                 rect={guessRect(state)}
                 game={game}
-                className="text-target"
+                className="text-target opacity-100"
               >
-                <SilhouetteSvg object={state.puzzle.target} isGhost />
-                <span className="object-label text-target opacity-75">
+                <SilhouetteSvg object={state.puzzle.target} />
+                <span className="object-label text-target font-semibold">
                   Your guess
                 </span>
               </SceneBox>
