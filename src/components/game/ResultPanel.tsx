@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ArrowRight, Award, Percent, Target } from "lucide-react";
 import { calculateScore, formatMeasurement, percentError } from "@/game/scoring";
 import type { GameState } from "@/game/useGame";
@@ -8,12 +8,38 @@ export interface ResultPanelProps {
   onNextRound?: () => void;
 }
 
+function useCountUp(target: number, duration = 800) {
+  const [value, setValue] = useState(0);
+
+  useEffect(() => {
+    if (target === 0) return;
+    let startTime: number | null = null;
+    let rafId: number;
+
+    const tick = (timestamp: number) => {
+      if (!startTime) startTime = timestamp;
+      const elapsed = timestamp - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      // Ease-out cubic
+      const eased = 1 - Math.pow(1 - progress, 3);
+      setValue(Math.round(eased * target));
+      if (progress < 1) rafId = requestAnimationFrame(tick);
+    };
+
+    rafId = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(rafId);
+  }, [target, duration]);
+
+  return value;
+}
+
 export function ResultPanel({ state, onNextRound }: ResultPanelProps) {
   const nextBtnRef = useRef<HTMLButtonElement>(null);
   const guess = state.finalGuessScale ?? state.guessScale;
   const correct = state.puzzle.target.actualMeasurement;
   const err = percentError(guess, correct);
   const score = calculateScore(guess, correct);
+  const animatedScore = useCountUp(score);
   const axis = state.puzzle.target.axis;
 
   // Auto-focus the progression button when results appear
@@ -85,7 +111,7 @@ export function ResultPanel({ state, onNextRound }: ResultPanelProps) {
         <div className="min-w-0 flex flex-col justify-center">
           <div className="text-xs uppercase tracking-wider text-muted-foreground">Score</div>
           <div className="font-mono text-3xl font-extrabold text-primary flex items-baseline gap-1 mt-0.5">
-            <span>{score}</span>
+            <span>{animatedScore}</span>
             <span className="text-sm font-normal text-muted-foreground">/100</span>
           </div>
         </div>
