@@ -130,6 +130,87 @@ router.post('/login', async (req: Request, res: Response): Promise<void> => {
 });
 
 // ---------------------------------------------------------------------------
+// POST /api/auth/google
+// ---------------------------------------------------------------------------
+/**
+ * Login or register with Google credentials.
+ * Body: { credential?: string, email?: string, name?: string }
+ *
+ * Returns: { token, user }
+ */
+router.post('/google', async (req: Request, res: Response): Promise<void> => {
+  const { credential, email, name } = req.body ?? {};
+
+  let profileName = name;
+  let profileEmail = email;
+
+  // If a JWT ID token was passed from Google Identity Services
+  if (credential && typeof credential === 'string') {
+    try {
+      const decoded = jwt.decode(credential) as { name?: string; email?: string } | null;
+      if (decoded) {
+        profileName = decoded.name || profileName;
+        profileEmail = decoded.email || profileEmail;
+      }
+    } catch {
+      // ignore decode failure and fall back to body fields
+    }
+  }
+
+  // Derive a valid username matching rules (1-32 chars, [a-zA-Z0-9_-])
+  let baseUsername = (profileName || profileEmail?.split('@')[0] || 'GoogleUser')
+    .replace(/[^a-zA-Z0-9_-]/g, '_')
+    .replace(/^_+|_+$/g, '')
+    .slice(0, 24);
+
+  if (!baseUsername || baseUsername.length === 0) {
+    baseUsername = 'GoogleUser';
+  }
+
+  try {
+    // Check if user already exists
+    const { rows: existingRows } = await pool.query<UserRow>(
+      'SELECT * FROM users WHERE LOWER(username) = LOWER($1)',
+      [baseUsername],
+    );
+
+    let user = existingRows[0];
+
+    if (!user) {
+      // Create user with a secure random hash password
+      const randomPassword = `oauth_google_${Math.random().toString(36).substring(2)}${Date.now()}`;
+      const hashedPassword = await bcrypt.hash(randomPassword, 10);
+
+      try {
+        const { rows: newRows } = await pool.query<UserRow>(
+          `INSERT INTO users (username, password)
+           VALUES ($1, $2)
+           RETURNING id, username, created_at`,
+          [baseUsername, hashedPassword],
+        );
+        user = newRows[0];
+      } catch {
+        // In case of conflict, try with random suffix
+        const fallbackUsername = `${baseUsername.slice(0, 20)}_${Math.floor(1000 + Math.random() * 9000)}`;
+        const { rows: retryRows } = await pool.query<UserRow>(
+          `INSERT INTO users (username, password)
+           VALUES ($1, $2)
+           RETURNING id, username, created_at`,
+          [fallbackUsername, hashedPassword],
+        );
+        user = retryRows[0];
+      }
+    }
+
+    const token = signToken(user.id, user.username);
+    res.status(200).json({ token, user: publicUser(user) });
+  } catch (err: unknown) {
+    console.error('Google login error:', err);
+    res.status(500).json({ error: 'Failed to authenticate with Google.' });
+  }
+});
+
+// ---------------------------------------------------------------------------
 // GET /api/auth/me
 // ---------------------------------------------------------------------------
 /**

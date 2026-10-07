@@ -45,12 +45,16 @@ app.use((_req, res) => {
 // Start
 // ---------------------------------------------------------------------------
 (async () => {
-  await initDb();
+  try {
+    await initDb();
+  } catch (err: unknown) {
+    console.warn('⚠️  Database initialization warning:', (err as Error).message);
+  }
 
   app.listen(PORT, () => {
     console.log(`\n🚀 GuessTheSize API running on http://localhost:${PORT}`);
     console.log(`   Health: http://localhost:${PORT}/api/health`);
-    console.log(`   Auth:   http://localhost:${PORT}/api/auth/register | /login | /me\n`);
+    console.log(`   Auth:   http://localhost:${PORT}/api/auth/register | /login | /google | /me\n`);
   });
 })();
 
