@@ -1,19 +1,18 @@
 import React, { useState } from "react";
 import {
-  User as UserIcon,
-  Lock,
   Eye,
   EyeOff,
   AlertCircle,
   CheckCircle2,
   ArrowLeft,
-  Sparkles,
-  ShieldCheck,
   Loader2,
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import { GoogleButton } from "./GoogleButton";
+import { GitHubButton } from "./GitHubButton";
 import { validateUsername, validatePassword } from "../../lib/authApi";
+
+/* ─────────────────────── Types ─────────────────────── */
 
 interface AuthPageProps {
   initialMode?: "login" | "register";
@@ -21,6 +20,20 @@ interface AuthPageProps {
   onSuccess?: () => void;
   onClose?: () => void;
 }
+
+/* ─────────────────────── Helpers ─────────────────────── */
+
+function fieldClass(hasError: boolean, isValid: boolean, extra = ""): string {
+  const base =
+    "w-full px-4 py-2.5 rounded-lg bg-secondary/40 border text-sm text-foreground " +
+    "placeholder:text-muted-foreground/40 transition-colors duration-150 " +
+    "focus:outline-none focus:ring-2 focus:ring-primary/30 font-sans ";
+  if (hasError) return base + "border-destructive/60 " + extra;
+  if (isValid)  return base + "border-emerald-500/40 " + extra;
+  return base + "border-border/70 focus:border-primary/50 " + extra;
+}
+
+/* ─────────────────────── Component ─────────────────────── */
 
 export const AuthPage: React.FC<AuthPageProps> = ({
   initialMode = "login",
@@ -44,6 +57,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [socialLoading, setSocialLoading] = useState<"google" | "github" | null>(null);
   const [clientErrors, setClientErrors] = useState<{
     username?: string;
     password?: string;
@@ -51,8 +65,8 @@ export const AuthPage: React.FC<AuthPageProps> = ({
   }>({});
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
+  /* Sync when parent changes initialMode */
   const [prevInitialMode, setPrevInitialMode] = useState(initialMode);
-
   if (initialMode !== prevInitialMode) {
     setPrevInitialMode(initialMode);
     setMode(initialMode);
@@ -60,40 +74,31 @@ export const AuthPage: React.FC<AuthPageProps> = ({
     setClientErrors({});
   }
 
+  const isUsernameValid = username.length > 0 && !validateUsername(username);
+  const isConfirmValid =
+    mode === "register" && confirmPassword.length > 0 && confirmPassword === password;
+
+  const anyLoading = isSubmitting || socialLoading !== null;
+
+  /* ── Handlers ── */
   const handleModeSwitch = (newMode: "login" | "register") => {
     setMode(newMode);
     clearError();
     setClientErrors({});
     setSuccessMessage(null);
-    if (newMode === "login") {
-      window.location.hash = "#login";
-    } else {
-      window.location.hash = "#register";
-    }
-  };
-
-  const handleDismissError = () => {
-    clearError();
-    setClientErrors({});
+    window.location.hash = `#${newMode}`;
   };
 
   const validateForm = (): boolean => {
     const errors: { username?: string; password?: string; confirmPassword?: string } = {};
-
     const userErr = validateUsername(username);
     if (userErr) errors.username = userErr;
-
     const passErr = validatePassword(password);
     if (passErr) errors.password = passErr;
-
     if (mode === "register") {
-      if (!confirmPassword) {
-        errors.confirmPassword = "Please confirm your password.";
-      } else if (password !== confirmPassword) {
-        errors.confirmPassword = "Passwords do not match.";
-      }
+      if (!confirmPassword) errors.confirmPassword = "Please confirm your password.";
+      else if (password !== confirmPassword) errors.confirmPassword = "Passwords do not match.";
     }
-
     setClientErrors(errors);
     return Object.keys(errors).length === 0;
   };
@@ -102,26 +107,18 @@ export const AuthPage: React.FC<AuthPageProps> = ({
     e.preventDefault();
     clearError();
     setSuccessMessage(null);
-
     if (!validateForm()) return;
-
     if (mode === "login") {
       const ok = await login(username, password);
       if (ok) {
         setSuccessMessage(`Welcome back, ${username}!`);
-        setTimeout(() => {
-          onSuccess?.();
-          onClose?.();
-        }, 600);
+        setTimeout(() => { onSuccess?.(); onClose?.(); }, 600);
       }
     } else {
       const ok = await register(username, password);
       if (ok) {
-        setSuccessMessage(`Welcome to ScaleGuess, ${username}! Account created.`);
-        setTimeout(() => {
-          onSuccess?.();
-          onClose?.();
-        }, 700);
+        setSuccessMessage(`Account created. Welcome, ${username}!`);
+        setTimeout(() => { onSuccess?.(); onClose?.(); }, 700);
       }
     }
   };
@@ -129,44 +126,39 @@ export const AuthPage: React.FC<AuthPageProps> = ({
   const handleGoogleLogin = async () => {
     clearError();
     setSuccessMessage(null);
-    const ok = await loginWithGoogle({
-      name: "Google Explorer",
-      email: "explorer@scale.app",
-    });
-    if (ok) {
-      setSuccessMessage("Signed in successfully with Google!");
-      setTimeout(() => {
-        onSuccess?.();
-        onClose?.();
-      }, 600);
+    setSocialLoading("google");
+    try {
+      const ok = await loginWithGoogle({ name: "Google Explorer", email: "explorer@scale.app" });
+      if (ok) {
+        setSuccessMessage("Signed in with Google!");
+        setTimeout(() => { onSuccess?.(); onClose?.(); }, 600);
+      }
+    } finally {
+      setSocialLoading(null);
     }
   };
 
-  const handleFillDemo = () => {
+  const handleGitHubLogin = async () => {
     clearError();
-    setClientErrors({});
-    const randomSuffix = Math.floor(100 + Math.random() * 900);
-    const demoUser = `scale_pilot_${randomSuffix}`;
-    setUsername(demoUser);
-    setPassword("password123");
-    if (mode === "register") {
-      setConfirmPassword("password123");
+    setSuccessMessage(null);
+    setSocialLoading("github");
+    try {
+      await new Promise<void>((resolve) => setTimeout(resolve, 1400));
+      const ok = await loginWithGoogle({ name: "GitHub Explorer", email: "explorer+github@scale.app" });
+      if (ok) {
+        setSuccessMessage("Signed in with GitHub!");
+        setTimeout(() => { onSuccess?.(); onClose?.(); }, 600);
+      }
+    } finally {
+      setSocialLoading(null);
     }
   };
 
   const handleExit = () => {
-    if (onClose) {
-      onClose();
-    } else {
-      closeAuth();
-    }
+    if (onClose) onClose(); else closeAuth();
   };
 
-  // Username validation state
-  const isUsernameValid = username.length > 0 && !validateUsername(username);
-  const isPasswordValid = password.length >= 4;
-  const isConfirmValid = mode === "register" && confirmPassword.length > 0 && confirmPassword === password;
-
+  /* ─────────────── Render ─────────────── */
   return (
     <div
       className={`w-full flex items-center justify-center ${
@@ -174,125 +166,136 @@ export const AuthPage: React.FC<AuthPageProps> = ({
       }`}
     >
       <div
-        className={`w-full max-w-md bg-card/95 backdrop-blur-xl border border-border/80 rounded-2xl shadow-2xl p-6 sm:p-8 relative overflow-hidden transition-all duration-200 ${
-          isModal ? "border-primary/20 ring-1 ring-primary/20" : ""
-        }`}
+        className={`
+          w-full max-w-md relative overflow-hidden font-sans
+          bg-card/95 backdrop-blur-xl border rounded-2xl shadow-2xl
+          transition-all duration-200
+          ${isModal
+            ? "border-border/60 ring-1 ring-white/5 p-7 sm:p-8"
+            : "border-border/80 p-6 sm:p-8"
+          }
+        `}
       >
-        {/* Subtle decorative background gradient */}
-        <div className="absolute -top-24 -right-24 w-48 h-48 bg-primary/10 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute -bottom-24 -left-24 w-48 h-48 bg-primary/5 rounded-full blur-3xl pointer-events-none" />
+        {/* Ambient glows */}
+        <div className="absolute -top-32 -right-32 w-64 h-64 bg-primary/8 rounded-full blur-3xl pointer-events-none" aria-hidden="true" />
+        <div className="absolute -bottom-32 -left-32 w-64 h-64 bg-primary/4 rounded-full blur-3xl pointer-events-none" aria-hidden="true" />
 
-        {/* Top bar: Back button */}
-        <div className="flex items-center justify-between mb-6 relative z-10">
-          <button
-            type="button"
-            onClick={handleExit}
-            className="inline-flex items-center gap-1.5 text-xs font-mono text-muted-foreground hover:text-foreground transition-colors group"
-          >
-            <ArrowLeft className="w-3.5 h-3.5 transition-transform group-hover:-translate-x-0.5" />
-            <span>Back to Game</span>
-          </button>
-
-          <span className="text-[11px] font-mono px-2 py-0.5 rounded-full bg-secondary/80 border border-border text-muted-foreground">
-            {mode === "login" ? "Auth · Sign In" : "Auth · Register"}
-          </span>
-        </div>
-
-        {/* Header / Brand */}
-        <div className="text-center mb-6 relative z-10">
-          <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-primary/10 border border-primary/20 text-primary mb-3 shadow-inner">
-            <Sparkles className="w-6 h-6 animate-pulse" />
-          </div>
-          <h1 className="text-2xl font-bold font-display tracking-tight text-foreground">
-            {mode === "login" ? "Welcome Back" : "Create Your Account"}
-          </h1>
-          <p className="text-xs text-muted-foreground mt-1">
-            {mode === "login"
-              ? "Sign in to track your scale estimates, streaks, and scores."
-              : "Register to join the global size estimation leaderboard."}
-          </p>
-        </div>
-
-        {/* Tab switcher: Login vs Register */}
-        <div className="grid grid-cols-2 p-1 bg-secondary/60 border border-border/60 rounded-xl mb-6 relative z-10">
-          <button
-            type="button"
-            onClick={() => handleModeSwitch("login")}
-            className={`py-2 text-xs font-semibold rounded-lg transition-all duration-200 ${
-              mode === "login"
-                ? "bg-card text-foreground shadow-sm border border-border/60"
-                : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            Sign In
-          </button>
-          <button
-            type="button"
-            onClick={() => handleModeSwitch("register")}
-            className={`py-2 text-xs font-semibold rounded-lg transition-all duration-200 ${
-              mode === "register"
-                ? "bg-card text-foreground shadow-sm border border-border/60"
-                : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            Register
-          </button>
-        </div>
-
-        {/* Success Alert Banner */}
-        {successMessage && (
-          <div className="mb-5 p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs flex items-center gap-2.5 animate-in fade-in slide-in-from-top-2 duration-200">
-            <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />
-            <span className="font-medium">{successMessage}</span>
+        {/* Back to game — only when rendered as a page, not a modal */}
+        {!isModal && (
+          <div className="flex items-center mb-7 relative z-10">
+            <button
+              type="button"
+              onClick={handleExit}
+              className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors group"
+              aria-label="Back to game"
+            >
+              <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-0.5" />
+              Back to Game
+            </button>
           </div>
         )}
 
-        {/* Server Error Alert Banner */}
+        {/* Header */}
+        <div className="mb-7 relative z-10">
+          <h2 className="text-xl font-semibold tracking-tight text-foreground">
+            {mode === "login" ? "Sign in" : "Create an account"}
+          </h2>
+          <p className="text-sm text-muted-foreground mt-1">
+            {mode === "login" ? "Welcome back to ScaleGuess." : "Start tracking your size estimates."}
+          </p>
+        </div>
+
+        {/* Tab switcher */}
+        <div
+          role="tablist"
+          aria-label="Authentication mode"
+          className="grid grid-cols-2 p-1 bg-secondary/50 border border-border/50 rounded-xl mb-6 relative z-10"
+        >
+          {(["login", "register"] as const).map((tab) => (
+            <button
+              key={tab}
+              type="button"
+              role="tab"
+              aria-selected={mode === tab}
+              onClick={() => handleModeSwitch(tab)}
+              className={`
+                py-2 text-sm font-medium rounded-lg transition-all duration-200
+                ${mode === tab
+                  ? "bg-card text-foreground shadow-sm border border-border/60"
+                  : "text-muted-foreground hover:text-foreground"
+                }
+              `}
+            >
+              {tab === "login" ? "Sign In" : "Register"}
+            </button>
+          ))}
+        </div>
+
+        {/* Success banner */}
+        {successMessage && (
+          <div
+            role="status"
+            className="mb-5 px-4 py-3 rounded-xl bg-emerald-500/10 border border-emerald-500/25 text-emerald-300 text-sm flex items-center gap-2.5 animate-in fade-in slide-in-from-top-2 duration-200"
+          >
+            <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+            {successMessage}
+          </div>
+        )}
+
+        {/* Error banner */}
         {serverError && (
-          <div className="mb-5 p-3.5 rounded-xl bg-destructive/15 border border-destructive/30 text-destructive-foreground text-xs flex items-start justify-between gap-2.5 animate-in fade-in slide-in-from-top-2 duration-200">
+          <div
+            role="alert"
+            className="mb-5 px-4 py-3 rounded-xl bg-destructive/12 border border-destructive/25 text-destructive-foreground text-sm flex items-center justify-between gap-2 animate-in fade-in slide-in-from-top-2 duration-200"
+          >
             <div className="flex items-center gap-2">
               <AlertCircle className="w-4 h-4 text-destructive flex-shrink-0" />
-              <span className="font-medium">{serverError}</span>
+              {serverError}
             </div>
             <button
               type="button"
-              onClick={handleDismissError}
-              className="text-xs opacity-70 hover:opacity-100"
+              onClick={() => { clearError(); setClientErrors({}); }}
+              aria-label="Dismiss error"
+              className="text-muted-foreground hover:text-foreground transition-colors"
             >
               ✕
             </button>
           </div>
         )}
 
-        {/* Google Sign In Section */}
-        <div className="space-y-4 mb-5 relative z-10">
-          <GoogleButton
-            onClick={handleGoogleLogin}
-            isLoading={isSubmitting}
-            label={mode === "login" ? "Login from Google" : "Sign up with Google"}
-          />
+        {/* Social buttons */}
+        <div className="space-y-3 mb-6 relative z-10">
+          <div className="grid grid-cols-2 gap-3">
+            <GoogleButton
+              onClick={handleGoogleLogin}
+              isLoading={socialLoading === "google"}
+              disabled={anyLoading && socialLoading !== "google"}
+              label="Google"
+            />
+            <GitHubButton
+              onClick={handleGitHubLogin}
+              isLoading={socialLoading === "github"}
+              disabled={anyLoading && socialLoading !== "github"}
+              label="GitHub"
+            />
+          </div>
 
-          <div className="relative flex items-center justify-center">
-            <div className="w-full border-t border-border/70" />
-            <span className="absolute bg-card px-3 text-[10px] font-mono uppercase tracking-wider text-muted-foreground/80">
-              or continue with username
-            </span>
+          {/* Divider */}
+          <div className="relative flex items-center">
+            <div className="flex-1 border-t border-border/50" />
+            <span className="px-3 text-xs text-muted-foreground/60">or</span>
+            <div className="flex-1 border-t border-border/50" />
           </div>
         </div>
 
-        {/* Credentials Form */}
+        {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-4 relative z-10" noValidate>
-          {/* Username Field */}
-          <div>
-            <div className="flex items-center justify-between mb-1.5">
-              <label htmlFor="auth-username" className="text-xs font-medium text-foreground flex items-center gap-1.5">
-                <UserIcon className="w-3.5 h-3.5 text-muted-foreground" />
-                <span>Username</span>
-              </label>
-              <span className="text-[10px] font-mono text-muted-foreground">
-                {username.length}/32
-              </span>
-            </div>
+
+          {/* Username */}
+          <div className="space-y-1.5">
+            <label htmlFor="auth-username" className="text-sm font-medium text-foreground">
+              Username
+            </label>
             <div className="relative">
               <input
                 id="auth-username"
@@ -301,48 +304,33 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                 value={username}
                 onChange={(e) => {
                   setUsername(e.target.value);
-                  if (clientErrors.username) {
-                    setClientErrors((prev) => ({ ...prev, username: undefined }));
-                  }
+                  if (clientErrors.username)
+                    setClientErrors((p) => ({ ...p, username: undefined }));
                 }}
                 maxLength={32}
-                placeholder="e.g. quantum_scale"
-                className={`w-full px-3.5 py-2.5 rounded-lg bg-secondary/50 border text-sm text-foreground placeholder:text-muted-foreground/60 transition-colors focus:outline-none focus:ring-2 focus:ring-primary/40 ${
-                  clientErrors.username
-                    ? "border-destructive focus:border-destructive"
-                    : isUsernameValid
-                    ? "border-emerald-500/40 focus:border-primary"
-                    : "border-border/80 focus:border-primary"
-                }`}
-                disabled={isSubmitting}
+                placeholder="your_username"
+                className={fieldClass(!!clientErrors.username, isUsernameValid, isUsernameValid ? "pr-9" : "")}
+                disabled={anyLoading}
+                aria-invalid={!!clientErrors.username}
+                aria-describedby={clientErrors.username ? "username-error" : undefined}
               />
               {isUsernameValid && (
-                <CheckCircle2 className="w-4 h-4 text-emerald-400 absolute right-3 top-3 pointer-events-none" />
+                <CheckCircle2 className="w-4 h-4 text-emerald-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
               )}
             </div>
-            {clientErrors.username ? (
-              <p className="text-[11px] text-destructive mt-1 flex items-center gap-1">
-                <AlertCircle className="w-3 h-3 flex-shrink-0" />
+            {clientErrors.username && (
+              <p id="username-error" className="text-xs text-destructive flex items-center gap-1.5">
+                <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
                 {clientErrors.username}
-              </p>
-            ) : (
-              <p className="text-[10px] font-mono text-muted-foreground/80 mt-1">
-                1–32 characters, alphanumeric, underscores & hyphens
               </p>
             )}
           </div>
 
-          {/* Password Field */}
-          <div>
-            <div className="flex items-center justify-between mb-1.5">
-              <label htmlFor="auth-password" className="text-xs font-medium text-foreground flex items-center gap-1.5">
-                <Lock className="w-3.5 h-3.5 text-muted-foreground" />
-                <span>Password</span>
-              </label>
-              {mode === "login" && (
-                <span className="text-[10px] font-mono text-muted-foreground">Min 4 chars</span>
-              )}
-            </div>
+          {/* Password */}
+          <div className="space-y-1.5">
+            <label htmlFor="auth-password" className="text-sm font-medium text-foreground">
+              Password
+            </label>
             <div className="relative">
               <input
                 id="auth-password"
@@ -351,64 +339,38 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                 value={password}
                 onChange={(e) => {
                   setPassword(e.target.value);
-                  if (clientErrors.password) {
-                    setClientErrors((prev) => ({ ...prev, password: undefined }));
-                  }
+                  if (clientErrors.password)
+                    setClientErrors((p) => ({ ...p, password: undefined }));
                 }}
                 placeholder="••••••••"
-                className={`w-full px-3.5 py-2.5 rounded-lg bg-secondary/50 border text-sm text-foreground placeholder:text-muted-foreground/60 transition-colors focus:outline-none focus:ring-2 focus:ring-primary/40 pr-10 ${
-                  clientErrors.password
-                    ? "border-destructive focus:border-destructive"
-                    : isPasswordValid
-                    ? "border-border/80 focus:border-primary"
-                    : "border-border/80 focus:border-primary"
-                }`}
-                disabled={isSubmitting}
+                className={fieldClass(!!clientErrors.password, false, "pr-10")}
+                disabled={anyLoading}
+                aria-invalid={!!clientErrors.password}
+                aria-describedby={clientErrors.password ? "password-error" : undefined}
               />
               <button
                 type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-2.5 text-muted-foreground hover:text-foreground transition-colors p-0.5"
+                onClick={() => setShowPassword((s) => !s)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
                 aria-label={showPassword ? "Hide password" : "Show password"}
               >
                 {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
             </div>
-            {clientErrors.password ? (
-              <p className="text-[11px] text-destructive mt-1 flex items-center gap-1">
-                <AlertCircle className="w-3 h-3 flex-shrink-0" />
+            {clientErrors.password && (
+              <p id="password-error" className="text-xs text-destructive flex items-center gap-1.5">
+                <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
                 {clientErrors.password}
               </p>
-            ) : mode === "register" ? (
-              <div className="mt-1 flex items-center justify-between">
-                <p className="text-[10px] font-mono text-muted-foreground/80">
-                  Minimum 4 characters required
-                </p>
-                {password.length > 0 && (
-                  <span
-                    className={`text-[10px] font-mono ${
-                      password.length >= 4 ? "text-emerald-400" : "text-amber-400"
-                    }`}
-                  >
-                    {password.length >= 4 ? "Valid length" : `${4 - password.length} more needed`}
-                  </span>
-                )}
-              </div>
-            ) : null}
+            )}
           </div>
 
-          {/* Confirm Password Field (Only on Register) */}
+          {/* Confirm Password */}
           {mode === "register" && (
-            <div className="animate-in fade-in slide-in-from-top-1 duration-150">
-              <div className="flex items-center justify-between mb-1.5">
-                <label
-                  htmlFor="auth-confirm-password"
-                  className="text-xs font-medium text-foreground flex items-center gap-1.5"
-                >
-                  <ShieldCheck className="w-3.5 h-3.5 text-muted-foreground" />
-                  <span>Confirm Password</span>
-                </label>
-              </div>
+            <div className="space-y-1.5 animate-in fade-in slide-in-from-top-1 duration-150">
+              <label htmlFor="auth-confirm-password" className="text-sm font-medium text-foreground">
+                Confirm Password
+              </label>
               <div className="relative">
                 <input
                   id="auth-confirm-password"
@@ -417,99 +379,102 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                   value={confirmPassword}
                   onChange={(e) => {
                     setConfirmPassword(e.target.value);
-                    if (clientErrors.confirmPassword) {
-                      setClientErrors((prev) => ({ ...prev, confirmPassword: undefined }));
-                    }
+                    if (clientErrors.confirmPassword)
+                      setClientErrors((p) => ({ ...p, confirmPassword: undefined }));
                   }}
                   placeholder="••••••••"
-                  className={`w-full px-3.5 py-2.5 rounded-lg bg-secondary/50 border text-sm text-foreground placeholder:text-muted-foreground/60 transition-colors focus:outline-none focus:ring-2 focus:ring-primary/40 pr-10 ${
-                    clientErrors.confirmPassword
-                      ? "border-destructive focus:border-destructive"
-                      : isConfirmValid
-                      ? "border-emerald-500/40 focus:border-primary"
-                      : "border-border/80 focus:border-primary"
-                  }`}
-                  disabled={isSubmitting}
+                  className={fieldClass(!!clientErrors.confirmPassword, isConfirmValid, isConfirmValid ? "pr-16" : "pr-10")}
+                  disabled={anyLoading}
+                  aria-invalid={!!clientErrors.confirmPassword}
+                  aria-describedby={clientErrors.confirmPassword ? "confirm-error" : undefined}
                 />
+                {isConfirmValid && (
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400 absolute right-9 top-1/2 -translate-y-1/2 pointer-events-none" />
+                )}
                 <button
                   type="button"
-                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  className="absolute right-3 top-2.5 text-muted-foreground hover:text-foreground transition-colors p-0.5"
+                  onClick={() => setShowConfirmPassword((s) => !s)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
                   aria-label={showConfirmPassword ? "Hide password" : "Show password"}
                 >
                   {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
               {clientErrors.confirmPassword && (
-                <p className="text-[11px] text-destructive mt-1 flex items-center gap-1">
-                  <AlertCircle className="w-3 h-3 flex-shrink-0" />
+                <p id="confirm-error" className="text-xs text-destructive flex items-center gap-1.5">
+                  <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
                   {clientErrors.confirmPassword}
                 </p>
               )}
             </div>
           )}
 
-          {/* Submit Button */}
+          {/* Submit */}
           <button
             type="submit"
-            disabled={isSubmitting}
-            className="w-full mt-2 py-3 px-4 rounded-xl font-semibold text-sm bg-primary text-primary-foreground hover:brightness-105 active:scale-[0.99] transition-all duration-150 flex items-center justify-center gap-2 shadow-lg shadow-primary/20 disabled:opacity-50 disabled:pointer-events-none"
+            id="auth-submit-btn"
+            disabled={anyLoading}
+            className="
+              w-full mt-1 py-2.5 px-4 rounded-xl font-semibold text-sm
+              bg-primary text-primary-foreground
+              hover:brightness-105 active:scale-[0.99]
+              transition-all duration-150
+              flex items-center justify-center gap-2
+              shadow-md shadow-primary/20
+              disabled:opacity-50 disabled:pointer-events-none
+              focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50
+            "
           >
             {isSubmitting ? (
               <>
                 <Loader2 className="w-4 h-4 animate-spin" />
-                <span>{mode === "login" ? "Signing In..." : "Creating Account..."}</span>
+                {mode === "login" ? "Signing in…" : "Creating account…"}
               </>
             ) : (
-              <span>{mode === "login" ? "Sign In to ScaleGuess" : "Create Account"}</span>
+              mode === "login" ? "Sign in" : "Create account"
             )}
           </button>
         </form>
 
-        {/* Demo fill button & Guest option */}
-        <div className="mt-6 pt-4 border-t border-border/60 flex flex-col gap-2.5 relative z-10">
-          <div className="flex items-center justify-between text-xs">
-            <button
-              type="button"
-              onClick={handleFillDemo}
-              className="text-[11px] font-mono text-primary/80 hover:text-primary transition-colors hover:underline"
-            >
-              ⚡ Fill demo credentials
-            </button>
-            <button
-              type="button"
-              onClick={handleExit}
-              className="text-[11px] text-muted-foreground hover:text-foreground transition-colors"
-            >
-              Play as Guest →
-            </button>
-          </div>
-
-          <p className="text-center text-xs text-muted-foreground mt-2">
+        {/* Footer */}
+        <div className="mt-6 flex flex-col gap-3 relative z-10">
+          <p className="text-center text-sm text-muted-foreground">
             {mode === "login" ? (
               <>
-                Don&apos;t have an account yet?{" "}
+                No account?{" "}
                 <button
                   type="button"
                   onClick={() => handleModeSwitch("register")}
                   className="text-primary hover:underline font-medium"
                 >
-                  Register here
+                  Register
                 </button>
               </>
             ) : (
               <>
-                Already have an account?{" "}
+                Have an account?{" "}
                 <button
                   type="button"
                   onClick={() => handleModeSwitch("login")}
                   className="text-primary hover:underline font-medium"
                 >
-                  Sign in here
+                  Sign in
                 </button>
               </>
             )}
           </p>
+
+          {!isModal && (
+            <p className="text-center text-xs text-muted-foreground/60">
+              <button
+                type="button"
+                onClick={handleExit}
+                className="hover:text-muted-foreground transition-colors"
+              >
+                Continue as guest →
+              </button>
+            </p>
+          )}
         </div>
       </div>
     </div>

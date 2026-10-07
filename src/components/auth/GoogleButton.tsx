@@ -23,16 +23,16 @@ export const GoogleButton: React.FC<GoogleButtonProps> = ({
       disabled={disabled || isLoading}
       aria-label="Login with Google"
       className={`
-        w-full group relative flex items-center justify-center gap-3 px-4 py-2.5 rounded-lg
-        border border-border/80 bg-secondary/80 hover:bg-secondary text-foreground font-medium text-sm
-        transition-all duration-200 ease-out shadow-sm hover:shadow-md hover:border-primary/40
-        active:scale-[0.99] disabled:opacity-50 disabled:pointer-events-none disabled:hover:scale-100
+        w-full group relative flex items-center justify-center gap-2.5 px-4 py-2.5 rounded-lg
+        border border-border/70 bg-secondary/50 hover:bg-secondary/80 text-foreground text-sm font-sans
+        transition-all duration-200 ease-out hover:border-border
+        active:scale-[0.99] disabled:opacity-50 disabled:pointer-events-none
         focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:outline-none
         ${className}
       `}
     >
-      {/* Background glow on hover */}
-      <span className="absolute inset-0 rounded-lg bg-gradient-to-r from-red-500/10 via-yellow-500/10 to-blue-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
+      {/* Subtle hover tint */}
+      <span className="absolute inset-0 rounded-lg bg-foreground/4 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none" />
 
       {isLoading ? (
         <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
@@ -62,8 +62,8 @@ export const GoogleButton: React.FC<GoogleButtonProps> = ({
         </svg>
       )}
 
-      <span className="relative z-10 font-medium tracking-tight">
-        {isLoading ? "Connecting to Google..." : label}
+      <span className="relative z-10">
+        {isLoading ? "Connecting…" : label}
       </span>
     </button>
   );
