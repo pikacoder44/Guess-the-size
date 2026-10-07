@@ -6,23 +6,25 @@ import { pickRandomPuzzle } from "@/game/puzzles";
 import { useAuth } from "@/context/AuthContext";
 import { AuthModal } from "@/components/auth/AuthModal";
 import { AuthPage } from "@/components/auth/AuthPage";
-import { LogIn, UserPlus, LogOut, Gamepad2 } from "lucide-react";
+import {
+  LogIn,
+  UserPlus,
+  LogOut,
+  Gamepad2,
+  User as UserIcon,
+} from "lucide-react";
 
 export function App() {
   const game = useGame();
   const { state } = game;
   const playing = state?.phase === "PLAYING";
 
-  const {
-    user,
-    isAuthenticated,
-    openLogin,
-    openRegister,
-    logout,
-  } = useAuth();
+  const { user, isAuthenticated, openLogin, openRegister, logout } = useAuth();
 
   // Full-page route tracking (/login, /register, or game)
-  const [currentRoute, setCurrentRoute] = useState<"game" | "login" | "register">(() => {
+  const [currentRoute, setCurrentRoute] = useState<
+    "game" | "login" | "register"
+  >(() => {
     const path = window.location.pathname.toLowerCase();
     if (path === "/login") return "login";
     if (path === "/register") return "register";
@@ -81,7 +83,9 @@ export function App() {
           <div className="hidden md:flex items-center gap-1.5 text-xs font-mono text-muted-foreground">
             <span>{state.puzzle.reference.name}</span>
             <span className="opacity-40">/</span>
-            <span className="text-primary font-medium">{state.puzzle.target.name}</span>
+            <span className="text-primary font-medium">
+              {state.puzzle.target.name}
+            </span>
           </div>
         )}
 
@@ -104,7 +108,7 @@ export function App() {
                 <div className="w-5 h-5 rounded-full bg-primary/20 text-primary flex items-center justify-center font-bold text-[10px] ring-1 ring-primary/40">
                   {user.username.charAt(0).toUpperCase()}
                 </div>
-                <span className="font-mono text-foreground font-medium max-w-[100px] sm:max-w-[140px] truncate">
+                <span className="font-mono text-foreground font-medium max-w-30 sm:max-w-40 truncate">
                   @{user.username}
                 </span>
               </div>
@@ -176,12 +180,20 @@ export function App() {
           {state && (
             <div className="flex items-center justify-between px-1 text-sm">
               <div className="flex items-center gap-2">
-                <span className="text-xs uppercase tracking-wider text-muted-foreground">Reference:</span>
-                <span className="font-medium text-foreground">{state.puzzle.reference.name}</span>
+                <span className="text-xs uppercase tracking-wider text-muted-foreground">
+                  Reference:
+                </span>
+                <span className="font-medium text-foreground">
+                  {state.puzzle.reference.name}
+                </span>
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-xs uppercase tracking-wider text-muted-foreground">Target:</span>
-                <span className="font-semibold text-primary">{state.puzzle.target.name}</span>
+                <span className="text-xs uppercase tracking-wider text-muted-foreground">
+                  Target:
+                </span>
+                <span className="font-semibold text-primary">
+                  {state.puzzle.target.name}
+                </span>
               </div>
             </div>
           )}
@@ -193,7 +205,8 @@ export function App() {
             {playing ? (
               <div className="flex flex-col sm:row items-center justify-between gap-3">
                 <p className="text-xs text-muted-foreground">
-                  Drag the target to move · Drag handle at top-right to resize (or use arrow keys and +/-)
+                  Drag the target to move · Drag handle at top-right to resize
+                  (or use arrow keys and +/-)
                 </p>
                 <button
                   type="button"
@@ -208,7 +221,9 @@ export function App() {
               state && (
                 <ResultPanel
                   state={state}
-                  onNextRound={() => game.init(pickRandomPuzzle(state.puzzle.id), state.viewport)}
+                  onNextRound={() =>
+                    game.init(pickRandomPuzzle(state.puzzle.id), state.viewport)
+                  }
                 />
               )
             )}
