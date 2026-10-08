@@ -39,7 +39,7 @@ export const GitHubButton: React.FC<GitHubButtonProps> = ({
       ) : (
         /* GitHub Mark SVG */
         <svg
-          className="w-5 h-5 flex-shrink-0 fill-foreground transition-transform duration-200 group-hover:scale-105"
+          className="w-5 h-5 shrink-0 fill-foreground transition-transform duration-200 group-hover:scale-105"
           viewBox="0 0 24 24"
           xmlns="http://www.w3.org/2000/svg"
           aria-hidden="true"

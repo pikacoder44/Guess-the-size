@@ -39,7 +39,7 @@ export const GoogleButton: React.FC<GoogleButtonProps> = ({
       ) : (
         /* Official Google 4-Color SVG Icon */
         <svg
-          className="w-5 h-5 flex-shrink-0 transition-transform duration-200 group-hover:scale-105"
+          className="w-5 h-5 shrink-0 transition-transform duration-200 group-hover:scale-105"
           viewBox="0 0 24 24"
           xmlns="http://www.w3.org/2000/svg"
         >

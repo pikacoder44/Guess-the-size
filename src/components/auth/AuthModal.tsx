@@ -69,7 +69,7 @@ export const AuthModal: React.FC = () => {
 
       {/* Ambient glow behind the panel */}
       <div
-        className="absolute w-[480px] h-[480px] rounded-full bg-primary/8 blur-3xl pointer-events-none"
+        className="absolute w-120 h-120 rounded-full bg-primary/8 blur-3xl pointer-events-none"
         aria-hidden="true"
       />
 

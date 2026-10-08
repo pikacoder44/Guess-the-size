@@ -237,7 +237,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
             role="status"
             className="mb-5 px-4 py-3 rounded-xl bg-emerald-500/10 border border-emerald-500/25 text-emerald-300 text-sm flex items-center gap-2.5 animate-in fade-in slide-in-from-top-2 duration-200"
           >
-            <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+            <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
             {successMessage}
           </div>
         )}
@@ -249,7 +249,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
             className="mb-5 px-4 py-3 rounded-xl bg-destructive/12 border border-destructive/25 text-destructive-foreground text-sm flex items-center justify-between gap-2 animate-in fade-in slide-in-from-top-2 duration-200"
           >
             <div className="flex items-center gap-2">
-              <AlertCircle className="w-4 h-4 text-destructive flex-shrink-0" />
+              <AlertCircle className="w-4 h-4 text-destructive shrink-0" />
               {serverError}
             </div>
             <button
@@ -320,7 +320,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
             </div>
             {clientErrors.username && (
               <p id="username-error" className="text-xs text-destructive flex items-center gap-1.5">
-                <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
+                <AlertCircle className="w-3.5 h-3.5 shrink-0" />
                 {clientErrors.username}
               </p>
             )}
@@ -359,7 +359,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
             </div>
             {clientErrors.password && (
               <p id="password-error" className="text-xs text-destructive flex items-center gap-1.5">
-                <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
+                <AlertCircle className="w-3.5 h-3.5 shrink-0" />
                 {clientErrors.password}
               </p>
             )}
@@ -402,7 +402,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
               </div>
               {clientErrors.confirmPassword && (
                 <p id="confirm-error" className="text-xs text-destructive flex items-center gap-1.5">
-                  <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
+                  <AlertCircle className="w-3.5 h-3.5 shrink-0" />
                   {clientErrors.confirmPassword}
                 </p>
               )}
