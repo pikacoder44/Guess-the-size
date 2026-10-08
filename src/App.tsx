@@ -146,7 +146,7 @@ export function App() {
       )}
 
       {/* ── Footer ── */}
-      <Footer />
+      <Footer onNavigate={navigateTo} />
 
       {/* ── In-App Auth Modal ── */}
       <AuthModal />

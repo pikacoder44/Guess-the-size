@@ -7,13 +7,6 @@ interface HomePageProps {
 }
 
 export function HomePage({ onNavigate }: HomePageProps) {
-  const handleScrollToGames = () => {
-    const el = document.getElementById("games-section");
-    if (el) {
-      el.scrollIntoView({ behavior: "smooth" });
-    }
-  };
-
   const handleCardNavigate = (href: string) => {
     if (href === "/scaleGuess" || href === "/scaleguess") {
       onNavigate("scaleGuess");
@@ -30,10 +23,7 @@ export function HomePage({ onNavigate }: HomePageProps) {
   return (
     <div className="flex-1 max-w-5xl w-full mx-auto px-4 sm:px-6 py-4 flex flex-col">
       {/* 1. Hero Section */}
-      <HeroSection
-        onPlayFeatured={() => onNavigate("scaleGuess")}
-        onExploreModules={handleScrollToGames}
-      />
+      <HeroSection />
 
       {/* 2. Player Stats */}
       <PlayerStats />

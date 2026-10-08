@@ -1,72 +1,60 @@
-import { Flame, Trophy, Award, Activity } from "lucide-react";
-
 export function PlayerStats() {
   const stats = [
     {
       id: "streak",
       label: "Daily Streak",
       value: "5 Days",
-      icon: Flame,
-      color: "text-amber-400",
-      bgColor: "bg-amber-400/10",
-      borderColor: "border-border/60",
+      dotColor: "bg-amber-400",
+      accentHover: "group-hover:text-amber-400",
     },
     {
       id: "personal-best",
       label: "Personal Best",
       value: "488 / 500",
-      icon: Trophy,
-      color: "text-primary",
-      bgColor: "bg-primary/10",
-      borderColor: "border-border/60",
+      dotColor: "bg-primary",
+      accentHover: "group-hover:text-primary",
     },
     {
       id: "global-rank",
       label: "Skill Rank",
       value: "Top 8%",
-      icon: Award,
-      color: "text-emerald-400",
-      bgColor: "bg-emerald-400/10",
-      borderColor: "border-border/60",
+      dotColor: "bg-emerald-400",
+      accentHover: "group-hover:text-emerald-400",
     },
     {
       id: "drills-completed",
       label: "Games Played",
       value: "38 Rounds",
-      icon: Activity,
-      color: "text-purple-400",
-      bgColor: "bg-purple-400/10",
-      borderColor: "border-border/60",
+      dotColor: "bg-purple-400",
+      accentHover: "group-hover:text-purple-400",
     },
   ];
 
   return (
-    <section className="w-full my-6 sm:my-8">
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-        {stats.map((stat) => {
-          const Icon = stat.icon;
-          return (
-            <div
-              key={stat.id}
-              className={`rounded-xl border ${stat.borderColor} bg-card/50 backdrop-blur-sm p-4 sm:p-5 flex flex-col justify-between transition-colors hover:bg-card/80 hover:border-border`}
-            >
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-xs text-muted-foreground font-medium">
-                  {stat.label}
-                </span>
-                <div
-                  className={`w-7 h-7 rounded-lg ${stat.bgColor} ${stat.color} flex items-center justify-center`}
-                >
-                  <Icon className="w-4 h-4" />
-                </div>
-              </div>
-
-              <div className="text-xl sm:text-2xl font-mono font-bold text-foreground tracking-tight">
-                {stat.value}
-              </div>
+    <section className="w-full my-4 sm:my-8">
+      {/* Borderless blended stats panel with soft backdrop tint */}
+      <div className="rounded-2xl bg-card/20 backdrop-blur-sm p-4 sm:p-7 grid grid-cols-2 md:grid-cols-4 gap-6 sm:gap-8">
+        {stats.map((stat) => (
+          <div
+            key={stat.id}
+            className="group flex flex-col gap-1.5 transition-transform duration-200 hover:-translate-y-0.5 cursor-default"
+          >
+            {/* Label with micro accent dot */}
+            <div className="flex items-center gap-2 text-xs font-mono text-muted-foreground/80">
+              <span className={`w-1.5 h-1.5 rounded-full ${stat.dotColor}`} />
+              <span className="uppercase tracking-wider text-[11px] font-medium">
+                {stat.label}
+              </span>
             </div>
-          );
-        })}
+
+            {/* Value */}
+            <div
+              className={`text-2xl sm:text-3xl font-mono font-bold tracking-tight text-foreground transition-colors ${stat.accentHover}`}
+            >
+              {stat.value}
+            </div>
+          </div>
+        ))}
       </div>
     </section>
   );

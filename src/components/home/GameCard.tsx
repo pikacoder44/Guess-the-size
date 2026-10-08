@@ -20,7 +20,7 @@ export function GameCard({ card, onNavigate }: GameCardProps) {
 
   return (
     <motion.article
-      className="group relative flex flex-col rounded-2xl border border-border/60 bg-card/60 backdrop-blur-sm overflow-hidden cursor-pointer select-none transition-all duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] hover:border-[var(--card-accent)] hover:shadow-xl hover:shadow-[var(--card-glow)] focus-within:ring-2 focus-within:ring-[var(--card-accent)]"
+      className="group relative flex flex-col rounded-2xl border border-border/60 bg-card/60 backdrop-blur-sm overflow-hidden cursor-pointer select-none transition-all duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] hover:border-(--card-accent) hover:shadow-xl hover:shadow-(color:--card-glow) focus-within:ring-2 focus-within:ring-(--card-accent)"
       style={
         {
           "--card-accent": card.accentColor,
@@ -57,7 +57,7 @@ export function GameCard({ card, onNavigate }: GameCardProps) {
 
       {/* Subtle accent border line on top */}
       <div
-        className="absolute top-0 left-0 right-0 h-[2px] opacity-20 group-hover:opacity-100 transition-all duration-300"
+        className="absolute top-0 left-0 right-0 h-0.5 opacity-20 group-hover:opacity-100 transition-all duration-300"
         style={{
           background: `linear-gradient(90deg, transparent 0%, ${card.accentColor} 50%, transparent 100%)`,
         }}
