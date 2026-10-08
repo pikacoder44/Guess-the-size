@@ -100,7 +100,7 @@ export const AuthModal: React.FC = () => {
         </button>
 
         <AuthPage
-          initialMode={authView === "none" ? "login" : authView}
+          initialMode={authView}
           isModal={true}
           onClose={closeAuth}
           onSuccess={closeAuth}
