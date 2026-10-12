@@ -6,6 +6,8 @@ export interface JwtPayload {
   username: string;
 }
 
+const JWT_FALLBACK_SECRET = 'scaleguess-jwt-development-secret-key-change-in-production';
+
 /** Extend Express Request to carry the decoded JWT payload */
 declare global {
   // eslint-disable-next-line @typescript-eslint/no-namespace
@@ -26,7 +28,7 @@ export function optionalAuth(req: Request, _res: Response, next: NextFunction) {
   if (authHeader?.startsWith('Bearer ')) {
     const token = authHeader.slice(7);
     try {
-      const secret = process.env.JWT_SECRET!;
+      const secret = process.env.JWT_SECRET || JWT_FALLBACK_SECRET;
       req.user = jwt.verify(token, secret) as JwtPayload;
     } catch {
       // Invalid / expired token – just ignore, treat as guest
