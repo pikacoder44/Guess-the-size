@@ -1,9 +1,10 @@
 import 'dotenv/config';
-import express from 'express';
+import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import { optionalAuth } from './middleware/auth.js';
 import authRouter from './routes/auth.js';
-import { initDb } from './db.js';
+import scoresRouter from './routes/scores.js';
+import { initDb, checkDbHealth } from './db.js';
 
 const app = express();
 const PORT = Number(process.env.PORT ?? 3001);
@@ -20,7 +21,7 @@ app.use(cors({
 
 app.use(express.json());
 
-// Decode JWT when present (but never block unauthenticated requests here)
+// Decode JWT when present (but never block unauthenticated requests globally)
 app.use(optionalAuth);
 
 // ---------------------------------------------------------------------------
@@ -28,17 +29,40 @@ app.use(optionalAuth);
 // ---------------------------------------------------------------------------
 
 app.use('/api/auth', authRouter);
+app.use('/api/scores', scoresRouter);
 
-// Health check
-app.get('/api/health', (_req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+// Health check with PostgreSQL / Supabase connection inspection
+app.get('/api/health', async (_req: Request, res: Response) => {
+  const dbHealth = await checkDbHealth();
+  const statusCode = dbHealth.ok ? 200 : 503;
+
+  res.status(statusCode).json({
+    status: dbHealth.ok ? 'ok' : 'degraded',
+    database: {
+      type: dbHealth.type,
+      connected: dbHealth.ok,
+      latencyMs: dbHealth.latencyMs,
+      ...(dbHealth.error ? { error: dbHealth.error } : {}),
+    },
+    timestamp: new Date().toISOString(),
+  });
 });
 
 // ---------------------------------------------------------------------------
 // 404 catch-all
 // ---------------------------------------------------------------------------
-app.use((_req, res) => {
+app.use((_req: Request, res: Response) => {
   res.status(404).json({ error: 'Route not found.' });
+});
+
+// ---------------------------------------------------------------------------
+// Global error handler
+// ---------------------------------------------------------------------------
+app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
+  console.error('Unhandled server error:', err);
+  res.status(err.status || 500).json({
+    error: err.message || 'An unexpected internal server error occurred.',
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -53,8 +77,9 @@ app.use((_req, res) => {
 
   app.listen(PORT, () => {
     console.log(`\n🚀 GuessTheSize API running on http://localhost:${PORT}`);
-    console.log(`   Health: http://localhost:${PORT}/api/health`);
-    console.log(`   Auth:   http://localhost:${PORT}/api/auth/register | /login | /google | /me\n`);
+    console.log(`   Health:      http://localhost:${PORT}/api/health`);
+    console.log(`   Auth:        http://localhost:${PORT}/api/auth/register | /login | /google | /me`);
+    console.log(`   Scores:      http://localhost:${PORT}/api/scores | /me | /leaderboard\n`);
   });
 })();
 

@@ -1,6 +1,8 @@
 export interface User {
   id: number;
   username: string;
+  email?: string;
+  avatarUrl?: string;
   createdAt: string;
 }
 
@@ -17,6 +19,7 @@ export interface LoginPayload {
 export interface RegisterPayload {
   username: string;
   password: string;
+  email?: string;
 }
 
 export interface GoogleAuthPayload {

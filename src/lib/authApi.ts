@@ -43,6 +43,7 @@ export async function registerUser(payload: RegisterPayload): Promise<AuthRespon
     body: JSON.stringify({
       username: payload.username.trim(),
       password: payload.password,
+      ...(payload.email ? { email: payload.email.trim() } : {}),
     }),
   });
   return handleResponse<AuthResponse>(res);
