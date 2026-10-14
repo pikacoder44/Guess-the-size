@@ -168,12 +168,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setIsSubmitting(true);
     setError(null);
     try {
-      // Default to demo/quick profile if payload is not provided
-      const finalPayload = payload ?? {
-        name: "Google Explorer",
-        email: "explorer@google.com",
-      };
-      const res = await googleLogin(finalPayload);
+      if (!payload?.credential && !payload?.access_token) {
+        throw new AuthApiError("No Google authentication credentials provided.");
+      }
+      const res = await googleLogin(payload);
       persistSession(res.token, res.user);
       return true;
     } catch (err: unknown) {

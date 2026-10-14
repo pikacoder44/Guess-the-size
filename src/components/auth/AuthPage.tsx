@@ -123,18 +123,44 @@ export const AuthPage: React.FC<AuthPageProps> = ({
     }
   };
 
-  const handleGoogleLogin = async () => {
+  const handleGoogleCredential = async (credential: string) => {
     clearError();
     setSuccessMessage(null);
     setSocialLoading("google");
     try {
-      const ok = await loginWithGoogle({ name: "Google Explorer", email: "explorer@scale.app" });
+      const ok = await loginWithGoogle({ credential });
       if (ok) {
         setSuccessMessage("Signed in with Google!");
         setTimeout(() => { onSuccess?.(); onClose?.(); }, 600);
       }
     } finally {
       setSocialLoading(null);
+    }
+  };
+
+  const handleGoogleAccessToken = async (accessToken: string) => {
+    clearError();
+    setSuccessMessage(null);
+    setSocialLoading("google");
+    try {
+      const ok = await loginWithGoogle({ access_token: accessToken });
+      if (ok) {
+        setSuccessMessage("Signed in with Google!");
+        setTimeout(() => { onSuccess?.(); onClose?.(); }, 600);
+      }
+    } finally {
+      setSocialLoading(null);
+    }
+  };
+
+  const handleGoogleError = (errorMsg?: string) => {
+    setSocialLoading(null);
+    if (
+      errorMsg &&
+      !errorMsg.includes("user_closed_popup") &&
+      !errorMsg.includes("popup_closed_by_user")
+    ) {
+      console.warn("Google authentication error:", errorMsg);
     }
   };
 
@@ -267,7 +293,9 @@ export const AuthPage: React.FC<AuthPageProps> = ({
         <div className="space-y-3 mb-6 relative z-10">
           <div className="grid grid-cols-2 gap-3">
             <GoogleButton
-              onClick={handleGoogleLogin}
+              onCredentialSuccess={handleGoogleCredential}
+              onAccessTokenSuccess={handleGoogleAccessToken}
+              onError={handleGoogleError}
               isLoading={socialLoading === "google"}
               disabled={anyLoading && socialLoading !== "google"}
               label="Google"

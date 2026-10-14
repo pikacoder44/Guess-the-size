@@ -3,6 +3,7 @@ export interface User {
   username: string;
   email?: string;
   avatarUrl?: string;
+  emailVerified?: boolean;
   createdAt: string;
 }
 
@@ -24,6 +25,7 @@ export interface RegisterPayload {
 
 export interface GoogleAuthPayload {
   credential?: string;
+  access_token?: string;
   email?: string;
   name?: string;
 }

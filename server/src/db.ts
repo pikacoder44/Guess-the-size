@@ -31,6 +31,7 @@ if (isPlaceholderUrl) {
     password: string | null;
     google_id: string | null;
     avatar_url: string | null;
+    email_verified: boolean;
     created_at: string;
     updated_at: string;
   }
@@ -77,9 +78,12 @@ if (isPlaceholderUrl) {
         let email: string | null = null;
         let google_id: string | null = null;
         let avatar_url: string | null = null;
+        let email_verified = false;
 
         if (normalized.includes('(username, password, email)')) {
           [username, password, email] = values;
+        } else if (normalized.includes('(username, email, google_id, avatar_url, email_verified)')) {
+          [username, email, google_id, avatar_url, email_verified] = values;
         } else if (normalized.includes('(username, email, google_id, avatar_url)')) {
           [username, email, google_id, avatar_url] = values;
         } else if (normalized.includes('(username, password)')) {
@@ -127,6 +131,7 @@ if (isPlaceholderUrl) {
           password: password ? String(password) : null,
           google_id: google_id ? String(google_id) : null,
           avatar_url: avatar_url ? String(avatar_url) : null,
+          email_verified: Boolean(email_verified),
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         };
@@ -169,13 +174,22 @@ if (isPlaceholderUrl) {
         return { rows: user ? [user as unknown as T] : [] };
       }
 
-      // UPDATE users SET google_id = $1, avatar_url = COALESCE(avatar_url, $2), updated_at = NOW() WHERE id = $3
+      // UPDATE users SET ... WHERE id = ...
       if (normalized.startsWith('UPDATE users SET')) {
-        const [google_id, avatar_url, id] = values;
-        const user = memoryUsers.find((u) => u.id === Number(id));
+        const id = Number(values[values.length - 1]);
+        const user = memoryUsers.find((u) => u.id === id);
         if (user) {
-          if (google_id) user.google_id = String(google_id);
-          if (avatar_url && !user.avatar_url) user.avatar_url = String(avatar_url);
+          if (normalized.includes('google_id = $1')) {
+            user.google_id = String(values[0]);
+          }
+          if (normalized.includes('avatar_url = COALESCE(avatar_url, $2)') || normalized.includes('avatar_url = COALESCE($1, avatar_url)')) {
+            const avatarVal = values.find((v) => typeof v === 'string' && (v.startsWith('http') || v.includes('google')));
+            if (avatarVal) user.avatar_url = String(avatarVal);
+          }
+          if (normalized.includes('email_verified')) {
+            const ev = values.find((v) => typeof v === 'boolean');
+            if (ev !== undefined) user.email_verified = Boolean(ev);
+          }
           user.updated_at = new Date().toISOString();
           return { rows: [user as unknown as T] };
         }
@@ -324,6 +338,7 @@ export async function initDb(): Promise<void> {
   await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS email TEXT;`);
   await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS google_id TEXT;`);
   await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_url TEXT;`);
+  await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verified BOOLEAN DEFAULT FALSE;`);
   await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW();`);
   
   // Make password nullable for OAuth/Google users
