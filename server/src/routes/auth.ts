@@ -171,13 +171,18 @@ router.post('/login', async (req: Request, res: Response): Promise<void> => {
 router.post('/google', async (req: Request, res: Response): Promise<void> => {
   const { credential, email, name, googleId: directGoogleId, picture } = req.body ?? {};
 
-  let profileName = name;
-  let profileEmail = email;
-  let googleId: string | null = directGoogleId ? String(directGoogleId) : null;
-  let avatarUrl: string | null = picture ? String(picture) : null;
+  let profileName = typeof name === 'string' ? name.trim() : undefined;
+  let profileEmail = typeof email === 'string' ? email.trim().toLowerCase() : undefined;
+  let googleId: string | null = directGoogleId ? String(directGoogleId).trim() : null;
+  let avatarUrl: string | null = picture ? String(picture).trim() : null;
 
   // Decode JWT ID token from Google Identity Services if present
-  if (credential && typeof credential === 'string') {
+  if (credential) {
+    if (typeof credential !== 'string' || !credential.trim()) {
+      res.status(400).json({ error: 'Invalid Google credential token provided.' });
+      return;
+    }
+
     try {
       const decoded = jwt.decode(credential) as {
         sub?: string;
@@ -186,14 +191,36 @@ router.post('/google', async (req: Request, res: Response): Promise<void> => {
         picture?: string;
       } | null;
 
-      if (decoded) {
-        googleId = decoded.sub || googleId;
-        profileName = decoded.name || profileName;
-        profileEmail = decoded.email || profileEmail;
-        avatarUrl = decoded.picture || avatarUrl;
+      if (decoded && typeof decoded === 'object') {
+        googleId = decoded.sub ? String(decoded.sub).trim() : googleId;
+        profileName = decoded.name ? String(decoded.name).trim() : profileName;
+        profileEmail = decoded.email ? String(decoded.email).trim().toLowerCase() : profileEmail;
+        avatarUrl = decoded.picture ? String(decoded.picture).trim() : avatarUrl;
+      } else if (!googleId && !profileEmail) {
+        res.status(400).json({ error: 'Failed to extract profile information from Google credential token.' });
+        return;
       }
-    } catch {
-      // ignore decode failure and fall back to body fields
+    } catch (tokenErr: unknown) {
+      const tokenMsg = tokenErr instanceof Error ? tokenErr.message : 'Invalid token structure.';
+      res.status(400).json({ error: `Malformed Google credential token: ${tokenMsg}` });
+      return;
+    }
+  }
+
+  // Ensure we have some identifying information from Google
+  if (!googleId && !profileEmail) {
+    res.status(400).json({
+      error: 'Google authentication failed: missing email or Google account ID in request.',
+    });
+    return;
+  }
+
+  // Validate email format if provided
+  if (profileEmail) {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(profileEmail)) {
+      res.status(400).json({ error: 'Invalid email address provided by Google.' });
+      return;
     }
   }
 
@@ -213,7 +240,7 @@ router.post('/google', async (req: Request, res: Response): Promise<void> => {
     if (!user && profileEmail) {
       const { rows: emailRows } = await pool.query<UserRow>(
         'SELECT * FROM users WHERE email IS NOT NULL AND LOWER(email) = LOWER($1)',
-        [profileEmail.trim()],
+        [profileEmail],
       );
       user = emailRows[0];
 
@@ -259,16 +286,38 @@ router.post('/google', async (req: Request, res: Response): Promise<void> => {
         `INSERT INTO users (username, email, google_id, avatar_url)
          VALUES ($1, $2, $3, $4)
          RETURNING id, username, email, avatar_url, created_at`,
-        [finalUsername, profileEmail ? profileEmail.trim().toLowerCase() : null, googleId, avatarUrl],
+        [finalUsername, profileEmail || null, googleId, avatarUrl],
       );
       user = newRows[0];
+    }
+
+    if (!user) {
+      res.status(500).json({ error: 'Failed to create or retrieve user profile for Google authentication.' });
+      return;
     }
 
     const token = signToken(user.id, user.username);
     res.status(200).json({ token, user: publicUser(user) });
   } catch (err: unknown) {
     console.error('Google login error:', err);
-    res.status(500).json({ error: 'Failed to authenticate with Google.' });
+    const errObj = err as { code?: string; message?: string; constraint?: string };
+
+    if (errObj.code === '23505') {
+      const msg = (errObj.message || '') + (errObj.constraint || '');
+      if (msg.includes('email') || msg.includes('users_email_lower_idx')) {
+        res.status(409).json({ error: 'This email is already associated with an existing account.' });
+        return;
+      }
+      if (msg.includes('google_id') || msg.includes('users_google_id_idx')) {
+        res.status(409).json({ error: 'This Google account is already linked to another user.' });
+        return;
+      }
+      res.status(409).json({ error: 'Account or username collision occurred during Google sign in.' });
+      return;
+    }
+
+    const exactReason = errObj.message || (err instanceof Error ? err.message : 'Failed to authenticate with Google.');
+    res.status(500).json({ error: exactReason });
   }
 });
 
