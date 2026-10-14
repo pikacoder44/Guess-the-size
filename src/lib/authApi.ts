@@ -14,7 +14,11 @@ export class AuthApiError extends Error {
 async function handleResponse<T>(res: Response): Promise<T> {
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
-    const errorMsg = data?.error || (res.status === 401 ? "Invalid credentials." : "An unexpected error occurred.");
+    const errorMsg = 
+      data?.error || 
+      data?.message || 
+      data?.msg || 
+      (res.status === 401 ? "Invalid credentials." : "An unexpected error occurred.");
     throw new AuthApiError(errorMsg, res.status);
   }
   return data as T;
