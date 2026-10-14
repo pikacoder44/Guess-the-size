@@ -109,6 +109,17 @@ if (isPlaceholderUrl) {
           }
         }
 
+        if (google_id) {
+          const googleIdExists = memoryUsers.some(
+            (u) => u.google_id && u.google_id === String(google_id)
+          );
+          if (googleIdExists) {
+            const err: any = new Error('duplicate key value violates unique constraint "users_google_id_idx"');
+            err.code = '23505';
+            throw err;
+          }
+        }
+
         const newUser: MemoryUser = {
           id: nextUserId++,
           username: String(username),
