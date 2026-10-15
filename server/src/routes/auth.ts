@@ -344,6 +344,7 @@ router.post('/google', async (req: Request, res: Response): Promise<void> => {
 
       // Refresh name, avatar, email, and verification status if user already exists
       if (user) {
+        console.log(`[Google Auth] Refreshing existing user id=${user.id} (${user.username}). Incoming avatarUrl:`, avatarUrl);
         const { rows: updatedRows } = await pool.query<UserRow>(
           `UPDATE users
            SET name = COALESCE($1, name),
@@ -368,6 +369,7 @@ router.post('/google', async (req: Request, res: Response): Promise<void> => {
           ],
         );
         user = updatedRows[0] || user;
+        console.log(`[Google Auth] User refreshed. Persisted avatar_url:`, user.avatar_url);
       }
     }
 
@@ -381,15 +383,16 @@ router.post('/google', async (req: Request, res: Response): Promise<void> => {
 
       // If existing user found by email, link their google_id, name, avatar, and verified status
       if (user) {
+        console.log(`[Google Auth] Linking Google credentials to existing user id=${user.id} (${user.username}). Incoming avatarUrl:`, avatarUrl);
         const { rows: updatedRows } = await pool.query<UserRow>(
           `UPDATE users
            SET google_id = $1,
-               name = COALESCE(name, $2),
-               avatar_url = COALESCE(avatar_url, $3),
+               name = COALESCE($2, name),
+               avatar_url = COALESCE($3, avatar_url),
                email_verified = COALESCE($4, email_verified),
-               given_name = COALESCE(given_name, $5),
-               family_name = COALESCE(family_name, $6),
-               locale = COALESCE(locale, $7),
+               given_name = COALESCE($5, given_name),
+               family_name = COALESCE($6, family_name),
+               locale = COALESCE($7, locale),
                updated_at = NOW()
            WHERE id = $8
            RETURNING *`,
@@ -405,6 +408,7 @@ router.post('/google', async (req: Request, res: Response): Promise<void> => {
           ],
         );
         user = updatedRows[0] || user;
+        console.log(`[Google Auth] User linked. Persisted avatar_url:`, user.avatar_url);
       }
     }
 
@@ -496,6 +500,16 @@ async function handleUpdateProfile(req: Request, res: Response): Promise<void> {
   const { name, avatarUrl, profilePicture } = req.body ?? {};
   const requestedAvatar = avatarUrl !== undefined ? avatarUrl : profilePicture;
 
+  console.log(`[handleUpdateProfile] User ID: ${req.user.userId}`);
+  console.log(`[handleUpdateProfile] Incoming payload:`, {
+    name,
+    hasAvatarUrl: avatarUrl !== undefined,
+    hasProfilePicture: profilePicture !== undefined,
+    avatarPreview: typeof requestedAvatar === 'string'
+      ? `${requestedAvatar.slice(0, 50)}... (${requestedAvatar.length} chars)`
+      : requestedAvatar,
+  });
+
   // Validate name if provided
   let cleanName: string | null = null;
   if (name !== undefined) {
@@ -533,12 +547,17 @@ async function handleUpdateProfile(req: Request, res: Response): Promise<void> {
     );
     const currentUser = currentRows[0];
     if (!currentUser) {
+      console.warn(`[handleUpdateProfile] User not found with ID ${req.user.userId}`);
       res.status(404).json({ error: 'User not found.' });
       return;
     }
 
     const finalName = name !== undefined ? cleanName : currentUser.name;
     const finalAvatar = requestedAvatar !== undefined ? cleanAvatar : currentUser.avatar_url;
+
+    console.log(`[handleUpdateProfile] Executing SQL UPDATE for user ${req.user.userId}. finalAvatar:`,
+      typeof finalAvatar === 'string' ? `${finalAvatar.slice(0, 50)}... (${finalAvatar.length} chars)` : finalAvatar
+    );
 
     const { rows: updatedRows } = await pool.query<UserRow>(
       `UPDATE users
@@ -550,7 +569,16 @@ async function handleUpdateProfile(req: Request, res: Response): Promise<void> {
       [finalName, finalAvatar, req.user.userId],
     );
 
-    const updatedUser = updatedRows[0] || currentUser;
+    if (!updatedRows || updatedRows.length === 0) {
+      console.error(`[handleUpdateProfile] UPDATE returned 0 rows for user ID ${req.user.userId}`);
+      res.status(500).json({ error: 'Failed to update profile settings in database.' });
+      return;
+    }
+
+    const updatedUser = updatedRows[0];
+    console.log(`[handleUpdateProfile] Successfully updated user ID ${updatedUser.id}. Persisted avatar_url:`,
+      updatedUser.avatar_url ? `${updatedUser.avatar_url.slice(0, 50)}...` : null
+    );
     res.status(200).json({ user: publicUser(updatedUser) });
   } catch (err: unknown) {
     console.error('Update profile error:', err);
