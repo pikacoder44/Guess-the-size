@@ -406,6 +406,13 @@ export async function initDb(): Promise<void> {
     // Ignore if already nullable or unsupported
   }
 
+  // Ensure avatar_url is explicitly TEXT (not VARCHAR(255)) so base64 uploads never truncate
+  try {
+    await pool.query(`ALTER TABLE users ALTER COLUMN avatar_url TYPE TEXT;`);
+  } catch {
+    // Ignore if already TEXT or unsupported
+  }
+
   // Case-insensitive unique indexes
   await pool.query(`
     CREATE UNIQUE INDEX IF NOT EXISTS users_username_lower_idx
