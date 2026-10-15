@@ -27,11 +27,15 @@ if (isPlaceholderUrl) {
   interface MemoryUser {
     id: number;
     username: string;
+    name: string | null;
     email: string | null;
     password: string | null;
     google_id: string | null;
     avatar_url: string | null;
     email_verified: boolean;
+    given_name: string | null;
+    family_name: string | null;
+    locale: string | null;
     created_at: string;
     updated_at: string;
   }
@@ -76,21 +80,33 @@ if (isPlaceholderUrl) {
         let username = '';
         let password: string | null = null;
         let email: string | null = null;
+        let name: string | null = null;
         let google_id: string | null = null;
         let avatar_url: string | null = null;
         let email_verified = false;
+        let given_name: string | null = null;
+        let family_name: string | null = null;
+        let locale: string | null = null;
 
-        if (normalized.includes('(username, password, email)')) {
-          [username, password, email] = values;
-        } else if (normalized.includes('(username, email, google_id, avatar_url, email_verified)')) {
-          [username, email, google_id, avatar_url, email_verified] = values;
-        } else if (normalized.includes('(username, email, google_id, avatar_url)')) {
-          [username, email, google_id, avatar_url] = values;
-        } else if (normalized.includes('(username, password)')) {
-          [username, password] = values;
+        const colMatch = queryText.match(/INSERT\s+INTO\s+users\s*\(([^)]+)\)/i);
+        if (colMatch) {
+          const cols = colMatch[1].split(',').map((c) => c.trim().toLowerCase());
+          cols.forEach((col, idx) => {
+            const val = values[idx];
+            if (col === 'username') username = String(val ?? '');
+            else if (col === 'password') password = val ? String(val) : null;
+            else if (col === 'email') email = val ? String(val) : null;
+            else if (col === 'name') name = val ? String(val) : null;
+            else if (col === 'google_id') google_id = val ? String(val) : null;
+            else if (col === 'avatar_url') avatar_url = val ? String(val) : null;
+            else if (col === 'email_verified') email_verified = Boolean(val);
+            else if (col === 'given_name') given_name = val ? String(val) : null;
+            else if (col === 'family_name') family_name = val ? String(val) : null;
+            else if (col === 'locale') locale = val ? String(val) : null;
+          });
         } else {
-          username = values[0];
-          password = values[1] || null;
+          username = String(values[0] ?? '');
+          password = values[1] ? String(values[1]) : null;
         }
 
         const usernameExists = memoryUsers.some(
@@ -127,11 +143,15 @@ if (isPlaceholderUrl) {
         const newUser: MemoryUser = {
           id: nextUserId++,
           username: String(username),
+          name: name ? String(name) : null,
           email: email ? String(email) : null,
           password: password ? String(password) : null,
           google_id: google_id ? String(google_id) : null,
           avatar_url: avatar_url ? String(avatar_url) : null,
           email_verified: Boolean(email_verified),
+          given_name: given_name ? String(given_name) : null,
+          family_name: family_name ? String(family_name) : null,
+          locale: locale ? String(locale) : null,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         };
@@ -176,19 +196,43 @@ if (isPlaceholderUrl) {
 
       // UPDATE users SET ... WHERE id = ...
       if (normalized.startsWith('UPDATE users SET')) {
-        const id = Number(values[values.length - 1]);
+        const idMatch = normalized.match(/WHERE\s+id\s*=\s*\$(\d+)/i);
+        let id = Number(values[values.length - 1]);
+        if (idMatch) {
+          const paramIdx = Number(idMatch[1]) - 1;
+          id = Number(values[paramIdx]);
+        }
         const user = memoryUsers.find((u) => u.id === id);
         if (user) {
-          if (normalized.includes('google_id = $1')) {
-            user.google_id = String(values[0]);
-          }
-          if (normalized.includes('avatar_url = COALESCE(avatar_url, $2)') || normalized.includes('avatar_url = COALESCE($1, avatar_url)')) {
-            const avatarVal = values.find((v) => typeof v === 'string' && (v.startsWith('http') || v.includes('google')));
-            if (avatarVal) user.avatar_url = String(avatarVal);
-          }
-          if (normalized.includes('email_verified')) {
-            const ev = values.find((v) => typeof v === 'boolean');
-            if (ev !== undefined) user.email_verified = Boolean(ev);
+          const setClauseMatch = normalized.match(/SET\s+(.*?)\s+WHERE/i);
+          if (setClauseMatch) {
+            const setClause = setClauseMatch[1];
+            const assignments = setClause.split(',').map((s) => s.trim());
+            assignments.forEach((assignment) => {
+              const paramRef = assignment.match(/\$(\d+)/);
+              if (paramRef) {
+                const valIdx = Number(paramRef[1]) - 1;
+                const val = values[valIdx];
+
+                if (assignment.startsWith('name')) {
+                  user.name = val ? String(val) : null;
+                } else if (assignment.startsWith('avatar_url')) {
+                  user.avatar_url = val ? String(val) : null;
+                } else if (assignment.startsWith('google_id')) {
+                  if (val !== undefined && val !== null) user.google_id = String(val);
+                } else if (assignment.startsWith('email_verified')) {
+                  if (val !== undefined && val !== null) user.email_verified = Boolean(val);
+                } else if (assignment.startsWith('email')) {
+                  if (val !== undefined && val !== null) user.email = String(val);
+                } else if (assignment.startsWith('given_name')) {
+                  if (val !== undefined && val !== null) user.given_name = String(val);
+                } else if (assignment.startsWith('family_name')) {
+                  if (val !== undefined && val !== null) user.family_name = String(val);
+                } else if (assignment.startsWith('locale')) {
+                  if (val !== undefined && val !== null) user.locale = String(val);
+                }
+              }
+            });
           }
           user.updated_at = new Date().toISOString();
           return { rows: [user as unknown as T] };
@@ -261,6 +305,7 @@ if (isPlaceholderUrl) {
               date: r.date,
               completed_at: r.completed_at,
               username: user?.username ?? 'Anonymous',
+              name: user?.name ?? null,
               avatar_url: user?.avatar_url ?? null,
             };
           });
@@ -323,22 +368,31 @@ export async function initDb(): Promise<void> {
   // 1. Users table
   await pool.query(`
     CREATE TABLE IF NOT EXISTS users (
-      id         SERIAL      PRIMARY KEY,
-      username   TEXT        NOT NULL UNIQUE,
-      email      TEXT,
-      password   TEXT,
-      google_id  TEXT,
-      avatar_url TEXT,
-      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      id             SERIAL      PRIMARY KEY,
+      username       TEXT        NOT NULL UNIQUE,
+      name           TEXT,
+      email          TEXT,
+      password       TEXT,
+      google_id      TEXT,
+      avatar_url     TEXT,
+      email_verified BOOLEAN     DEFAULT FALSE,
+      given_name     TEXT,
+      family_name    TEXT,
+      locale         TEXT,
+      created_at     TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at     TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
   `);
 
   // Non-destructive column additions in case table pre-exists
+  await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS name TEXT;`);
   await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS email TEXT;`);
   await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS google_id TEXT;`);
   await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_url TEXT;`);
   await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verified BOOLEAN DEFAULT FALSE;`);
+  await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS given_name TEXT;`);
+  await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS family_name TEXT;`);
+  await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS locale TEXT;`);
   await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW();`);
   
   // Make password nullable for OAuth/Google users
