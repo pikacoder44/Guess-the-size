@@ -462,6 +462,12 @@ export const AuthPage: React.FC<AuthPageProps> = ({
               mode === "login" ? "Sign in" : "Create account"
             )}
           </button>
+
+          {mode === "register" && (
+            <p className="text-[11px] text-muted-foreground/70 text-center pt-1">
+              Profile picture is optional — you can add or change it anytime in Profile Settings.
+            </p>
+          )}
         </form>
 
         {/* Footer */}
