@@ -75,6 +75,22 @@ export async function getMe(token: string): Promise<User> {
   return data.user;
 }
 
+export async function updateUserProfile(
+  token: string,
+  payload: { name?: string | null; avatarUrl?: string | null; profilePicture?: string | null }
+): Promise<User> {
+  const res = await fetch(`${API_BASE}/api/auth/profile`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(payload),
+  });
+  const data = await handleResponse<{ user: User }>(res);
+  return data.user;
+}
+
 /**
  * Client-side validation matching backend server rules:
  * - username: 1–32 characters, alphanumeric, underscores, hyphens only
