@@ -80,13 +80,21 @@ export function App() {
                   <img
                     src={user.avatarUrl || user.profilePicture}
                     alt={user.username}
+                    referrerPolicy="no-referrer"
                     className="w-5 h-5 rounded-full object-cover ring-1 ring-primary/40 shrink-0"
+                    onError={(e) => {
+                      (e.currentTarget as HTMLElement).style.display = "none";
+                      const fallback = e.currentTarget.nextElementSibling as HTMLElement;
+                      if (fallback) fallback.style.display = "flex";
+                    }}
                   />
-                ) : (
-                  <div className="w-5 h-5 rounded-full bg-primary/20 text-primary flex items-center justify-center font-bold text-[10px] ring-1 ring-primary/40 shrink-0">
-                    {user.username.charAt(0).toUpperCase()}
-                  </div>
-                )}
+                ) : null}
+                <div
+                  className="w-5 h-5 rounded-full bg-primary/20 text-primary items-center justify-center font-bold text-[10px] ring-1 ring-primary/40 shrink-0"
+                  style={{ display: user.avatarUrl || user.profilePicture ? "none" : "flex" }}
+                >
+                  {user.username.charAt(0).toUpperCase()}
+                </div>
                 <span className="font-mono text-foreground font-medium max-w-28 sm:max-w-36 truncate group-hover:text-primary transition-colors">
                   {user.name ? user.name : `@${user.username}`}
                 </span>
