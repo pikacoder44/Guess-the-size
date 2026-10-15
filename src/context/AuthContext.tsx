@@ -5,6 +5,7 @@ import {
   registerUser,
   googleLogin,
   getMe,
+  updateUserProfile,
   AuthApiError,
 } from "../lib/authApi";
 
@@ -18,14 +19,22 @@ interface AuthContextType {
   isSubmitting: boolean;
   error: string | null;
   authView: "none" | "login" | "register";
+  isProfileOpen: boolean;
   openLogin: () => void;
   openRegister: () => void;
   closeAuth: () => void;
+  openProfile: () => void;
+  closeProfile: () => void;
   setAuthView: (view: "none" | "login" | "register") => void;
   clearError: () => void;
   login: (username: string, password: string) => Promise<boolean>;
   register: (username: string, password: string) => Promise<boolean>;
   loginWithGoogle: (payload?: GoogleAuthPayload) => Promise<boolean>;
+  updateProfile: (payload: {
+    name?: string | null;
+    avatarUrl?: string | null;
+    profilePicture?: string | null;
+  }) => Promise<boolean>;
   logout: () => void;
 }
 
@@ -44,6 +53,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [authView, setAuthView] = useState<"none" | "login" | "register">("none");
+  const [isProfileOpen, setIsProfileOpen] = useState<boolean>(false);
 
   // On mount: restore session if token exists
   useEffect(() => {
@@ -183,6 +193,36 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const openProfile = useCallback(() => {
+    setIsProfileOpen(true);
+  }, []);
+
+  const closeProfile = useCallback(() => {
+    setIsProfileOpen(false);
+  }, []);
+
+  const updateProfile = async (payload: {
+    name?: string | null;
+    avatarUrl?: string | null;
+    profilePicture?: string | null;
+  }): Promise<boolean> => {
+    if (!token) return false;
+    setIsSubmitting(true);
+    setError(null);
+    try {
+      const updatedUser = await updateUserProfile(token, payload);
+      setUser(updatedUser);
+      return true;
+    } catch (err: unknown) {
+      const message =
+        err instanceof AuthApiError ? err.message : "Failed to update profile settings.";
+      setError(message);
+      return false;
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const logout = useCallback(() => {
     try {
       localStorage.removeItem(TOKEN_KEY);
@@ -192,6 +232,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setToken(null);
     setUser(null);
     setError(null);
+    setIsProfileOpen(false);
   }, []);
 
   return (
@@ -204,14 +245,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         isSubmitting,
         error,
         authView,
+        isProfileOpen,
         openLogin,
         openRegister,
         closeAuth,
+        openProfile,
+        closeProfile,
         setAuthView,
         clearError,
         login,
         register,
         loginWithGoogle,
+        updateProfile,
         logout,
       }}
     >
