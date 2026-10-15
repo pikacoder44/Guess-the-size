@@ -1,7 +1,11 @@
 import { Pool } from 'pg';
 import dotenv from 'dotenv';
+import path from 'node:path';
 
 dotenv.config();
+dotenv.config({ path: path.resolve(__dirname, '../.env') });
+dotenv.config({ path: path.resolve(__dirname, '../../.env.local') });
+dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 
 export interface DbPool {
   query<T = any>(queryText: string, values?: any[]): Promise<{ rows: T[] }>;

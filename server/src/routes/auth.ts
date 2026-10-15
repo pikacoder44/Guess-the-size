@@ -4,9 +4,21 @@ import jwt from 'jsonwebtoken';
 import { OAuth2Client } from 'google-auth-library';
 import pool from '../db.js';
 
+import dotenv from 'dotenv';
+import path from 'node:path';
+
+dotenv.config();
+dotenv.config({ path: path.resolve(__dirname, '../../.env') });
+dotenv.config({ path: path.resolve(__dirname, '../../../.env.local') });
+dotenv.config({ path: path.resolve(__dirname, '../../../.env') });
+
 const router = Router();
 
-const googleClientId = process.env.GOOGLE_CLIENT_ID || process.env.CLIENT_ID;
+const googleClientId =
+  process.env.GOOGLE_CLIENT_ID ||
+  process.env.CLIENT_ID ||
+  process.env.VITE_GOOGLE_CLIENT_ID ||
+  '39468790277-loh0ppihjm67q0n2mq3f6925s75hlahe.apps.googleusercontent.com';
 const googleClient = new OAuth2Client(googleClientId);
 
 // ---------------------------------------------------------------------------

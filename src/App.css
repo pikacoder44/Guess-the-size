@@ -1,5 +1,9 @@
 @import url("https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,400;0,500;1,400&family=Manrope:wght@400;500;600;700;800&display=swap");
+@import "tailwindcss";
+@import "tw-animate-css";
 
+@source "../src";
+@custom-variant dark (&:is(.dark *));
 /* ═══════════════════════════════════════════════════════════════════
    DESIGN TOKENS — Dark-first
 ═══════════════════════════════════════════════════════════════════ */
