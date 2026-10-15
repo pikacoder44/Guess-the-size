@@ -12,7 +12,11 @@ dist
 dist-ssr
 *.local
 .agents
+.env
+.env.*
 .env.local
+!.env.example
+.claude/
 
 # Editor directories and files
 .vscode/*
