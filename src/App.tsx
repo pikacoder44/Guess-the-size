@@ -1,11 +1,12 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { AuthModal } from "@/components/auth/AuthModal";
+import { ProfileSettingsModal } from "@/components/profile/ProfileSettingsModal";
 import { AuthPage } from "@/components/auth/AuthPage";
 import { HomePage } from "@/pages/HomePage";
 import { ScaleGuessPage } from "@/pages/ScaleGuessPage";
 import { Footer } from "@/components/home/Footer";
-import { LogIn, UserPlus, LogOut, Brain } from "lucide-react";
+import { LogIn, UserPlus, LogOut, Brain, Settings } from "lucide-react";
 
 export type AppRoute = "home" | "scaleGuess" | "login" | "register";
 
@@ -18,7 +19,7 @@ function getRouteFromPath(pathname: string): AppRoute {
 }
 
 export function App() {
-  const { user, isAuthenticated, openLogin, openRegister, logout } = useAuth();
+  const { user, isAuthenticated, openLogin, openRegister, openProfile, logout } = useAuth();
 
   const [currentRoute, setCurrentRoute] = useState<AppRoute>(() =>
     getRouteFromPath(window.location.pathname),
@@ -69,14 +70,28 @@ export function App() {
         <div className="flex items-center gap-2">
           {isAuthenticated && user ? (
             <div className="flex items-center gap-2">
-              <div className="flex items-center gap-2 px-2.5 py-1 rounded-full bg-secondary/80 border border-border text-xs">
-                <div className="w-5 h-5 rounded-full bg-primary/20 text-primary flex items-center justify-center font-bold text-[10px] ring-1 ring-primary/40">
-                  {user.username.charAt(0).toUpperCase()}
-                </div>
-                <span className="font-mono text-foreground font-medium max-w-28 sm:max-w-36 truncate">
-                  @{user.username}
+              <button
+                type="button"
+                onClick={openProfile}
+                title="Open Profile Settings"
+                className="flex items-center gap-2 px-2.5 py-1 rounded-full bg-secondary/80 hover:bg-secondary border border-border hover:border-primary/40 text-xs transition-all cursor-pointer group"
+              >
+                {user.avatarUrl || user.profilePicture ? (
+                  <img
+                    src={user.avatarUrl || user.profilePicture}
+                    alt={user.username}
+                    className="w-5 h-5 rounded-full object-cover ring-1 ring-primary/40 shrink-0"
+                  />
+                ) : (
+                  <div className="w-5 h-5 rounded-full bg-primary/20 text-primary flex items-center justify-center font-bold text-[10px] ring-1 ring-primary/40 shrink-0">
+                    {user.username.charAt(0).toUpperCase()}
+                  </div>
+                )}
+                <span className="font-mono text-foreground font-medium max-w-28 sm:max-w-36 truncate group-hover:text-primary transition-colors">
+                  {user.name ? user.name : `@${user.username}`}
                 </span>
-              </div>
+                <Settings className="w-3.5 h-3.5 text-muted-foreground group-hover:text-primary transition-colors shrink-0" />
+              </button>
               <button
                 type="button"
                 onClick={logout}
@@ -148,8 +163,9 @@ export function App() {
       {/* ── Footer ── */}
       <Footer onNavigate={navigateTo} />
 
-      {/* ── In-App Auth Modal ── */}
+      {/* ── In-App Auth & Profile Modals ── */}
       <AuthModal />
+      <ProfileSettingsModal />
     </div>
   );
 }
