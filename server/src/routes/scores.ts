@@ -131,6 +131,7 @@ router.get('/leaderboard', async (_req: Request, res: Response): Promise<void> =
       date: string | null;
       completed_at: string;
       username: string;
+      name: string | null;
       avatar_url: string | null;
     }>(
       `SELECT
@@ -141,6 +142,7 @@ router.get('/leaderboard', async (_req: Request, res: Response): Promise<void> =
          gr.date,
          gr.completed_at,
          u.username,
+         u.name,
          u.avatar_url
        FROM game_results gr
        JOIN users u ON gr.user_id = u.id
