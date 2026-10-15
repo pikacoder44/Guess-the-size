@@ -1,10 +1,22 @@
 export interface User {
   id: number;
   username: string;
+  name?: string;
   email?: string;
   avatarUrl?: string;
+  profilePicture?: string;
+  googleId?: string;
   emailVerified?: boolean;
+  givenName?: string;
+  familyName?: string;
+  locale?: string;
   createdAt: string;
+}
+
+export interface UpdateProfilePayload {
+  name?: string | null;
+  avatarUrl?: string | null;
+  profilePicture?: string | null;
 }
 
 export interface AuthResponse {
