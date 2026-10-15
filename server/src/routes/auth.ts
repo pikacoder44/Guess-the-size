@@ -10,17 +10,21 @@ const googleClientId = process.env.GOOGLE_CLIENT_ID || process.env.CLIENT_ID;
 const googleClient = new OAuth2Client(googleClientId);
 
 // ---------------------------------------------------------------------------
-// Helpers
+// Helpers & Types
 // ---------------------------------------------------------------------------
 
 export interface UserRow {
   id: number;
   username: string;
+  name?: string | null;
   email: string | null;
   password: string | null;
   google_id: string | null;
   avatar_url: string | null;
   email_verified?: boolean | null;
+  given_name?: string | null;
+  family_name?: string | null;
+  locale?: string | null;
   created_at: string;
   updated_at?: string;
 }
@@ -41,9 +45,15 @@ function publicUser(user: UserRow) {
   return {
     id: user.id,
     username: user.username,
+    name: user.name || undefined,
     email: user.email || undefined,
     avatarUrl: user.avatar_url || undefined,
+    profilePicture: user.avatar_url || undefined,
+    googleId: user.google_id || undefined,
     emailVerified: Boolean(user.email_verified),
+    givenName: user.given_name || undefined,
+    familyName: user.family_name || undefined,
+    locale: user.locale || undefined,
     createdAt: user.created_at,
   };
 }
@@ -52,11 +62,12 @@ function publicUser(user: UserRow) {
 // POST /api/auth/register
 // ---------------------------------------------------------------------------
 /**
- * Register a new user with username, password, and optional email.
- * Body: { username: string, password: string, email?: string }
+ * Register a new user with username and password.
+ * Profile picture, name, and email are completely optional.
+ * Body: { username: string, password: string, email?: string, name?: string, avatarUrl?: string }
  */
 router.post('/register', async (req: Request, res: Response): Promise<void> => {
-  const { username, password, email } = req.body ?? {};
+  const { username, password, email, name, avatarUrl } = req.body ?? {};
 
   // --- Validation ---
   if (typeof username !== 'string' || username.trim().length === 0) {
@@ -89,15 +100,23 @@ router.post('/register', async (req: Request, res: Response): Promise<void> => {
     }
   }
 
+  const cleanName: string | null =
+    typeof name === 'string' && name.trim().length > 0 ? name.trim().slice(0, 60) : null;
+
+  let cleanAvatarUrl: string | null = null;
+  if (typeof avatarUrl === 'string' && avatarUrl.trim().length > 0) {
+    cleanAvatarUrl = avatarUrl.trim();
+  }
+
   // --- Hash password & insert ---
   const hashedPassword = await bcrypt.hash(password, 12);
 
   try {
     const { rows } = await pool.query<UserRow>(
-      `INSERT INTO users (username, password, email)
-       VALUES ($1, $2, $3)
-       RETURNING id, username, email, avatar_url, created_at`,
-      [cleanUsername, hashedPassword, cleanEmail],
+      `INSERT INTO users (username, password, email, name, avatar_url)
+       VALUES ($1, $2, $3, $4, $5)
+       RETURNING id, username, name, email, avatar_url, google_id, email_verified, created_at`,
+      [cleanUsername, hashedPassword, cleanEmail, cleanName, cleanAvatarUrl],
     );
 
     const newUser = rows[0];
@@ -172,7 +191,8 @@ router.post('/login', async (req: Request, res: Response): Promise<void> => {
 // ---------------------------------------------------------------------------
 /**
  * Cryptographically verify Google OAuth ID token (or access token) and authenticate user.
- * Body: { credential?: string, access_token?: string }
+ * Stores username, name, avatar/profile picture, google_id, and other Google credentials.
+ * Body: { credential?: string, access_token?: string, name?: string, email?: string }
  */
 router.post('/google', async (req: Request, res: Response): Promise<void> => {
   const { credential, access_token } = req.body ?? {};
@@ -187,6 +207,9 @@ router.post('/google', async (req: Request, res: Response): Promise<void> => {
   let profileName: string | null = null;
   let avatarUrl: string | null = null;
   let emailVerified = false;
+  let givenName: string | null = null;
+  let familyName: string | null = null;
+  let locale: string | null = null;
 
   // 1. Verify Google ID Token (standard GIS / @react-oauth/google credential)
   if (credential) {
@@ -219,6 +242,9 @@ router.post('/google', async (req: Request, res: Response): Promise<void> => {
       profileName = payload.name ? payload.name.trim() : null;
       avatarUrl = payload.picture ? payload.picture.trim() : null;
       emailVerified = Boolean(payload.email_verified);
+      givenName = payload.given_name ? payload.given_name.trim() : null;
+      familyName = payload.family_name ? payload.family_name.trim() : null;
+      locale = (payload as any).locale ? String((payload as any).locale).trim() : null;
     } catch (tokenErr: unknown) {
       console.error('Google ID token verification failed:', tokenErr);
       const tokenMsg = tokenErr instanceof Error ? tokenErr.message : 'Cryptographic verification failed.';
@@ -248,6 +274,9 @@ router.post('/google', async (req: Request, res: Response): Promise<void> => {
         name?: string;
         picture?: string;
         email_verified?: boolean;
+        given_name?: string;
+        family_name?: string;
+        locale?: string;
       };
 
       if (!userInfo || !userInfo.sub) {
@@ -260,6 +289,9 @@ router.post('/google', async (req: Request, res: Response): Promise<void> => {
       profileName = userInfo.name ? userInfo.name.trim() : null;
       avatarUrl = userInfo.picture ? userInfo.picture.trim() : null;
       emailVerified = Boolean(userInfo.email_verified);
+      givenName = userInfo.given_name ? userInfo.given_name.trim() : null;
+      familyName = userInfo.family_name ? userInfo.family_name.trim() : null;
+      locale = userInfo.locale ? userInfo.locale.trim() : null;
     } catch (err: unknown) {
       console.error('Google access token verification error:', err);
       res.status(401).json({ error: 'Unable to contact Google to verify access token.' });
@@ -268,6 +300,14 @@ router.post('/google', async (req: Request, res: Response): Promise<void> => {
   } else {
     res.status(400).json({ error: 'Missing Google authentication token.' });
     return;
+  }
+
+  // Optional overrides from body if provided
+  if (!profileName && req.body.name) {
+    profileName = String(req.body.name).trim();
+  }
+  if (!profileEmail && req.body.email) {
+    profileEmail = String(req.body.email).trim().toLowerCase();
   }
 
   // Validate email format if Google returned an email
@@ -290,16 +330,30 @@ router.post('/google', async (req: Request, res: Response): Promise<void> => {
       );
       user = idRows[0];
 
-      // Refresh avatar and verification status if user already exists
+      // Refresh name, avatar, email, and verification status if user already exists
       if (user) {
         const { rows: updatedRows } = await pool.query<UserRow>(
           `UPDATE users
-           SET avatar_url = COALESCE($1, avatar_url),
-               email_verified = COALESCE($2, email_verified),
+           SET name = COALESCE($1, name),
+               avatar_url = COALESCE($2, avatar_url),
+               email = COALESCE($3, email),
+               email_verified = COALESCE($4, email_verified),
+               given_name = COALESCE($5, given_name),
+               family_name = COALESCE($6, family_name),
+               locale = COALESCE($7, locale),
                updated_at = NOW()
-           WHERE id = $3
+           WHERE id = $8
            RETURNING *`,
-          [avatarUrl, emailVerified, user.id],
+          [
+            profileName,
+            avatarUrl,
+            profileEmail,
+            emailVerified,
+            givenName,
+            familyName,
+            locale,
+            user.id,
+          ],
         );
         user = updatedRows[0] || user;
       }
@@ -313,17 +367,30 @@ router.post('/google', async (req: Request, res: Response): Promise<void> => {
       );
       user = emailRows[0];
 
-      // If existing user found by email, link their google_id, avatar, and verified status
+      // If existing user found by email, link their google_id, name, avatar, and verified status
       if (user) {
         const { rows: updatedRows } = await pool.query<UserRow>(
           `UPDATE users
            SET google_id = $1,
-               avatar_url = COALESCE(avatar_url, $2),
-               email_verified = COALESCE($3, email_verified),
+               name = COALESCE(name, $2),
+               avatar_url = COALESCE(avatar_url, $3),
+               email_verified = COALESCE($4, email_verified),
+               given_name = COALESCE(given_name, $5),
+               family_name = COALESCE(family_name, $6),
+               locale = COALESCE(locale, $7),
                updated_at = NOW()
-           WHERE id = $4
+           WHERE id = $8
            RETURNING *`,
-          [googleId, avatarUrl, emailVerified, user.id],
+          [
+            googleId,
+            profileName,
+            avatarUrl,
+            emailVerified,
+            givenName,
+            familyName,
+            locale,
+            user.id,
+          ],
         );
         user = updatedRows[0] || user;
       }
@@ -353,10 +420,20 @@ router.post('/google', async (req: Request, res: Response): Promise<void> => {
       }
 
       const { rows: newRows } = await pool.query<UserRow>(
-        `INSERT INTO users (username, email, google_id, avatar_url, email_verified)
-         VALUES ($1, $2, $3, $4, $5)
-         RETURNING id, username, email, avatar_url, email_verified, created_at`,
-        [finalUsername, profileEmail || null, googleId, avatarUrl, emailVerified],
+        `INSERT INTO users (username, name, email, google_id, avatar_url, email_verified, given_name, family_name, locale)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+         RETURNING id, username, name, email, google_id, avatar_url, email_verified, given_name, family_name, locale, created_at`,
+        [
+          finalUsername,
+          profileName,
+          profileEmail || null,
+          googleId,
+          avatarUrl,
+          emailVerified,
+          givenName,
+          familyName,
+          locale,
+        ],
       );
       user = newRows[0];
     }
@@ -392,6 +469,87 @@ router.post('/google', async (req: Request, res: Response): Promise<void> => {
 });
 
 // ---------------------------------------------------------------------------
+// PATCH & PUT /api/auth/profile
+// ---------------------------------------------------------------------------
+/**
+ * Update authenticated user's profile settings (name and profile picture / avatar_url).
+ * Body: { name?: string | null, avatarUrl?: string | null, profilePicture?: string | null }
+ */
+async function handleUpdateProfile(req: Request, res: Response): Promise<void> {
+  if (!req.user) {
+    res.status(401).json({ error: 'Not authenticated.' });
+    return;
+  }
+
+  const { name, avatarUrl, profilePicture } = req.body ?? {};
+  const requestedAvatar = avatarUrl !== undefined ? avatarUrl : profilePicture;
+
+  // Validate name if provided
+  let cleanName: string | null = null;
+  if (name !== undefined) {
+    if (typeof name === 'string' && name.trim().length > 0) {
+      if (name.trim().length > 60) {
+        res.status(400).json({ error: 'Display name must be 60 characters or fewer.' });
+        return;
+      }
+      cleanName = name.trim();
+    } else {
+      cleanName = null;
+    }
+  }
+
+  // Validate avatar if provided
+  let cleanAvatar: string | null = null;
+  if (requestedAvatar !== undefined) {
+    if (typeof requestedAvatar === 'string' && requestedAvatar.trim().length > 0) {
+      const trimmed = requestedAvatar.trim();
+      // Allow base64 data URIs or http/https URLs
+      if (!trimmed.startsWith('data:image/') && !/^https?:\/\//i.test(trimmed)) {
+        res.status(400).json({ error: 'Profile picture must be a valid image URL or image file.' });
+        return;
+      }
+      cleanAvatar = trimmed;
+    } else {
+      cleanAvatar = null;
+    }
+  }
+
+  try {
+    const { rows: currentRows } = await pool.query<UserRow>(
+      'SELECT * FROM users WHERE id = $1',
+      [req.user.userId],
+    );
+    const currentUser = currentRows[0];
+    if (!currentUser) {
+      res.status(404).json({ error: 'User not found.' });
+      return;
+    }
+
+    const finalName = name !== undefined ? cleanName : currentUser.name;
+    const finalAvatar = requestedAvatar !== undefined ? cleanAvatar : currentUser.avatar_url;
+
+    const { rows: updatedRows } = await pool.query<UserRow>(
+      `UPDATE users
+       SET name = $1,
+           avatar_url = $2,
+           updated_at = NOW()
+       WHERE id = $3
+       RETURNING *`,
+      [finalName, finalAvatar, req.user.userId],
+    );
+
+    const updatedUser = updatedRows[0] || currentUser;
+    res.status(200).json({ user: publicUser(updatedUser) });
+  } catch (err: unknown) {
+    console.error('Update profile error:', err);
+    res.status(500).json({ error: 'Failed to update profile settings.' });
+  }
+}
+
+router.patch('/profile', handleUpdateProfile);
+router.put('/profile', handleUpdateProfile);
+
+// ---------------------------------------------------------------------------
 // GET /api/auth/me
 // ---------------------------------------------------------------------------
 /**
@@ -406,7 +564,7 @@ router.get('/me', async (req: Request, res: Response): Promise<void> => {
 
   try {
     const { rows } = await pool.query<UserRow>(
-      'SELECT id, username, email, avatar_url, email_verified, created_at FROM users WHERE id = $1',
+      'SELECT * FROM users WHERE id = $1',
       [req.user.userId],
     );
     const user = rows[0] as UserRow | undefined;
