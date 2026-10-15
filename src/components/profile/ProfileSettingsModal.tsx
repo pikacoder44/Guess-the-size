@@ -34,10 +34,25 @@ const ProfileSettingsModalContent: React.FC = () => {
   const [avatarUrl, setAvatarUrl] = useState<string | null>(
     user?.avatarUrl || user?.profilePicture || null
   );
+  const [avatarLoadError, setAvatarLoadError] = useState(false);
   const [urlInput, setUrlInput] = useState("");
   const [showUrlInput, setShowUrlInput] = useState(false);
   const [statusMessage, setStatusMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [isProcessingImage, setIsProcessingImage] = useState(false);
+
+  // Sync state whenever the authenticated user updates
+  React.useEffect(() => {
+    if (user) {
+      setDisplayName(user.name || "");
+      setAvatarUrl(user.avatarUrl || user.profilePicture || null);
+      setAvatarLoadError(false);
+    }
+  }, [user]);
+
+  // Reset load error when avatar URL is modified
+  React.useEffect(() => {
+    setAvatarLoadError(false);
+  }, [avatarUrl]);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -222,12 +237,13 @@ const ProfileSettingsModalContent: React.FC = () => {
               {/* Avatar Preview */}
               <div className="relative group shrink-0">
                 <div className="w-20 h-20 rounded-full border-2 border-primary/30 overflow-hidden bg-secondary flex items-center justify-center shadow-inner">
-                  {avatarUrl ? (
+                  {avatarUrl && !avatarLoadError ? (
                     <img
                       src={avatarUrl}
                       alt={user.username}
+                      referrerPolicy="no-referrer"
                       className="w-full h-full object-cover"
-                      onError={() => setAvatarUrl(null)}
+                      onError={() => setAvatarLoadError(true)}
                     />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center bg-primary/15 text-primary text-2xl font-bold font-mono">
@@ -301,7 +317,12 @@ const ProfileSettingsModalContent: React.FC = () => {
                         }`}
                         title={`Select Avatar ${i + 1}`}
                       >
-                        <img src={url} alt={`Preset ${i + 1}`} className="w-full h-full object-cover" />
+                        <img
+                          src={url}
+                          alt={`Preset ${i + 1}`}
+                          referrerPolicy="no-referrer"
+                          className="w-full h-full object-cover"
+                        />
                       </button>
                     ))}
                   </div>
