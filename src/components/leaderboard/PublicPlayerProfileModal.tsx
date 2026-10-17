@@ -175,7 +175,7 @@ export function PublicPlayerProfileModal({ player, onClose }: PublicPlayerProfil
                   className="w-16 h-16 rounded-2xl object-cover ring-2 ring-amber-400/50 shadow-lg shadow-amber-500/20"
                 />
               ) : (
-                <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-amber-400/20 to-orange-500/10 border-2 border-amber-400/50 flex items-center justify-center text-amber-300 font-mono font-black text-2xl shadow-lg shadow-amber-500/10 select-none">
+                <div className="w-16 h-16 rounded-2xl bg-linear-to-br from-amber-400/20 to-orange-500/10 border-2 border-amber-400/50 flex items-center justify-center text-amber-300 font-mono font-black text-2xl shadow-lg shadow-amber-500/10 select-none">
                   {username.charAt(0).toUpperCase()}
                 </div>
               )}
