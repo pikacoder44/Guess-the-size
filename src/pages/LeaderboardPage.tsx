@@ -8,7 +8,6 @@ import {
   User as UserIcon,
   LogIn,
   RotateCw,
-  Clock,
   ChevronRight,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
@@ -155,6 +154,38 @@ const FALLBACK_CHAMPIONS: LeaderboardEntry[] = [
   },
 ];
 
+// Seed mock entries for development and visual testing
+const DEV_MOCK_ENTRIES: Array<Omit<LeaderboardEntry, "id" | "user_id" | "mode" | "date" | "completed_at">> = [
+  { name: "ApexGuesser", username: "apex_god", total_score: 488, average_error: 1.2, elapsed_ms: 28400, avatar_url: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&auto=format&fit=crop&q=80" },
+  { name: "ScaleMaster", username: "scale_wiz", total_score: 462, average_error: 2.8, elapsed_ms: 31200, avatar_url: "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=120&auto=format&fit=crop&q=80" },
+  { name: "PrecisionPro", username: "pixel_perfect", total_score: 440, average_error: 4.1, elapsed_ms: 35100, avatar_url: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=120&auto=format&fit=crop&q=80" },
+  { name: "SihouetteKing", username: "king_shadow", total_score: 415, average_error: 5.6, elapsed_ms: 38900, avatar_url: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=120&auto=format&fit=crop&q=80" },
+  { name: "VectorVixen", username: "vector_v", total_score: 390, average_error: 7.2, elapsed_ms: 41000, avatar_url: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=120&auto=format&fit=crop&q=80" },
+  { name: "MetricMane", username: "metric_m", total_score: 365, average_error: 9.0, elapsed_ms: 44200, avatar_url: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=120&auto=format&fit=crop&q=80" },
+  { name: "RatioRuler", username: "ratio_r", total_score: 330, average_error: 12.4, elapsed_ms: 48000, avatar_url: null },
+  { name: "DimensionDude", username: "dim_dude", total_score: 295, average_error: 16.8, elapsed_ms: 52100, avatar_url: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=120&auto=format&fit=crop&q=80" },
+  { name: "EstimateEthan", username: "ethan_est", total_score: 250, average_error: 22.1, elapsed_ms: 55400, avatar_url: null },
+  { name: "PixelPioneer", username: "pixel_pioneer", total_score: 210, average_error: 28.4, elapsed_ms: 59800, avatar_url: "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=120&auto=format&fit=crop&q=80" },
+];
+
+function generateMockScores(): LeaderboardEntry[] {
+  // Stagger timestamps: 18m ago, 42m ago, 1h ago, 2h ago, etc.
+  const intervalMinutes = [18, 42, 75, 130, 210, 320, 480, 720, 1440, 2880];
+  return DEV_MOCK_ENTRIES.map((entry, idx) => ({
+    id: 801 + idx,
+    user_id: 801 + idx,
+    name: entry.name,
+    username: entry.username,
+    avatar_url: entry.avatar_url,
+    total_score: entry.total_score,
+    average_error: entry.average_error,
+    elapsed_ms: entry.elapsed_ms,
+    mode: "daily",
+    date: new Date().toISOString().slice(0, 10),
+    completed_at: new Date(Date.now() - (intervalMinutes[idx] || (idx + 1) * 35) * 60000).toISOString(),
+  }));
+}
+
 function formatTimeAgo(isoString: string): string {
   try {
     const elapsed = Date.now() - new Date(isoString).getTime();
@@ -169,18 +200,6 @@ function formatTimeAgo(isoString: string): string {
   } catch {
     return "Recently";
   }
-}
-
-/**
- * Formats the tie-breaker precision stats shown beneath each score.
- * Example: "±1.8% Error · 42.5s"
- */
-function formatTieBreaker(averageError: number, elapsedMs: number | null | undefined): string {
-  const errorStr = `\u00b1${averageError.toFixed(1)}% Error`;
-  if (!elapsedMs || elapsedMs <= 0) return errorStr;
-  const totalSec = elapsedMs / 1000;
-  const timeStr = `${totalSec.toFixed(1)}s`;
-  return `${errorStr} \u00b7 ${timeStr}`;
 }
 
 function PlayerAvatar({
@@ -228,6 +247,32 @@ export function LeaderboardPage({ onNavigate, onBackToGame, onOpenLogin }: Leade
   const [myStats, setMyStats] = useState<UserStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+
+  // Attach dev helper to window.seedDummyScores for console testing
+  useEffect(() => {
+    const seedFn = async () => {
+      const mock = generateMockScores();
+      console.log("Seeding dummy leaderboard data...", mock);
+      setEntries(mock);
+      return mock;
+    };
+
+    if (typeof window !== "undefined") {
+      (window as unknown as { seedDummyScores: typeof seedFn }).seedDummyScores = seedFn;
+    }
+
+    const handleSeedEvent = () => {
+      seedFn();
+    };
+    window.addEventListener("seed-dummy-scores", handleSeedEvent);
+
+    return () => {
+      window.removeEventListener("seed-dummy-scores", handleSeedEvent);
+      if (typeof window !== "undefined") {
+        delete (window as unknown as { seedDummyScores?: unknown }).seedDummyScores;
+      }
+    };
+  }, []);
 
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -278,7 +323,34 @@ export function LeaderboardPage({ onNavigate, onBackToGame, onOpenLogin }: Leade
     };
   }, [token]);
 
-  const top10 = entries.slice(0, 10);
+  // Helper for numeric leaderboard sorting across 3-tier precision criteria
+  const sortLeaderboardEntries = (items: LeaderboardEntry[]): LeaderboardEntry[] => {
+    return [...items].sort((a, b) => {
+      // Primary: Higher total score first
+      if (b.total_score !== a.total_score) {
+        return Number(b.total_score) - Number(a.total_score);
+      }
+      // Secondary: Lower average error first
+      if (a.average_error !== b.average_error) {
+        return Number(a.average_error) - Number(b.average_error);
+      }
+      // Tertiary: Faster time first
+      return Number(a.elapsed_ms || 999999) - Number(b.elapsed_ms || 999999);
+    });
+  };
+
+  // Enforce strict numerical sorting whenever merging real API entries with fallback/mock entries
+  const sortedAllEntries = (() => {
+    const existingUsernames = new Set(entries.map((e) => e.username.toLowerCase()));
+    const fillers = FALLBACK_CHAMPIONS.filter(
+      (c) => !existingUsernames.has(c.username.toLowerCase())
+    );
+    const neededFillers = Math.max(0, 10 - entries.length);
+    const allEntries = [...entries, ...fillers.slice(0, neededFillers)];
+    return sortLeaderboardEntries(allEntries);
+  })();
+
+  const top10 = sortedAllEntries.slice(0, 10);
 
   // Check if the authenticated user is present in the Top 10 list
   const userInTop10Index = user
@@ -291,11 +363,22 @@ export function LeaderboardPage({ onNavigate, onBackToGame, onOpenLogin }: Leade
 
   const isUserInTop10 = userInTop10Index !== -1;
 
+  // Check if authenticated user is present in all sorted entries (including beyond top 10)
+  const userInAllIndex = user
+    ? sortedAllEntries.findIndex(
+        (entry) =>
+          entry.username.toLowerCase() === user.username.toLowerCase() ||
+          (entry.user_id && user.id && Number(entry.user_id) === Number(user.id)),
+      )
+    : -1;
+
   // Rank determination for currently logged-in user
   const currentUserRank: number | null =
     userInTop10Index !== -1
       ? userInTop10Index + 1
-      : myStats?.rank ?? (myStats?.bestScore ? 42 : null);
+      : userInAllIndex !== -1
+        ? userInAllIndex + 1
+        : myStats?.rank ?? (myStats?.bestScore ? 42 : null);
 
   const currentUserRankDisplay =
     currentUserRank !== null ? `#${currentUserRank}` : "Unranked";
@@ -389,12 +472,14 @@ export function LeaderboardPage({ onNavigate, onBackToGame, onOpenLogin }: Leade
 
         {/* ── Section B: Top 10 High Scorers Table ── */}
         <section aria-label="Hall of Fame Top 10" className="relative z-10 flex flex-col gap-3">
-          {/* Desktop Table Header: Rank, Player, Date Recorded, High Score */}
-          <div className="hidden md:grid grid-cols-12 gap-3 px-4 py-2 text-[10px] font-mono uppercase tracking-wider text-muted-foreground/75 border-b border-border/30">
-            <div className="col-span-1 text-center">Rank</div>
-            <div className="col-span-6">Player Info</div>
-            <div className="col-span-2 text-right">Date Recorded</div>
-            <div className="col-span-3 text-right">Score · Precision</div>
+          {/* Desktop Table Header: Rank + Player, Date Recorded, High Score */}
+          <div className="hidden sm:flex items-center justify-between px-4 py-2 text-[10px] font-mono uppercase tracking-wider text-muted-foreground/75 border-b border-border/30">
+            <div className="flex items-center gap-3 min-w-0 flex-1">
+              <span className="w-8 sm:w-9 text-center shrink-0">Rank</span>
+              <span>Player Info</span>
+            </div>
+            <div className="w-28 text-center shrink-0">Date Recorded</div>
+            <div className="text-right shrink-0 min-w-[130px]">Score · Precision</div>
           </div>
 
           {/* ── Rows List: Top 3 Podium (Visual Flare) + 4-10 (Sleek Flat) ── */}
@@ -409,283 +494,56 @@ export function LeaderboardPage({ onNavigate, onBackToGame, onOpenLogin }: Leade
                 ((entry.user_id && user.id && Number(entry.user_id) === Number(user.id)) ||
                   entry.username.toLowerCase() === user.username.toLowerCase());
 
-              /* ── 1ST PLACE CHAMPION (GOLD ✨) ── */
-              if (isTop1) {
-                return (
-                  <motion.div
-                    key={entry.id || idx}
-                    initial={{ opacity: 0, transform: "scale(0.96) translateY(12px)" }}
-                    animate={{ opacity: 1, transform: "scale(1) translateY(0px)" }}
-                    transition={{ duration: 0.45, ease: [0.23, 1, 0.32, 1] }}
-                    whileHover={{ scale: 1.012, transition: { duration: 0.2 } }}
-                    onClick={() => handleRowClick(entry)}
-                    role="button"
-                    tabIndex={0}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" || e.key === " ") {
-                        e.preventDefault();
-                        handleRowClick(entry);
-                      }
-                    }}
-                    className={`group relative rounded-2xl border p-3.5 sm:px-5 sm:py-4 backdrop-blur-xl overflow-hidden transition-all duration-300 cursor-pointer ${
-                      isCurrentUser
-                        ? "bg-emerald-950/40 border-emerald-500/50 hover:border-emerald-400"
-                        : "gold-champion-card bg-linear-to-r from-amber-500/15 via-neutral-900/90 to-amber-950/25 border-amber-400/40 hover:border-amber-400/70"
-                    }`}
-                  >
-                    {/* Subtle Top 1 shimmer sweep */}
-                    {!isCurrentUser && (
-                      <div className="absolute inset-0 pointer-events-none overflow-hidden" aria-hidden="true">
-                        <div className="absolute inset-0 w-1/3 bg-linear-to-r from-transparent via-amber-300/10 to-transparent animate-shimmer-pass pointer-events-none" />
-                      </div>
-                    )}
+              // Podium vs Standard Tier styling
+              let rowStyles = "bg-neutral-900/60 border-border/40 hover:border-border/80 hover:bg-neutral-850/80";
+              let rankBadge = (
+                <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-secondary text-foreground font-mono font-bold flex items-center justify-center text-xs shrink-0 transition-all duration-300 group-hover:scale-110 group-hover:rotate-2 border border-border/60">
+                  #{rank.toString().padStart(2, "0")}
+                </div>
+              );
+              let scoreColor = "text-amber-400";
+              let nameHoverColor = "group-hover:text-amber-300";
 
-                    <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-center relative z-10">
-                      {/* Rank & Player Info (Col 1 + Col 7) */}
-                      <div className="md:col-span-8 flex items-center gap-3.5">
-                        {/* High-contrast Gold Rank Badge with micro-interaction */}
-                        <div className="w-9 h-9 rounded-xl bg-amber-400 text-black font-extrabold flex items-center justify-center text-sm font-mono shadow-md shadow-amber-400/30 shrink-0 transition-all duration-300 group-hover:scale-110 group-hover:rotate-2]">
-                          01
-                        </div>
-
-                        <PlayerAvatar
-                          avatarUrl={entry.avatar_url}
-                          username={entry.username}
-                          size="md"
-                        />
-
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-2">
-                            <span className="font-bold text-base text-foreground truncate group-hover:text-amber-300 transition-colors">
-                              {entry.name || entry.username}
-                            </span>
-                            {isCurrentUser && (
-                              <span className="bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 text-[10px] font-bold px-2 py-0.5 rounded-full inline-flex items-center gap-1 font-mono">
-                                <span>You</span>
-                                <span className="text-emerald-300 font-semibold">(#1)</span>
-                              </span>
-                            )}
-                          </div>
-                          <p className="text-xs font-mono text-muted-foreground truncate">
-                            @{entry.username}
-                          </p>
-                        </div>
-                      </div>
-
-                      {/* Date Recorded */}
-                      <div className="md:col-span-2 hidden md:flex items-center justify-end gap-1.5 text-xs font-mono text-muted-foreground">
-                        <Clock className="w-3.5 h-3.5 opacity-70" />
-                        <span>{formatTimeAgo(entry.completed_at)}</span>
-                      </div>
-
-                      {/* High Score */}
-                      <div className="md:col-span-4 flex items-center justify-between md:justify-end gap-3">
-                        <div className="md:hidden flex items-center gap-1 text-[11px] font-mono text-muted-foreground">
-                          <Clock className="w-3 h-3 opacity-60" />
-                          <span>{formatTimeAgo(entry.completed_at)}</span>
-                        </div>
-
-                        <div className="text-right shrink-0">
-                          <div className="flex items-baseline justify-end gap-1">
-                            <span className="font-mono text-2xl sm:text-3xl font-black text-amber-400 drop-shadow-[0_0_12px_rgba(245,158,11,0.6)] tracking-tight">
-                              {entry.total_score}
-                            </span>
-                            <span className="text-xs font-mono text-amber-300/70 font-semibold">
-                              /500
-                            </span>
-                          </div>
-                          <p className="text-[10px] font-mono text-amber-300/60 mt-0.5 text-right">
-                            {formatTieBreaker(entry.average_error, entry.elapsed_ms)}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  </motion.div>
+              if (isCurrentUser) {
+                rowStyles = "bg-emerald-950/40 border-emerald-500/50 hover:border-emerald-400";
+                scoreColor = "text-emerald-400 drop-shadow-[0_0_10px_rgba(52,211,153,0.5)]";
+                nameHoverColor = "group-hover:text-emerald-300";
+              } else if (isTop1) {
+                rowStyles = "gold-champion-card bg-linear-to-r from-amber-500/15 via-neutral-900/90 to-amber-950/25 border-amber-400/40 hover:border-amber-400/70";
+                rankBadge = (
+                  <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-amber-400 text-black font-extrabold flex items-center justify-center text-xs sm:text-sm font-mono shadow-md shadow-amber-400/30 shrink-0 transition-all duration-300 group-hover:scale-110 group-hover:rotate-2">
+                    01
+                  </div>
                 );
+                scoreColor = "text-amber-400 drop-shadow-[0_0_12px_rgba(245,158,11,0.6)]";
+                nameHoverColor = "group-hover:text-amber-300";
+              } else if (isTop2) {
+                rowStyles = "silver-card bg-linear-to-r from-slate-400/10 via-neutral-900/90 to-slate-900/20 border-slate-300/30 hover:border-slate-300/60";
+                rankBadge = (
+                  <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-slate-200 text-black font-extrabold flex items-center justify-center text-xs sm:text-sm font-mono shadow-sm shrink-0 transition-all duration-300 group-hover:scale-110 group-hover:rotate-2">
+                    02
+                  </div>
+                );
+                scoreColor = "text-slate-100 drop-shadow-[0_0_10px_rgba(203,213,225,0.4)]";
+                nameHoverColor = "group-hover:text-slate-200";
+              } else if (isTop3) {
+                rowStyles = "bronze-card bg-linear-to-r from-amber-800/15 via-neutral-900/90 to-amber-950/15 border-amber-700/30 hover:border-amber-700/60";
+                rankBadge = (
+                  <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-amber-700 text-white font-extrabold flex items-center justify-center text-xs sm:text-sm font-mono shadow-sm shrink-0 transition-all duration-300 group-hover:scale-110 group-hover:rotate-2">
+                    03
+                  </div>
+                );
+                scoreColor = "text-amber-500 drop-shadow-[0_0_10px_rgba(217,119,6,0.4)]";
+                nameHoverColor = "group-hover:text-amber-400";
               }
 
-              /* ── 2ND PLACE SILVER TIER 🥈 ── */
-              if (isTop2) {
-                return (
-                  <motion.div
-                    key={entry.id || idx}
-                    initial={{ opacity: 0, transform: "scale(0.96) translateY(10px)" }}
-                    animate={{ opacity: 1, transform: "scale(1) translateY(0px)" }}
-                    transition={{ duration: 0.4, ease: [0.23, 1, 0.32, 1], delay: 0.05 }}
-                    whileHover={{ scale: 1.012, transition: { duration: 0.2 } }}
-                    onClick={() => handleRowClick(entry)}
-                    role="button"
-                    tabIndex={0}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" || e.key === " ") {
-                        e.preventDefault();
-                        handleRowClick(entry);
-                      }
-                    }}
-                    className={`group relative rounded-2xl border p-3.5 sm:px-5 sm:py-3.5 backdrop-blur-xl transition-all duration-300 cursor-pointer ${
-                      isCurrentUser
-                        ? "bg-emerald-950/40 border-emerald-500/50 hover:border-emerald-400"
-                        : "silver-card bg-linear-to-r from-slate-400/10 via-neutral-900/90 to-slate-900/20 border-slate-300/30 hover:border-slate-300/60"
-                    }`}
-                  >
-                    <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-center relative z-10">
-                      <div className="md:col-span-8 flex items-center gap-3.5">
-                        {/* High-contrast Silver Rank Badge with micro-interaction */}
-                        <div className="w-9 h-9 rounded-xl bg-slate-200 text-black font-extrabold flex items-center justify-center text-sm font-mono shadow-sm shrink-0 transition-all duration-300 group-hover:scale-110 group-hover:rotate-2">
-                          02
-                        </div>
-
-                        <PlayerAvatar
-                          avatarUrl={entry.avatar_url}
-                          username={entry.username}
-                          size="md"
-                        />
-
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-2">
-                            <span className="font-bold text-base text-foreground truncate group-hover:text-slate-200 transition-colors">
-                              {entry.name || entry.username}
-                            </span>
-                            {isCurrentUser && (
-                              <span className="bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 text-[10px] font-bold px-2 py-0.5 rounded-full inline-flex items-center gap-1 font-mono">
-                                <span>You</span>
-                                <span className="text-emerald-300 font-semibold">(#2)</span>
-                              </span>
-                            )}
-                          </div>
-                          <p className="text-xs font-mono text-muted-foreground truncate">
-                            @{entry.username}
-                          </p>
-                        </div>
-                      </div>
-
-                      {/* Date Recorded */}
-                      <div className="md:col-span-2 hidden md:flex items-center justify-end gap-1.5 text-xs font-mono text-muted-foreground">
-                        <Clock className="w-3.5 h-3.5 opacity-70" />
-                        <span>{formatTimeAgo(entry.completed_at)}</span>
-                      </div>
-
-                      {/* Score */}
-                      <div className="md:col-span-4 flex items-center justify-between md:justify-end gap-3">
-                        <div className="md:hidden flex items-center gap-1 text-[11px] font-mono text-muted-foreground">
-                          <Clock className="w-3 h-3 opacity-60" />
-                          <span>{formatTimeAgo(entry.completed_at)}</span>
-                        </div>
-
-                        <div className="text-right shrink-0">
-                          <div className="flex items-baseline justify-end gap-1">
-                            <span className="font-mono text-xl sm:text-2xl font-black text-slate-100 drop-shadow-[0_0_10px_rgba(203,213,225,0.4)] tracking-tight">
-                              {entry.total_score}
-                            </span>
-                            <span className="text-xs font-mono text-slate-400 font-semibold">
-                              /500
-                            </span>
-                          </div>
-                          <p className="text-[10px] font-mono text-slate-400/70 mt-0.5 text-right">
-                            {formatTieBreaker(entry.average_error, entry.elapsed_ms)}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  </motion.div>
-                );
-              }
-
-              /* ── 3RD PLACE BRONZE TIER 🥉 ── */
-              if (isTop3) {
-                return (
-                  <motion.div
-                    key={entry.id || idx}
-                    initial={{ opacity: 0, transform: "scale(0.96) translateY(10px)" }}
-                    animate={{ opacity: 1, transform: "scale(1) translateY(0px)" }}
-                    transition={{ duration: 0.4, ease: [0.23, 1, 0.32, 1], delay: 0.1 }}
-                    whileHover={{ scale: 1.012, transition: { duration: 0.2 } }}
-                    onClick={() => handleRowClick(entry)}
-                    role="button"
-                    tabIndex={0}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" || e.key === " ") {
-                        e.preventDefault();
-                        handleRowClick(entry);
-                      }
-                    }}
-                    className={`group relative rounded-2xl border p-3.5 sm:px-5 sm:py-3.5 backdrop-blur-xl transition-all duration-300 cursor-pointer ${
-                      isCurrentUser
-                        ? "bg-emerald-950/40 border-emerald-500/50 hover:border-emerald-400"
-                        : "bronze-card bg-linear-to-r from-amber-800/15 via-neutral-900/90 to-amber-950/15 border-amber-700/30 hover:border-amber-700/60"
-                    }`}
-                  >
-                    <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-center relative z-10">
-                      <div className="md:col-span-8 flex items-center gap-3.5">
-                        {/* High-contrast Bronze Rank Badge with micro-interaction */}
-                        <div className="w-9 h-9 rounded-xl bg-amber-700 text-white font-extrabold flex items-center justify-center text-sm font-mono shadow-sm shrink-0 transition-all duration-300 group-hover:scale-110 group-hover:rotate-2">
-                          03
-                        </div>
-
-                        <PlayerAvatar
-                          avatarUrl={entry.avatar_url}
-                          username={entry.username}
-                          size="md"
-                        />
-
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-2">
-                            <span className="font-bold text-base text-foreground truncate group-hover:text-amber-400 transition-colors">
-                              {entry.name || entry.username}
-                            </span>
-                            {isCurrentUser && (
-                              <span className="bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 text-[10px] font-bold px-2 py-0.5 rounded-full inline-flex items-center gap-1 font-mono">
-                                <span>You</span>
-                                <span className="text-emerald-300 font-semibold">(#3)</span>
-                              </span>
-                            )}
-                          </div>
-                          <p className="text-xs font-mono text-muted-foreground truncate">
-                            @{entry.username}
-                          </p>
-                        </div>
-                      </div>
-
-                      {/* Date Recorded */}
-                      <div className="md:col-span-2 hidden md:flex items-center justify-end gap-1.5 text-xs font-mono text-muted-foreground">
-                        <Clock className="w-3.5 h-3.5 opacity-70" />
-                        <span>{formatTimeAgo(entry.completed_at)}</span>
-                      </div>
-
-                      {/* Score */}
-                      <div className="md:col-span-4 flex items-center justify-between md:justify-end gap-3">
-                        <div className="md:hidden flex items-center gap-1 text-[11px] font-mono text-muted-foreground">
-                          <Clock className="w-3 h-3 opacity-60" />
-                          <span>{formatTimeAgo(entry.completed_at)}</span>
-                        </div>
-
-                        <div className="text-right shrink-0">
-                          <div className="flex items-baseline justify-end gap-1">
-                            <span className="font-mono text-xl sm:text-2xl font-black text-amber-500 drop-shadow-[0_0_10px_rgba(217,119,6,0.4)] tracking-tight">
-                              {entry.total_score}
-                            </span>
-                            <span className="text-xs font-mono text-amber-600/70 font-semibold">
-                              /500
-                            </span>
-                          </div>
-                          <p className="text-[10px] font-mono text-amber-600/60 mt-0.5 text-right">
-                            {formatTieBreaker(entry.average_error, entry.elapsed_ms)}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  </motion.div>
-                );
-              }
-
-              /* ── 4TH–10TH PLACE: SLEEK AND FLAT STANDARD ROWS ── */
               return (
                 <motion.div
-                  key={entry.id || idx}
-                  initial={{ opacity: 0, transform: "translateY(8px)" }}
-                  animate={{ opacity: 1, transform: "translateY(0px)" }}
-                  transition={{ duration: 0.3, ease: [0.23, 1, 0.32, 1], delay: 0.12 + (idx - 3) * 0.03 }}
-                  whileHover={{ scale: 1.008, transition: { duration: 0.15 } }}
+                  key={entry.id || `${entry.username}-${idx}`}
+                  initial={{ opacity: 0, transform: "scale(0.98) translateY(8px)" }}
+                  animate={{ opacity: 1, transform: "scale(1) translateY(0px)" }}
+                  transition={{ duration: 0.35, ease: [0.23, 1, 0.32, 1], delay: idx * 0.03 }}
+                  whileHover={{ scale: 1.01, transition: { duration: 0.15 } }}
                   onClick={() => handleRowClick(entry)}
                   role="button"
                   tabIndex={0}
@@ -695,69 +553,56 @@ export function LeaderboardPage({ onNavigate, onBackToGame, onOpenLogin }: Leade
                       handleRowClick(entry);
                     }
                   }}
-                  className={`group relative rounded-xl border p-3 sm:px-4 sm:py-3 transition-colors duration-200 backdrop-blur-md cursor-pointer ${
-                    isCurrentUser
-                      ? "bg-emerald-950/40 border-emerald-500/50 hover:border-emerald-400"
-                      : "bg-neutral-900/60 border-border/40 hover:border-border/80 hover:bg-neutral-850/80"
-                  }`}
+                  className={`group relative flex items-center justify-between px-4 py-3 min-h-[64px] rounded-xl border transition-all duration-200 cursor-pointer overflow-hidden backdrop-blur-xl ${rowStyles}`}
                 >
-                  <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-center">
-                    <div className="md:col-span-8 flex items-center gap-3">
-                      {/* High-contrast Neutral Monospace Rank Badge with micro-interaction */}
-                      <div className="w-8 h-8 rounded-lg bg-secondary text-foreground font-mono font-bold flex items-center justify-center text-xs shrink-0 transition-all duration-300 group-hover:scale-110 group-hover:rotate-2 border border-border/60">
-                        #{rank.toString().padStart(2, "0")}
-                      </div>
-
-                      <PlayerAvatar
-                        avatarUrl={entry.avatar_url}
-                        username={entry.username}
-                        size="md"
-                      />
-
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2">
-                          <span className="font-semibold text-sm text-foreground truncate group-hover:text-amber-400 transition-colors">
-                            {entry.name || entry.username}
-                          </span>
-                          {isCurrentUser && (
-                            <span className="bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 text-[10px] font-bold px-2 py-0.5 rounded-full inline-flex items-center gap-1 font-mono">
-                              <span>You</span>
-                              <span className="text-emerald-300 font-semibold">(#{rank})</span>
-                            </span>
-                          )}
-                        </div>
-                        <p className="text-[11px] font-mono text-muted-foreground truncate">
-                          @{entry.username}
-                        </p>
-                      </div>
+                  {/* Subtle Top 1 shimmer sweep */}
+                  {isTop1 && !isCurrentUser && (
+                    <div className="absolute inset-0 pointer-events-none overflow-hidden" aria-hidden="true">
+                      <div className="absolute inset-0 w-1/3 bg-linear-to-r from-transparent via-amber-300/10 to-transparent animate-shimmer-pass pointer-events-none" />
                     </div>
+                  )}
 
-                    {/* Date Recorded */}
-                    <div className="md:col-span-2 hidden md:flex items-center justify-end gap-1.5 text-xs font-mono text-muted-foreground/75">
-                      <Clock className="w-3.5 h-3.5 opacity-60" />
-                      <span>{formatTimeAgo(entry.completed_at)}</span>
+                  {/* Left Section (Rank + Avatar + User Info) */}
+                  <div className="flex items-center gap-3 min-w-0 flex-1 pr-3 relative z-10">
+                    {rankBadge}
+
+                    <PlayerAvatar
+                      avatarUrl={entry.avatar_url}
+                      username={entry.username}
+                      size="md"
+                    />
+
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className={`font-bold text-sm sm:text-base text-foreground truncate ${nameHoverColor} transition-colors`}>
+                          {entry.name || entry.username}
+                        </span>
+                        {isCurrentUser && (
+                          <span className="bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 text-[10px] font-bold px-2 py-0.5 rounded-full inline-flex items-center gap-1 font-mono shrink-0">
+                            <span>You</span>
+                            <span className="text-emerald-300 font-semibold">(#{rank})</span>
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs font-mono text-muted-foreground truncate">
+                        @{entry.username}
+                      </p>
                     </div>
+                  </div>
 
-                    {/* Score */}
-                    <div className="md:col-span-4 flex items-center justify-between md:justify-end gap-3">
-                      <div className="md:hidden flex items-center gap-1 text-[11px] font-mono text-muted-foreground">
-                        <Clock className="w-3 h-3 opacity-60" />
-                        <span>{formatTimeAgo(entry.completed_at)}</span>
-                      </div>
+                  {/* Center Section (Timestamp) */}
+                  <div className="hidden sm:flex items-center justify-center w-28 text-center shrink-0 text-xs text-muted-foreground font-mono relative z-10">
+                    <span>{formatTimeAgo(entry.completed_at)}</span>
+                  </div>
 
-                      <div className="text-right shrink-0">
-                        <div className="flex items-baseline justify-end gap-1">
-                          <span className="font-mono text-lg sm:text-xl font-bold text-foreground group-hover:text-amber-300 transition-colors">
-                            {entry.total_score}
-                          </span>
-                          <span className="text-[11px] font-mono text-muted-foreground font-normal">
-                            /500
-                          </span>
-                        </div>
-                        <p className="text-[10px] font-mono text-muted-foreground/60 mt-0.5 text-right">
-                          {formatTieBreaker(entry.average_error, entry.elapsed_ms)}
-                        </p>
-                      </div>
+                  {/* Right Section (Score + Tie-Breaker) */}
+                  <div className="text-right shrink-0 min-w-[130px] relative z-10">
+                    <div className="flex items-baseline justify-end gap-1 font-mono">
+                      <span className={`text-xl font-extrabold ${scoreColor}`}>{entry.total_score}</span>
+                      <span className="text-xs text-muted-foreground font-bold">/500</span>
+                    </div>
+                    <div className="text-[11px] font-mono text-muted-foreground">
+                      ±{(entry.average_error ?? 0).toFixed(1)}% Error · {Math.round((entry.elapsed_ms || 45000) / 1000)}s
                     </div>
                   </div>
                 </motion.div>
@@ -782,63 +627,55 @@ export function LeaderboardPage({ onNavigate, onBackToGame, onOpenLogin }: Leade
                     onNavigate("publicProfile", user.id || user.username);
                   }
                 }}
-                className="group relative rounded-2xl bg-emerald-950/70 border-2 border-emerald-500/70 hover:border-emerald-400 p-3.5 sm:px-5 sm:py-3.5 backdrop-blur-xl shadow-2xl shadow-emerald-950/80 transition-all duration-200 cursor-pointer"
+                className="group relative flex items-center justify-between px-4 py-3 min-h-[64px] rounded-xl bg-emerald-950/70 border-2 border-emerald-500/70 hover:border-emerald-400 backdrop-blur-xl shadow-2xl shadow-emerald-950/80 transition-all duration-200 cursor-pointer"
               >
-                <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-center">
-                  {/* Rank & User Info */}
-                  <div className="md:col-span-8 flex items-center gap-3.5">
-                    <div className="w-9 h-9 rounded-xl bg-emerald-500/30 text-emerald-300 font-mono font-bold flex items-center justify-center text-xs shrink-0 border border-emerald-500/50 shadow-sm transition-all duration-300 group-hover:scale-110 group-hover:rotate-2">
-                      {myStats?.rank ? `#${myStats.rank}` : myStats?.bestScore ? "#42" : "—"}
-                    </div>
-
-                    <PlayerAvatar
-                      avatarUrl={user.avatarUrl || user.profilePicture}
-                      username={user.username}
-                      size="md"
-                    />
-
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2">
-                        <span className="font-bold text-sm sm:text-base text-foreground truncate group-hover:text-emerald-300 transition-colors">
-                          {user.name || user.username}
-                        </span>
-                        <span className="bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 text-[10px] font-bold px-2 py-0.5 rounded-full inline-flex items-center gap-1 font-mono">
-                          <span>You</span>
-                          <span className="text-emerald-300 font-semibold">({currentUserRankDisplay})</span>
-                        </span>
-                      </div>
-                      <p className="text-xs font-mono text-emerald-400/80 truncate">
-                        @{user.username}
-                      </p>
-                    </div>
+                {/* Left Section (Rank + Avatar + User Info) */}
+                <div className="flex items-center gap-3 min-w-0 flex-1 pr-3">
+                  <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-emerald-500/30 text-emerald-300 font-mono font-bold flex items-center justify-center text-xs shrink-0 border border-emerald-500/50 shadow-sm transition-all duration-300 group-hover:scale-110 group-hover:rotate-2">
+                    {currentUserRankDisplay !== "Unranked" ? currentUserRankDisplay : myStats?.rank ? `#${myStats.rank}` : "—"}
                   </div>
 
-                  {/* Date / Activity Recorded */}
-                  <div className="md:col-span-2 hidden md:flex items-center justify-end gap-1.5 text-xs font-mono text-emerald-400/70">
-                    <Clock className="w-3.5 h-3.5 opacity-60" />
-                    <span>{myStats?.gamesPlayed ? `${myStats.gamesPlayed} games` : "Active"}</span>
-                  </div>
+                  <PlayerAvatar
+                    avatarUrl={user.avatarUrl || user.profilePicture}
+                    username={user.username}
+                    size="md"
+                  />
 
-                  {/* Score */}
-                  <div className="md:col-span-2 flex items-center justify-between md:justify-end gap-3">
-                    <div className="md:hidden flex items-center gap-1 text-[11px] font-mono text-emerald-400/70">
-                      <Clock className="w-3 h-3 opacity-60" />
-                      <span>{myStats?.gamesPlayed ? `${myStats.gamesPlayed} games` : "Active"}</span>
-                    </div>
-
-                    <div className="text-right shrink-0">
-                      <div className="flex items-baseline justify-end gap-1">
-                        <span className="font-mono text-xl sm:text-2xl font-black text-emerald-400 drop-shadow-[0_0_10px_rgba(52,211,153,0.5)] tracking-tight">
-                          {myStats?.bestScore ?? 0}
-                        </span>
-                        <span className="text-xs font-mono text-emerald-400/70 font-semibold">
-                          /500
-                        </span>
-                      </div>
-                      <span className="text-[10px] font-mono text-emerald-400/70 hidden sm:block">
-                        Your High Score
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold text-sm sm:text-base text-foreground truncate group-hover:text-emerald-300 transition-colors">
+                        {user.name || user.username}
+                      </span>
+                      <span className="bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 text-[10px] font-bold px-2 py-0.5 rounded-full inline-flex items-center gap-1 font-mono shrink-0">
+                        <span>You</span>
+                        <span className="text-emerald-300 font-semibold">({currentUserRankDisplay})</span>
                       </span>
                     </div>
+                    <p className="text-xs font-mono text-emerald-400/80 truncate">
+                      @{user.username}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Center Section */}
+                <div className="hidden sm:flex items-center justify-center w-28 text-center shrink-0 text-xs font-mono text-emerald-400/70">
+                  <span>{myStats?.gamesPlayed ? `${myStats.gamesPlayed} games` : "Active"}</span>
+                </div>
+
+                {/* Right Section */}
+                <div className="text-right shrink-0 min-w-[130px]">
+                  <div className="flex items-baseline justify-end gap-1 font-mono">
+                    <span className="text-xl font-extrabold text-emerald-400 drop-shadow-[0_0_10px_rgba(52,211,153,0.5)]">
+                      {myStats?.bestScore ?? (userInAllIndex !== -1 ? sortedAllEntries[userInAllIndex].total_score : 0)}
+                    </span>
+                    <span className="text-xs text-muted-foreground font-bold">/500</span>
+                  </div>
+                  <div className="text-[11px] font-mono text-emerald-400/70">
+                    {myStats?.bestAverageError !== undefined
+                      ? `±${myStats.bestAverageError.toFixed(1)}% Error`
+                      : userInAllIndex !== -1
+                        ? `±${(sortedAllEntries[userInAllIndex].average_error ?? 0).toFixed(1)}% Error`
+                        : "Your High Score"}
                   </div>
                 </div>
               </div>

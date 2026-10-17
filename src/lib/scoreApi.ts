@@ -115,3 +115,14 @@ export async function getPublicPlayerProfile(
   const res = await fetch(`${API_BASE}/api/scores/user/${encodeURIComponent(userIdOrUsername)}`);
   return handleResponse<PublicPlayerProfile>(res);
 }
+
+// Development console helper for quick leaderboard visual testing
+if (typeof window !== "undefined" && import.meta.env.DEV) {
+  if (!(window as unknown as { seedDummyScores?: unknown }).seedDummyScores) {
+    (window as unknown as { seedDummyScores: () => void }).seedDummyScores = () => {
+      console.log("Triggering seedDummyScores dev event...");
+      window.dispatchEvent(new CustomEvent("seed-dummy-scores"));
+    };
+  }
+}
+
