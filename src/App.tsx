@@ -1,25 +1,26 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { AuthModal } from "@/components/auth/AuthModal";
-import { ProfileSettingsModal } from "@/components/profile/ProfileSettingsModal";
 import { AuthPage } from "@/components/auth/AuthPage";
 import { HomePage } from "@/pages/HomePage";
 import { ScaleGuessPage } from "@/pages/ScaleGuessPage";
+import { ProfilePage } from "@/pages/ProfilePage";
 import { Footer } from "@/components/home/Footer";
 import { LogIn, UserPlus, LogOut, Brain, Settings } from "lucide-react";
 
-export type AppRoute = "home" | "scaleGuess" | "login" | "register";
+export type AppRoute = "home" | "scaleGuess" | "login" | "register" | "profile";
 
 function getRouteFromPath(pathname: string): AppRoute {
   const path = pathname.toLowerCase().replace(/\/+$/, "");
   if (path === "/scaleguess") return "scaleGuess";
   if (path === "/login") return "login";
   if (path === "/register") return "register";
+  if (path === "/profile") return "profile";
   return "home";
 }
 
 export function App() {
-  const { user, isAuthenticated, openLogin, openRegister, openProfile, logout } = useAuth();
+  const { user, isAuthenticated, openLogin, openRegister, logout } = useAuth();
 
   const [currentRoute, setCurrentRoute] = useState<AppRoute>(() =>
     getRouteFromPath(window.location.pathname),
@@ -48,6 +49,8 @@ export function App() {
     }
   };
 
+  const navigateToProfile = () => navigateTo("profile");
+
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col selection:bg-primary/20">
       {/* ── Clear & Minimal Topbar ── */}
@@ -72,7 +75,7 @@ export function App() {
             <div className="flex items-center gap-2">
               <button
                 type="button"
-                onClick={openProfile}
+                onClick={navigateToProfile}
                 title="Open Profile Settings"
                 className="flex items-center gap-2 px-2.5 py-1 rounded-full bg-secondary/80 hover:bg-secondary border border-border hover:border-primary/40 text-xs transition-all cursor-pointer group"
               >
@@ -162,6 +165,11 @@ export function App() {
             onClose={() => navigateTo("home")}
           />
         </main>
+      ) : currentRoute === "profile" ? (
+        <ProfilePage
+          onBack={() => navigateTo("home")}
+          onOpenLogin={() => { openLogin(); navigateTo("home"); }}
+        />
       ) : currentRoute === "scaleGuess" ? (
         <ScaleGuessPage onBackToHome={() => navigateTo("home")} />
       ) : (
@@ -171,9 +179,8 @@ export function App() {
       {/* ── Footer ── */}
       <Footer onNavigate={navigateTo} />
 
-      {/* ── In-App Auth & Profile Modals ── */}
+      {/* ── In-App Auth Modal ── */}
       <AuthModal />
-      <ProfileSettingsModal />
     </div>
   );
 }
