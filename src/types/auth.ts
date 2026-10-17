@@ -6,11 +6,18 @@ export interface User {
   avatarUrl?: string;
   profilePicture?: string;
   googleId?: string;
+  githubId?: string;
   emailVerified?: boolean;
   givenName?: string;
   familyName?: string;
   locale?: string;
   createdAt: string;
+}
+
+export interface GitHubAuthPayload {
+  code?: string;
+  access_token?: string;
+  mock?: boolean;
 }
 
 export interface UpdateProfilePayload {
