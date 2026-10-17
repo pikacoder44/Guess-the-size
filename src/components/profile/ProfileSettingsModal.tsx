@@ -11,6 +11,34 @@ import {
   Link2,
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
+import { createClient } from "@supabase/supabase-js";
+
+const supabase = createClient(
+  import.meta.env.VITE_SUPABASE_URL,
+  import.meta.env.VITE_SUPABASE_ANON_KEY
+);
+
+async function uploadAvatar(file: File, userId: string | number): Promise<string | null> {
+  try {
+    const fileExt = file.name.split('.').pop();
+    const filePath = `${userId}-${Date.now()}.${fileExt}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from('avatars')
+      .upload(filePath, file, { upsert: true });
+
+    if (uploadError) throw uploadError;
+
+    const { data } = supabase.storage
+      .from('avatars')
+      .getPublicUrl(filePath);
+
+    return data.publicUrl;
+  } catch (error) {
+    console.error('Error uploading avatar to Supabase storage:', error);
+    return null;
+  }
+}
 
 // Fun preset avatars using DiceBear / stylized SVG personas
 const PRESET_AVATARS = [
@@ -34,31 +62,36 @@ const ProfileSettingsModalContent: React.FC = () => {
   const [avatarUrl, setAvatarUrl] = useState<string | null>(
     user?.avatarUrl || user?.profilePicture || null
   );
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [avatarLoadError, setAvatarLoadError] = useState(false);
   const [urlInput, setUrlInput] = useState("");
   const [showUrlInput, setShowUrlInput] = useState(false);
   const [statusMessage, setStatusMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
-  const [isProcessingImage, setIsProcessingImage] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
 
   // Sync state whenever the authenticated user updates
   React.useEffect(() => {
     if (user) {
       setDisplayName(user.name || "");
-      setAvatarUrl(user.avatarUrl || user.profilePicture || null);
+      const currentAvatar = user.avatarUrl || user.profilePicture || null;
+      setAvatarUrl(currentAvatar);
+      setPreviewUrl(currentAvatar);
+      setSelectedFile(null);
       setAvatarLoadError(false);
     }
   }, [user]);
 
-  // Reset load error when avatar URL is modified
+  // Reset load error when preview URL is modified
   React.useEffect(() => {
     setAvatarLoadError(false);
-  }, [avatarUrl]);
+  }, [previewUrl]);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   if (!user) return null;
 
-  // Handle client-side file upload & resize to compact square data URL
+  // Handle local file selection for uploading to Supabase Storage
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -73,53 +106,10 @@ const ProfileSettingsModalContent: React.FC = () => {
       return;
     }
 
-    setIsProcessingImage(true);
-    setStatusMessage(null);
-
-    const reader = new FileReader();
-    reader.onload = (loadEv) => {
-      const img = new Image();
-      img.onload = () => {
-        // Resize to maximum 256x256 for optimal profile photo storage
-        const canvas = document.createElement("canvas");
-        const maxDim = 256;
-        let width = img.width;
-        let height = img.height;
-
-        if (width > height) {
-          if (width > maxDim) {
-            height = Math.round((height * maxDim) / width);
-            width = maxDim;
-          }
-        } else {
-          if (height > maxDim) {
-            width = Math.round((width * maxDim) / height);
-            height = maxDim;
-          }
-        }
-
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext("2d");
-        if (ctx) {
-          ctx.drawImage(img, 0, 0, width, height);
-          const compressedDataUrl = canvas.toDataURL("image/jpeg", 0.88);
-          setAvatarUrl(compressedDataUrl);
-          setStatusMessage({ type: "success", text: "Photo uploaded. Click 'Save Changes' to update." });
-        }
-        setIsProcessingImage(false);
-      };
-      img.onerror = () => {
-        setIsProcessingImage(false);
-        setStatusMessage({ type: "error", text: "Failed to process image file." });
-      };
-      img.src = loadEv.target?.result as string;
-    };
-    reader.onerror = () => {
-      setIsProcessingImage(false);
-      setStatusMessage({ type: "error", text: "Failed to read image file." });
-    };
-    reader.readAsDataURL(file);
+    setSelectedFile(file);
+    const objectUrl = URL.createObjectURL(file);
+    setPreviewUrl(objectUrl);
+    setStatusMessage({ type: "success", text: "Photo selected. Click 'Save Changes' to upload and update." });
   };
 
   const handleApplyUrl = () => {
@@ -129,31 +119,55 @@ const ProfileSettingsModalContent: React.FC = () => {
       setStatusMessage({ type: "error", text: "Please enter a valid URL starting with http:// or https://" });
       return;
     }
+    setSelectedFile(null);
     setAvatarUrl(trimmed);
+    setPreviewUrl(trimmed);
     setUrlInput("");
     setShowUrlInput(false);
     setStatusMessage({ type: "success", text: "Profile image URL applied. Click 'Save Changes' to update." });
   };
 
   const handleRemoveAvatar = () => {
+    setSelectedFile(null);
     setAvatarUrl(null);
+    setPreviewUrl(null);
     setStatusMessage({ type: "success", text: "Profile picture cleared. Click 'Save Changes' to confirm." });
   };
 
   const handleSelectPreset = (presetUrl: string) => {
+    setSelectedFile(null);
     setAvatarUrl(presetUrl);
+    setPreviewUrl(presetUrl);
     setStatusMessage({ type: "success", text: "Preset avatar selected. Click 'Save Changes' to update." });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setStatusMessage(null);
+    setIsUploading(true);
 
+    let finalAvatarUrl = avatarUrl;
+
+    // 1. Upload to Supabase Storage bucket if a file was selected
+    if (selectedFile) {
+      const uploadedPublicUrl = await uploadAvatar(selectedFile, user.id);
+      if (uploadedPublicUrl) {
+        finalAvatarUrl = uploadedPublicUrl;
+      } else {
+        setIsUploading(false);
+        setStatusMessage({ type: "error", text: "Failed to upload image to storage bucket. Please try again." });
+        return;
+      }
+    }
+
+    // 2. Persist the short URL to backend API
     const ok = await updateProfile({
       name: displayName.trim() || null,
-      avatarUrl: avatarUrl || null,
-      profilePicture: avatarUrl || null,
+      avatarUrl: finalAvatarUrl || null,
+      profilePicture: finalAvatarUrl || null,
     });
+
+    setIsUploading(false);
 
     if (ok) {
       setStatusMessage({ type: "success", text: "Profile updated successfully!" });
@@ -237,9 +251,9 @@ const ProfileSettingsModalContent: React.FC = () => {
               {/* Avatar Preview */}
               <div className="relative group shrink-0">
                 <div className="w-20 h-20 rounded-full border-2 border-primary/30 overflow-hidden bg-secondary flex items-center justify-center shadow-inner">
-                  {avatarUrl && !avatarLoadError ? (
+                  {previewUrl && !avatarLoadError ? (
                     <img
-                      src={avatarUrl}
+                      src={previewUrl}
                       alt={user.username}
                       referrerPolicy="no-referrer"
                       className="w-full h-full object-cover"
@@ -252,7 +266,7 @@ const ProfileSettingsModalContent: React.FC = () => {
                   )}
                 </div>
 
-                {isProcessingImage && (
+                {isUploading && (
                   <div className="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center">
                     <Loader2 className="w-5 h-5 text-white animate-spin" />
                   </div>
@@ -272,7 +286,7 @@ const ProfileSettingsModalContent: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
-                    disabled={isProcessingImage || isSubmitting}
+                    disabled={isUploading || isSubmitting}
                     className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-xs font-medium hover:brightness-105 active:scale-[0.98] transition-all cursor-pointer"
                   >
                     <Upload className="w-3.5 h-3.5" />
@@ -288,7 +302,7 @@ const ProfileSettingsModalContent: React.FC = () => {
                     <span>Image URL</span>
                   </button>
 
-                  {avatarUrl && (
+                  {previewUrl && (
                     <button
                       type="button"
                       onClick={handleRemoveAvatar}
@@ -313,7 +327,7 @@ const ProfileSettingsModalContent: React.FC = () => {
                         type="button"
                         onClick={() => handleSelectPreset(url)}
                         className={`w-7 h-7 rounded-full border overflow-hidden hover:scale-110 active:scale-95 transition-transform cursor-pointer ${
-                          avatarUrl === url ? "ring-2 ring-primary border-primary" : "border-border"
+                          previewUrl === url ? "ring-2 ring-primary border-primary" : "border-border"
                         }`}
                         title={`Select Avatar ${i + 1}`}
                       >
@@ -427,17 +441,17 @@ const ProfileSettingsModalContent: React.FC = () => {
             <button
               type="button"
               onClick={closeProfile}
-              disabled={isSubmitting}
+              disabled={isSubmitting || isUploading}
               className="px-4 py-2 rounded-xl text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors cursor-pointer"
             >
               Cancel
             </button>
             <button
               type="submit"
-              disabled={isSubmitting || isProcessingImage}
+              disabled={isSubmitting || isUploading}
               className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-primary text-primary-foreground text-xs font-semibold hover:brightness-105 active:scale-[0.98] transition-all cursor-pointer shadow-md shadow-primary/20 disabled:opacity-50"
             >
-              {isSubmitting ? (
+              {isSubmitting || isUploading ? (
                 <>
                   <Loader2 className="w-3.5 h-3.5 animate-spin" />
                   <span>Saving…</span>
