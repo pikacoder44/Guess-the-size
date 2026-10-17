@@ -479,7 +479,7 @@ export function LeaderboardPage({ onNavigate, onBackToGame, onOpenLogin }: Leade
               <span>Player Info</span>
             </div>
             <div className="w-28 text-center shrink-0">Date Recorded</div>
-            <div className="text-right shrink-0 min-w-[130px]">Score · Precision</div>
+            <div className="text-right shrink-0 min-w-32.5">Score · Precision</div>
           </div>
 
           {/* ── Rows List: Top 3 Podium (Visual Flare) + 4-10 (Sleek Flat) ── */}
@@ -553,7 +553,7 @@ export function LeaderboardPage({ onNavigate, onBackToGame, onOpenLogin }: Leade
                       handleRowClick(entry);
                     }
                   }}
-                  className={`group relative flex items-center justify-between px-4 py-3 min-h-[64px] rounded-xl border transition-all duration-200 cursor-pointer overflow-hidden backdrop-blur-xl ${rowStyles}`}
+                  className={`group relative flex items-center justify-between px-4 py-3 min-h-16 rounded-xl border transition-all duration-200 cursor-pointer overflow-hidden backdrop-blur-xl ${rowStyles}`}
                 >
                   {/* Subtle Top 1 shimmer sweep */}
                   {isTop1 && !isCurrentUser && (
@@ -596,7 +596,7 @@ export function LeaderboardPage({ onNavigate, onBackToGame, onOpenLogin }: Leade
                   </div>
 
                   {/* Right Section (Score + Tie-Breaker) */}
-                  <div className="text-right shrink-0 min-w-[130px] relative z-10">
+                  <div className="text-right shrink-0 min-w-32.5 relative z-10">
                     <div className="flex items-baseline justify-end gap-1 font-mono">
                       <span className={`text-xl font-extrabold ${scoreColor}`}>{entry.total_score}</span>
                       <span className="text-xs text-muted-foreground font-bold">/500</span>
@@ -627,7 +627,7 @@ export function LeaderboardPage({ onNavigate, onBackToGame, onOpenLogin }: Leade
                     onNavigate("publicProfile", user.id || user.username);
                   }
                 }}
-                className="group relative flex items-center justify-between px-4 py-3 min-h-[64px] rounded-xl bg-emerald-950/70 border-2 border-emerald-500/70 hover:border-emerald-400 backdrop-blur-xl shadow-2xl shadow-emerald-950/80 transition-all duration-200 cursor-pointer"
+                className="group relative flex items-center justify-between px-4 py-3 min-h-16 rounded-xl bg-emerald-950/70 border-2 border-emerald-500/70 hover:border-emerald-400 backdrop-blur-xl shadow-2xl shadow-emerald-950/80 transition-all duration-200 cursor-pointer"
               >
                 {/* Left Section (Rank + Avatar + User Info) */}
                 <div className="flex items-center gap-3 min-w-0 flex-1 pr-3">
@@ -663,7 +663,7 @@ export function LeaderboardPage({ onNavigate, onBackToGame, onOpenLogin }: Leade
                 </div>
 
                 {/* Right Section */}
-                <div className="text-right shrink-0 min-w-[130px]">
+                <div className="text-right shrink-0 min-w-32.5">
                   <div className="flex items-baseline justify-end gap-1 font-mono">
                     <span className="text-xl font-extrabold text-emerald-400 drop-shadow-[0_0_10px_rgba(52,211,153,0.5)]">
                       {myStats?.bestScore ?? (userInAllIndex !== -1 ? sortedAllEntries[userInAllIndex].total_score : 0)}
