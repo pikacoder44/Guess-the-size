@@ -40,6 +40,37 @@ async function uploadAvatar(file: File, userId: string | number): Promise<string
   }
 }
 
+async function deleteAvatarFromStorage(publicUrl: string): Promise<boolean> {
+  try {
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+    const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+    if (!supabaseUrl || !supabaseAnonKey || !publicUrl) return false;
+
+    // Extract file path from Supabase storage public URL
+    // URL structure: .../storage/v1/object/public/avatars/FILENAME.jpg
+    const urlParts = publicUrl.split('/avatars/');
+    if (urlParts.length < 2) return false; // Not a Supabase bucket URL (e.g., Google or DiceBear URL)
+
+    const filePath = decodeURIComponent(urlParts[1]);
+    const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+    const { error } = await supabase.storage
+      .from('avatars')
+      .remove([filePath]);
+
+    if (error) {
+      console.error('Error removing file from storage:', error);
+      return false;
+    }
+
+    return true;
+  } catch (error) {
+    console.error('Failed to delete avatar file:', error);
+    return false;
+  }
+}
+
 // Fun preset avatars using DiceBear / stylized SVG personas
 const PRESET_AVATARS = [
   "https://api.dicebear.com/7.x/bottts/svg?seed=Cosmo&backgroundColor=b6e3f4",
@@ -142,42 +173,51 @@ const ProfileSettingsModalContent: React.FC = () => {
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setStatusMessage(null);
-    setIsUploading(true);
+  e.preventDefault();
+  setStatusMessage(null);
+  setIsUploading(true);
 
-    let finalAvatarUrl = avatarUrl;
+  let finalAvatarUrl = avatarUrl;
 
-    // 1. Upload to Supabase Storage bucket if a file was selected
-    if (selectedFile) {
-      const uploadedPublicUrl = await uploadAvatar(selectedFile, user.id);
-      if (uploadedPublicUrl) {
-        finalAvatarUrl = uploadedPublicUrl;
-      } else {
-        setIsUploading(false);
-        setStatusMessage({ type: "error", text: "Failed to upload image to storage bucket. Please try again." });
-        return;
-      }
-    }
-
-    // 2. Persist the short URL to backend API
-    const ok = await updateProfile({
-      name: displayName.trim() || null,
-      avatarUrl: finalAvatarUrl || null,
-      profilePicture: finalAvatarUrl || null,
-    });
-
-    setIsUploading(false);
-
-    if (ok) {
-      setStatusMessage({ type: "success", text: "Profile updated successfully!" });
-      setTimeout(() => {
-        closeProfile();
-      }, 700);
+  // 1. If user uploaded a new local file, send to bucket
+  if (selectedFile) {
+    const uploadedPublicUrl = await uploadAvatar(selectedFile, user.id);
+    if (uploadedPublicUrl) {
+      finalAvatarUrl = uploadedPublicUrl;
     } else {
-      setStatusMessage({ type: "error", text: "Failed to update profile. Please try again." });
+      setIsUploading(false);
+      setStatusMessage({ type: "error", text: "Failed to upload image to storage bucket." });
+      return;
     }
-  };
+  }
+
+  // 2. If user removed their avatar (or picked a non-bucket image), 
+  // delete the old stored file from Supabase if it belonged to our bucket
+  const previousAvatar = user.avatarUrl || user.profilePicture;
+  if (previousAvatar && previousAvatar !== finalAvatarUrl) {
+    if (previousAvatar.includes('/storage/v1/object/public/avatars/')) {
+      await deleteAvatarFromStorage(previousAvatar);
+    }
+  }
+
+  // 3. Persist the updated avatar URL to your backend API
+  const ok = await updateProfile({
+    name: displayName.trim() || null,
+    avatarUrl: finalAvatarUrl || null,
+    profilePicture: finalAvatarUrl || null,
+  });
+
+  setIsUploading(false);
+
+  if (ok) {
+    setStatusMessage({ type: "success", text: "Profile updated successfully!" });
+    setTimeout(() => {
+      closeProfile();
+    }, 700);
+  } else {
+    setStatusMessage({ type: "error", text: "Failed to update profile. Please try again." });
+  }
+};
 
   const isGoogleAccount = Boolean(user.googleId);
 
