@@ -1,4 +1,4 @@
-import type { AuthResponse, GoogleAuthPayload, LoginPayload, RegisterPayload, User } from "../types/auth";
+import type { AuthResponse, GoogleAuthPayload, GitHubAuthPayload, LoginPayload, RegisterPayload, User } from "../types/auth";
 
 const API_BASE = import.meta.env.VITE_API_URL || "";
 
@@ -55,6 +55,17 @@ export async function registerUser(payload: RegisterPayload): Promise<AuthRespon
 
 export async function googleLogin(payload: GoogleAuthPayload): Promise<AuthResponse> {
   const res = await fetch(`${API_BASE}/api/auth/google`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  });
+  return handleResponse<AuthResponse>(res);
+}
+
+export async function githubLogin(payload: GitHubAuthPayload = {}): Promise<AuthResponse> {
+  const res = await fetch(`${API_BASE}/api/auth/github`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
