@@ -86,14 +86,14 @@ export function ScaleGuessPage({ onBackToHome, onNavigateLeaderboard }: ScaleGue
               <span className="text-muted-foreground uppercase text-[10px] hidden sm:inline">
                 Ref:
               </span>
-              <span className="font-medium text-foreground bg-secondary/60 px-2 py-0.5 rounded border border-border/50 truncate max-w-[80px] sm:max-w-none">
+              <span className="font-medium text-foreground bg-secondary/60 px-2 py-0.5 rounded border border-border/50 truncate max-w-20 sm:max-w-none">
                 {state.puzzle.reference.name}
               </span>
               <span className="text-muted-foreground opacity-30">vs</span>
               <span className="text-muted-foreground uppercase text-[10px] hidden sm:inline">
                 Target:
               </span>
-              <span className="font-semibold text-primary bg-primary/10 px-2 py-0.5 rounded border border-primary/20 truncate max-w-[80px] sm:max-w-none">
+              <span className="font-semibold text-primary bg-primary/10 px-2 py-0.5 rounded border border-primary/20 truncate max-w-20 sm:max-w-none">
                 {state.puzzle.target.name}
               </span>
             </div>
@@ -148,7 +148,7 @@ export function ScaleGuessPage({ onBackToHome, onNavigateLeaderboard }: ScaleGue
           >
             {/* Shimmer sweep effect on button hover */}
             <span
-              className="absolute inset-0 w-1/2 h-full bg-gradient-to-r from-transparent via-amber-400/15 to-transparent -translate-x-full group-hover:translate-x-[300%] transition-transform duration-1000 ease-out pointer-events-none"
+              className="absolute inset-0 w-1/2 h-full bg-linear-to-r from-transparent via-amber-400/15 to-transparent -translate-x-full group-hover:translate-x-[300%] transition-transform duration-1000 ease-out pointer-events-none"
               aria-hidden="true"
             />
             <Trophy className="w-4 h-4 text-amber-400/80 group-hover:text-amber-400 group-hover:scale-110 transition-all duration-300 drop-shadow-[0_0_10px_rgba(251,191,36,0.6)]" />

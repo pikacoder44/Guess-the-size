@@ -287,7 +287,7 @@ export function LeaderboardPage({ onNavigate, onBackToGame, onOpenLogin }: Leade
     <div className="min-h-screen bg-neutral-950 text-foreground flex flex-col selection:bg-amber-500/20 relative overflow-hidden">
       {/* ── Background Ambient Backlights (Deep Cinematic Dark) ── */}
       <div
-        className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-7xl h-96 bg-gradient-to-b from-amber-500/10 via-amber-600/5 to-transparent blur-3xl pointer-events-none"
+        className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-7xl h-96 bg-linear-to-b from-amber-500/10 via-amber-600/5 to-transparent blur-3xl pointer-events-none"
         aria-hidden="true"
       />
       <div
@@ -408,13 +408,13 @@ export function LeaderboardPage({ onNavigate, onBackToGame, onOpenLogin }: Leade
                     className={`group relative rounded-2xl border p-3.5 sm:px-5 sm:py-4 backdrop-blur-xl overflow-hidden transition-all duration-300 cursor-pointer ${
                       isCurrentUser
                         ? "bg-emerald-950/40 border-emerald-500/50 hover:border-emerald-400"
-                        : "gold-champion-card bg-gradient-to-r from-amber-500/15 via-neutral-900/90 to-amber-950/25 border-amber-400/40 hover:border-amber-400/70"
+                        : "gold-champion-card bg-linear-to-r from-amber-500/15 via-neutral-900/90 to-amber-950/25 border-amber-400/40 hover:border-amber-400/70"
                     }`}
                   >
                     {/* Subtle Top 1 shimmer sweep */}
                     {!isCurrentUser && (
                       <div className="absolute inset-0 pointer-events-none overflow-hidden" aria-hidden="true">
-                        <div className="absolute inset-0 w-1/3 bg-gradient-to-r from-transparent via-amber-300/10 to-transparent animate-shimmer-pass pointer-events-none" />
+                        <div className="absolute inset-0 w-1/3 bg-linear-to-r from-transparent via-amber-300/10 to-transparent animate-shimmer-pass pointer-events-none" />
                       </div>
                     )}
 
@@ -422,7 +422,7 @@ export function LeaderboardPage({ onNavigate, onBackToGame, onOpenLogin }: Leade
                       {/* Rank & Player Info (Col 1 + Col 7) */}
                       <div className="md:col-span-8 flex items-center gap-3.5">
                         {/* High-contrast Gold Rank Badge with micro-interaction */}
-                        <div className="w-9 h-9 rounded-xl bg-amber-400 text-black font-extrabold flex items-center justify-center text-sm font-mono shadow-md shadow-amber-400/30 shrink-0 transition-all duration-300 group-hover:scale-110 group-hover:rotate-[-2deg]">
+                        <div className="w-9 h-9 rounded-xl bg-amber-400 text-black font-extrabold flex items-center justify-center text-sm font-mono shadow-md shadow-amber-400/30 shrink-0 transition-all duration-300 group-hover:scale-110 group-hover:rotate-2]">
                           01
                         </div>
 
@@ -500,13 +500,13 @@ export function LeaderboardPage({ onNavigate, onBackToGame, onOpenLogin }: Leade
                     className={`group relative rounded-2xl border p-3.5 sm:px-5 sm:py-3.5 backdrop-blur-xl transition-all duration-300 cursor-pointer ${
                       isCurrentUser
                         ? "bg-emerald-950/40 border-emerald-500/50 hover:border-emerald-400"
-                        : "silver-card bg-gradient-to-r from-slate-400/10 via-neutral-900/90 to-slate-900/20 border-slate-300/30 hover:border-slate-300/60"
+                        : "silver-card bg-linear-to-r from-slate-400/10 via-neutral-900/90 to-slate-900/20 border-slate-300/30 hover:border-slate-300/60"
                     }`}
                   >
                     <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-center relative z-10">
                       <div className="md:col-span-8 flex items-center gap-3.5">
                         {/* High-contrast Silver Rank Badge with micro-interaction */}
-                        <div className="w-9 h-9 rounded-xl bg-slate-200 text-black font-extrabold flex items-center justify-center text-sm font-mono shadow-sm shrink-0 transition-all duration-300 group-hover:scale-110 group-hover:rotate-[-2deg]">
+                        <div className="w-9 h-9 rounded-xl bg-slate-200 text-black font-extrabold flex items-center justify-center text-sm font-mono shadow-sm shrink-0 transition-all duration-300 group-hover:scale-110 group-hover:rotate-2">
                           02
                         </div>
 
@@ -584,13 +584,13 @@ export function LeaderboardPage({ onNavigate, onBackToGame, onOpenLogin }: Leade
                     className={`group relative rounded-2xl border p-3.5 sm:px-5 sm:py-3.5 backdrop-blur-xl transition-all duration-300 cursor-pointer ${
                       isCurrentUser
                         ? "bg-emerald-950/40 border-emerald-500/50 hover:border-emerald-400"
-                        : "bronze-card bg-gradient-to-r from-amber-800/15 via-neutral-900/90 to-amber-950/15 border-amber-700/30 hover:border-amber-700/60"
+                        : "bronze-card bg-linear-to-r from-amber-800/15 via-neutral-900/90 to-amber-950/15 border-amber-700/30 hover:border-amber-700/60"
                     }`}
                   >
                     <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-center relative z-10">
                       <div className="md:col-span-8 flex items-center gap-3.5">
                         {/* High-contrast Bronze Rank Badge with micro-interaction */}
-                        <div className="w-9 h-9 rounded-xl bg-amber-700 text-white font-extrabold flex items-center justify-center text-sm font-mono shadow-sm shrink-0 transition-all duration-300 group-hover:scale-110 group-hover:rotate-[-2deg]">
+                        <div className="w-9 h-9 rounded-xl bg-amber-700 text-white font-extrabold flex items-center justify-center text-sm font-mono shadow-sm shrink-0 transition-all duration-300 group-hover:scale-110 group-hover:rotate-2">
                           03
                         </div>
 
@@ -673,7 +673,7 @@ export function LeaderboardPage({ onNavigate, onBackToGame, onOpenLogin }: Leade
                   <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-center">
                     <div className="md:col-span-8 flex items-center gap-3">
                       {/* High-contrast Neutral Monospace Rank Badge with micro-interaction */}
-                      <div className="w-8 h-8 rounded-lg bg-secondary text-foreground font-mono font-bold flex items-center justify-center text-xs shrink-0 transition-all duration-300 group-hover:scale-110 group-hover:rotate-[-2deg] border border-border/60">
+                      <div className="w-8 h-8 rounded-lg bg-secondary text-foreground font-mono font-bold flex items-center justify-center text-xs shrink-0 transition-all duration-300 group-hover:scale-110 group-hover:rotate-2 border border-border/60">
                         #{rank.toString().padStart(2, "0")}
                       </div>
 
@@ -753,7 +753,7 @@ export function LeaderboardPage({ onNavigate, onBackToGame, onOpenLogin }: Leade
                 <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-center">
                   {/* Rank & User Info */}
                   <div className="md:col-span-8 flex items-center gap-3.5">
-                    <div className="w-9 h-9 rounded-xl bg-emerald-500/30 text-emerald-300 font-mono font-bold flex items-center justify-center text-xs shrink-0 border border-emerald-500/50 shadow-sm transition-all duration-300 group-hover:scale-110 group-hover:rotate-[-2deg]">
+                    <div className="w-9 h-9 rounded-xl bg-emerald-500/30 text-emerald-300 font-mono font-bold flex items-center justify-center text-xs shrink-0 border border-emerald-500/50 shadow-sm transition-all duration-300 group-hover:scale-110 group-hover:rotate-2">
                       {myStats?.rank ? `#${myStats.rank}` : myStats?.bestScore ? "#42" : "—"}
                     </div>
 
@@ -851,7 +851,7 @@ export function LeaderboardPage({ onNavigate, onBackToGame, onOpenLogin }: Leade
             <button
               type="button"
               onClick={onBackToGame}
-              className="flex-1 sm:flex-initial lock-btn flex items-center justify-center gap-2 shadow-xl shadow-amber-500/20 hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer text-xs sm:text-sm font-bold bg-gradient-to-r from-amber-400 to-amber-500 text-slate-950 hover:brightness-105"
+              className="flex-1 sm:flex-initial lock-btn flex items-center justify-center gap-2 shadow-xl shadow-amber-500/20 hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer text-xs sm:text-sm font-bold bg-linear-to-r from-amber-400 to-amber-500 text-slate-950 hover:brightness-105"
             >
               <Gamepad2 className="w-4 h-4" />
               <span>Play ScaleGuess Now</span>
