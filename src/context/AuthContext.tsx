@@ -1,9 +1,10 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from "react";
-import type { GoogleAuthPayload, User } from "../types/auth";
+import type { GoogleAuthPayload, GitHubAuthPayload, User } from "../types/auth";
 import {
   loginUser,
   registerUser,
   googleLogin,
+  githubLogin,
   getMe,
   updateUserProfile,
   AuthApiError,
@@ -30,6 +31,7 @@ interface AuthContextType {
   login: (username: string, password: string) => Promise<boolean>;
   register: (username: string, password: string) => Promise<boolean>;
   loginWithGoogle: (payload?: GoogleAuthPayload) => Promise<boolean>;
+  loginWithGitHub: (payload?: GitHubAuthPayload) => Promise<boolean>;
   updateProfile: (payload: {
     name?: string | null;
     avatarUrl?: string | null;
@@ -54,6 +56,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [error, setError] = useState<string | null>(null);
   const [authView, setAuthView] = useState<"none" | "login" | "register">("none");
   const [isProfileOpen, setIsProfileOpen] = useState<boolean>(false);
+
+  const closeAuth = useCallback(() => {
+    setError(null);
+    setAuthView("none");
+    if (window.location.hash === "#login" || window.location.hash === "#register") {
+      history.replaceState(null, "", window.location.pathname);
+    }
+  }, []);
+
+  const clearError = useCallback(() => setError(null), []);
+
+  const persistSession = useCallback((newToken: string, newUser: User) => {
+    try {
+      localStorage.setItem(TOKEN_KEY, newToken);
+    } catch {
+      // ignore storage quota error
+    }
+    setToken(newToken);
+    setUser(newUser);
+    setError(null);
+    closeAuth();
+  }, [closeAuth]);
 
   // On mount: restore session if token exists
   useEffect(() => {
@@ -87,10 +111,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     restoreSession();
+
+    // Handle incoming GitHub OAuth callback code (?code=...)
+    try {
+      const urlParams = new URLSearchParams(window.location.search);
+      const githubCode = urlParams.get("code");
+      if (githubCode) {
+        githubLogin({ code: githubCode })
+          .then((res) => {
+            persistSession(res.token, res.user);
+            const cleanUrl = window.location.pathname + window.location.hash;
+            window.history.replaceState(null, "", cleanUrl);
+          })
+          .catch((err) => {
+            console.error("GitHub OAuth code exchange error:", err);
+          });
+      }
+    } catch {
+      // Ignore URL parsing errors
+    }
+
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [persistSession]);
 
   // Listen for hash-based navigation (#login or #register)
   useEffect(() => {
@@ -120,27 +164,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     window.location.hash = "#register";
   }, []);
 
-  const closeAuth = useCallback(() => {
-    setError(null);
-    setAuthView("none");
-    if (window.location.hash === "#login" || window.location.hash === "#register") {
-      history.replaceState(null, "", window.location.pathname);
-    }
-  }, []);
-
-  const clearError = useCallback(() => setError(null), []);
-
-  const persistSession = (newToken: string, newUser: User) => {
-    try {
-      localStorage.setItem(TOKEN_KEY, newToken);
-    } catch {
-      // ignore storage quota error
-    }
-    setToken(newToken);
-    setUser(newUser);
-    setError(null);
-    closeAuth();
-  };
 
   const login = async (username: string, password: string): Promise<boolean> => {
     setIsSubmitting(true);
@@ -186,6 +209,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return true;
     } catch (err: unknown) {
       const message = err instanceof AuthApiError ? err.message : "Google authentication failed. Please try again.";
+      setError(message);
+      return false;
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const loginWithGitHub = async (payload?: GitHubAuthPayload): Promise<boolean> => {
+    setIsSubmitting(true);
+    setError(null);
+    try {
+      const res = await githubLogin(payload ?? {});
+      persistSession(res.token, res.user);
+      return true;
+    } catch (err: unknown) {
+      const message =
+        err instanceof AuthApiError
+          ? err.message
+          : "GitHub authentication failed. Please try again.";
       setError(message);
       return false;
     } finally {
@@ -256,6 +298,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         login,
         register,
         loginWithGoogle,
+        loginWithGitHub,
         updateProfile,
         logout,
       }}
