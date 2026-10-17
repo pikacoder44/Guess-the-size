@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import {
   X,
   Upload,
@@ -9,7 +9,10 @@ import {
   User as UserIcon,
   Sparkles,
   Link2,
+  BarChart3,
+  Trophy,
 } from "lucide-react";
+import { getMyScores, type GameResult, type UserStats } from "../../lib/scoreApi";
 import { useAuth } from "../../context/AuthContext";
 import { createClient } from "@supabase/supabase-js";
 
@@ -87,7 +90,7 @@ export const ProfileSettingsModal: React.FC = () => {
 };
 
 const ProfileSettingsModalContent: React.FC = () => {
-  const { user, closeProfile, updateProfile, isSubmitting } = useAuth();
+  const { user, token, closeProfile, updateProfile, isSubmitting } = useAuth();
 
   const [displayName, setDisplayName] = useState(user?.name || "");
   const [avatarUrl, setAvatarUrl] = useState<string | null>(
@@ -98,6 +101,8 @@ const ProfileSettingsModalContent: React.FC = () => {
   const [avatarLoadError, setAvatarLoadError] = useState(false);
   const [urlInput, setUrlInput] = useState("");
   const [showUrlInput, setShowUrlInput] = useState(false);
+  const [recentGames, setRecentGames] = useState<GameResult[]>([]);
+  const [stats, setStats] = useState<UserStats | null>(null);
   const [statusMessage, setStatusMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [isUploading, setIsUploading] = useState(false);
 
@@ -119,6 +124,13 @@ const ProfileSettingsModalContent: React.FC = () => {
   }, [previewUrl]);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!token) return;
+    getMyScores(token)
+      .then((d) => { setRecentGames(d.recentGames); setStats(d.stats); })
+      .catch(() => { /* non-fatal */ });
+  }, [token]);
 
   if (!user) return null;
 
@@ -483,6 +495,48 @@ const ProfileSettingsModalContent: React.FC = () => {
               )}
             </div>
           </div>
+
+          {/* 4. Score History */}
+          {stats && (
+            <div className="space-y-2">
+              <div className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
+                <BarChart3 className="w-3.5 h-3.5 text-primary" />
+                <span>Your Stats</span>
+              </div>
+
+              {/* Stat pills */}
+              <div className="grid grid-cols-3 gap-2">
+                {([
+                  { label: "Games", value: stats.gamesPlayed },
+                  { label: "Best", value: stats.bestScore },
+                  { label: "Avg", value: stats.averageScore },
+                ] as { label: string; value: number }[]).map((s) => (
+                  <div key={s.label} className="flex flex-col items-center p-2 rounded-lg bg-secondary/30 border border-border/40">
+                    <span className="font-mono text-base font-bold text-primary">{s.value}</span>
+                    <span className="text-[10px] text-muted-foreground">{s.label}</span>
+                  </div>
+                ))}
+              </div>
+
+              {/* Recent games list */}
+              {recentGames.length > 0 && (
+                <div className="max-h-32 overflow-y-auto space-y-1 pr-0.5">
+                  {recentGames.slice(0, 10).map((g) => (
+                    <div key={g.id} className="flex items-center justify-between px-2.5 py-1.5 rounded-lg bg-secondary/20 border border-border/30 text-xs">
+                      <div className="flex items-center gap-1.5">
+                        <Trophy className="w-3 h-3 text-muted-foreground" />
+                        <span className="font-mono font-bold text-primary">{g.total_score}</span>
+                        <span className="text-muted-foreground">/ 100</span>
+                      </div>
+                      <span className="text-muted-foreground">
+                        {new Date(g.completed_at).toLocaleDateString()}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Footer Actions */}
           <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-border/50">

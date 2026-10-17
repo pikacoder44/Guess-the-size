@@ -1,12 +1,17 @@
+import { useState } from "react";
+import { Trophy } from "lucide-react";
 import { HeroSection } from "@/components/home/HeroSection";
 import { PlayerStats } from "@/components/home/PlayerStats";
 import { GameSection } from "@/components/home/GameSection";
+import { LeaderboardModal } from "@/components/leaderboard/LeaderboardModal";
 
 interface HomePageProps {
   onNavigate: (route: "home" | "scaleGuess" | "login" | "register") => void;
 }
 
 export function HomePage({ onNavigate }: HomePageProps) {
+  const [showLeaderboard, setShowLeaderboard] = useState(false);
+
   const handleCardNavigate = (href: string) => {
     if (href === "/scaleGuess" || href === "/scaleguess") {
       onNavigate("scaleGuess");
@@ -28,8 +33,22 @@ export function HomePage({ onNavigate }: HomePageProps) {
       {/* 2. Player Stats */}
       <PlayerStats />
 
-      {/* 3. Game Cards */}
+      {/* 3. Game Cards + Leaderboard trigger */}
+      <div className="flex items-center justify-between mb-3">
+        <span className="text-xs font-mono uppercase tracking-widest text-muted-foreground">Games</span>
+        <button
+          type="button"
+          id="open-leaderboard-btn"
+          onClick={() => setShowLeaderboard(true)}
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-secondary/80 hover:bg-secondary border border-border text-xs font-medium text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+        >
+          <Trophy className="w-3.5 h-3.5 text-primary" />
+          Leaderboard
+        </button>
+      </div>
       <GameSection onNavigate={handleCardNavigate} />
+
+      {showLeaderboard && <LeaderboardModal onClose={() => setShowLeaderboard(false)} />}
     </div>
   );
 }

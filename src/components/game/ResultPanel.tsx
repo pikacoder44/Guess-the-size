@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from "react";
-import { ArrowRight, Award, Percent, Target } from "lucide-react";
+import { ArrowRight, Award, Percent, Target, CloudCheck } from "lucide-react";
 import { calculateScore, formatMeasurement, percentError } from "@/game/scoring";
+import { useAuth } from "@/context/AuthContext";
+import { submitScore } from "@/lib/scoreApi";
 import type { GameState } from "@/game/useGame";
 
 export interface ResultPanelProps {
@@ -35,11 +37,28 @@ function useCountUp(target: number, duration = 800) {
 
 export function ResultPanel({ state, onNextRound }: ResultPanelProps) {
   const nextBtnRef = useRef<HTMLButtonElement>(null);
+  const { token } = useAuth();
+  const submitted = useRef(false);
+  const [saved, setSaved] = useState(false);
+
   const guess = state.finalGuessScale ?? state.guessScale;
   const correct = state.puzzle.target.actualMeasurement;
   const err = percentError(guess, correct);
   const score = calculateScore(guess, correct);
   const animatedScore = useCountUp(score);
+
+  // Submit score once per result for authenticated users
+  useEffect(() => {
+    if (!token || submitted.current) return;
+    submitted.current = true;
+    submitScore(token, {
+      totalScore: score,
+      averageError: Math.abs(err),
+      mode: "practice",
+    })
+      .then(() => setSaved(true))
+      .catch(() => { /* non-fatal: guest experience unchanged */ });
+  }, [token, score, err]);
 
   // Auto-focus the progression button when results appear
   useEffect(() => {
@@ -65,7 +84,15 @@ export function ResultPanel({ state, onNextRound }: ResultPanelProps) {
 
         {/* 1. Score */}
         <div className="min-w-0 flex flex-col justify-center">
-          <div className="text-xs uppercase tracking-wider text-muted-foreground">Score</div>
+          <div className="text-xs uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+            <span>Score</span>
+            {saved && (
+              <span className="inline-flex items-center gap-0.5 text-emerald-400">
+                <CloudCheck className="w-3 h-3" />
+                <span className="text-[10px] normal-case">Saved</span>
+              </span>
+            )}
+          </div>
           <div className="font-mono text-3xl font-extrabold text-primary flex items-baseline gap-1 mt-0.5">
             <span>{animatedScore}</span>
             <span className="text-sm font-normal text-muted-foreground">/100</span>
