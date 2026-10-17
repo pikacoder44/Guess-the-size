@@ -318,7 +318,7 @@ if (isPlaceholderUrl) {
           .sort((a, b) => new Date(b.completed_at).getTime() - new Date(a.completed_at).getTime());
 
         // Stats aggregate query
-        if (normalized.includes('COUNT(*)::int as games_played')) {
+        if (normalized.toLowerCase().includes('count(*)::int as games_played')) {
           const gamesPlayed = userResults.length;
           const dailyCompleted = userResults.filter((r) => r.mode === 'daily').length;
           const bestScore = gamesPlayed > 0 ? Math.max(...userResults.map((r) => r.total_score)) : 0;
@@ -343,7 +343,7 @@ if (isPlaceholderUrl) {
       }
 
       // Rank calculation query
-      if (normalized.includes('COUNT(DISTINCT user_id)::int + 1 as rank')) {
+      if (normalized.toLowerCase().includes('count(distinct user_id)::int + 1 as rank')) {
         const score = Number(values[0]);
         const higherUsers = new Set(
           memoryGameResults
@@ -353,12 +353,36 @@ if (isPlaceholderUrl) {
         return { rows: [{ rank: higherUsers.size + 1 } as unknown as T] };
       }
 
-      // Leaderboard query
-      if (normalized.includes('FROM game_results gr') && normalized.includes('JOIN users u')) {
-        const topResults = [...memoryGameResults]
-          .filter((r) => r.user_id !== null)
+      // Leaderboard query (supporting window query WITH ranked_scores AS (...) and direct joins)
+      if (
+        normalized.includes('ranked_scores') ||
+        (normalized.includes('FROM game_results') && normalized.includes('JOIN users'))
+      ) {
+        // Group results by user_id, selecting each user's single highest total_score attempt
+        const userBestMap = new Map<number, MemoryGameResult>();
+        for (const r of memoryGameResults) {
+          if (r.user_id === null || r.user_id === undefined) continue;
+          const existing = userBestMap.get(r.user_id);
+          if (!existing) {
+            userBestMap.set(r.user_id, r);
+          } else {
+            // Pick higher score, or lower average error if tied, or earlier completion
+            if (
+              r.total_score > existing.total_score ||
+              (r.total_score === existing.total_score && r.average_error < existing.average_error) ||
+              (r.total_score === existing.total_score &&
+                r.average_error === existing.average_error &&
+                new Date(r.completed_at) < new Date(existing.completed_at))
+            ) {
+              userBestMap.set(r.user_id, r);
+            }
+          }
+        }
+
+        // Sort by total_score descending, tie-break by average_error ascending, limit to top 10
+        const topResults = Array.from(userBestMap.values())
           .sort((a, b) => b.total_score - a.total_score || a.average_error - b.average_error)
-          .slice(0, 25)
+          .slice(0, 10)
           .map((r) => {
             const user = memoryUsers.find((u) => u.id === r.user_id);
             return {
