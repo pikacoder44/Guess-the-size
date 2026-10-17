@@ -5,43 +5,78 @@ import { AuthPage } from "@/components/auth/AuthPage";
 import { HomePage } from "@/pages/HomePage";
 import { ScaleGuessPage } from "@/pages/ScaleGuessPage";
 import { ProfilePage } from "@/pages/ProfilePage";
+import { LeaderboardPage } from "@/pages/LeaderboardPage";
 import { Footer } from "@/components/home/Footer";
-import { LogIn, UserPlus, LogOut, Brain, Settings } from "lucide-react";
+import { PublicProfilePage } from "@/pages/PublicProfilePage";
+import { LogIn, UserPlus, LogOut, Brain, Settings, Trophy } from "lucide-react";
 
-export type AppRoute = "home" | "scaleGuess" | "login" | "register" | "profile";
+export type AppRoute =
+  | "home"
+  | "scaleGuess"
+  | "login"
+  | "register"
+  | "profile"
+  | "leaderboard"
+  | "publicProfile";
 
-function getRouteFromPath(pathname: string): AppRoute {
+interface RouteState {
+  route: AppRoute;
+  identifier?: string;
+}
+
+function getRouteInfoFromPath(pathname: string): RouteState {
   const path = pathname.toLowerCase().replace(/\/+$/, "");
-  if (path === "/scaleguess") return "scaleGuess";
-  if (path === "/login") return "login";
-  if (path === "/register") return "register";
-  if (path === "/profile") return "profile";
-  return "home";
+  if (path === "/scaleguess") return { route: "scaleGuess" };
+  if (path === "/leaderboard") return { route: "leaderboard" };
+  if (path === "/login") return { route: "login" };
+  if (path === "/register") return { route: "register" };
+  if (path === "/profile") return { route: "profile" };
+  if (path.startsWith("/profile/") || path.startsWith("/user/")) {
+    const rawSegments = pathname.split("/").filter(Boolean);
+    const id = rawSegments[1] || "";
+    return { route: "publicProfile", identifier: id };
+  }
+  return { route: "home" };
 }
 
 export function App() {
   const { user, isAuthenticated, openLogin, openRegister, logout } = useAuth();
 
-  const [currentRoute, setCurrentRoute] = useState<AppRoute>(() =>
-    getRouteFromPath(window.location.pathname),
+  const [routeState, setRouteState] = useState<RouteState>(() =>
+    getRouteInfoFromPath(window.location.pathname),
   );
+
+  const currentRoute = routeState.route;
+  const publicProfileIdentifier = routeState.identifier;
 
   useEffect(() => {
     function handleLocation() {
-      setCurrentRoute(getRouteFromPath(window.location.pathname));
+      setRouteState(getRouteInfoFromPath(window.location.pathname));
     }
 
     window.addEventListener("popstate", handleLocation);
     return () => window.removeEventListener("popstate", handleLocation);
   }, []);
 
-  const navigateTo = (route: AppRoute) => {
-    setCurrentRoute(route);
+  const navigateTo = (route: AppRoute, param?: string | number) => {
+    if (route === "publicProfile" && param !== undefined) {
+      const id = String(param);
+      setRouteState({ route: "publicProfile", identifier: id });
+      const targetPath = /^\d+$/.test(id) ? `/profile/${id}` : `/user/${encodeURIComponent(id)}`;
+      if (window.location.pathname !== targetPath) {
+        history.pushState(null, "", targetPath);
+      }
+      return;
+    }
+
+    setRouteState({ route });
     const targetPath =
       route === "home"
         ? "/"
         : route === "scaleGuess"
         ? "/scaleGuess"
+        : route === "leaderboard"
+        ? "/leaderboard"
         : `/${route}`;
 
     if (window.location.pathname !== targetPath) {
@@ -55,19 +90,36 @@ export function App() {
     <div className="min-h-screen bg-background text-foreground flex flex-col selection:bg-primary/20">
       {/* ── Clear & Minimal Topbar ── */}
       <header className="border-b border-border/40 bg-card/40 backdrop-blur-md px-4 sm:px-8 py-3.5 flex items-center justify-between sticky top-0 z-30">
-        <button
-          type="button"
-          onClick={() => navigateTo("home")}
-          className="flex items-center gap-2.5 hover:opacity-90 transition-opacity cursor-pointer group"
-          aria-label="Synapse Home"
-        >
-          <div className="w-8 h-8 rounded-lg bg-primary/15 border border-primary/25 flex items-center justify-center text-primary group-hover:scale-105 transition-transform">
-            <Brain className="w-4 h-4" />
-          </div>
-          <span className="text-lg font-bold font-display tracking-tight text-foreground leading-tight group-hover:text-primary transition-colors">
-            Synapse
-          </span>
-        </button>
+        <div className="flex items-center gap-4 sm:gap-6">
+          <button
+            type="button"
+            onClick={() => navigateTo("home")}
+            className="flex items-center gap-2.5 hover:opacity-90 transition-opacity cursor-pointer group"
+            aria-label="Synapse Home"
+          >
+            <div className="w-8 h-8 rounded-lg bg-primary/15 border border-primary/25 flex items-center justify-center text-primary group-hover:scale-105 transition-transform">
+              <Brain className="w-4 h-4" />
+            </div>
+            <span className="text-lg font-bold font-display tracking-tight text-foreground leading-tight group-hover:text-primary transition-colors">
+              Synapse
+            </span>
+          </button>
+
+          {/* Leaderboard nav link in topbar */}
+          <button
+            type="button"
+            onClick={() => navigateTo("leaderboard")}
+            className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
+              currentRoute === "leaderboard"
+                ? "bg-primary/15 text-primary border border-primary/30"
+                : "text-muted-foreground hover:text-foreground hover:bg-secondary/70 border border-transparent"
+            }`}
+            aria-label="Global Hall of Fame"
+          >
+            <Trophy className="w-3.5 h-3.5 text-primary" />
+            <span className="hidden sm:inline">Leaderboard</span>
+          </button>
+        </div>
 
         {/* Auth / Profile Area */}
         <div className="flex items-center gap-2">
@@ -118,7 +170,7 @@ export function App() {
               <button
                 type="button"
                 onClick={() => {
-                  if (currentRoute === "home" || currentRoute === "scaleGuess") {
+                  if (currentRoute === "home" || currentRoute === "scaleGuess" || currentRoute === "leaderboard") {
                     openLogin();
                   } else {
                     navigateTo("login");
@@ -132,7 +184,7 @@ export function App() {
               <button
                 type="button"
                 onClick={() => {
-                  if (currentRoute === "home" || currentRoute === "scaleGuess") {
+                  if (currentRoute === "home" || currentRoute === "scaleGuess" || currentRoute === "leaderboard") {
                     openRegister();
                   } else {
                     navigateTo("register");
@@ -171,7 +223,23 @@ export function App() {
           onOpenLogin={() => { openLogin(); navigateTo("home"); }}
         />
       ) : currentRoute === "scaleGuess" ? (
-        <ScaleGuessPage onBackToHome={() => navigateTo("home")} />
+        <ScaleGuessPage
+          onBackToHome={() => navigateTo("home")}
+          onNavigateLeaderboard={() => navigateTo("leaderboard")}
+        />
+      ) : currentRoute === "publicProfile" ? (
+        <PublicProfilePage
+          key={String(publicProfileIdentifier || 1)}
+          identifier={publicProfileIdentifier || 1}
+          onBackToLeaderboard={() => navigateTo("leaderboard")}
+          onNavigateToSelfSettings={() => navigateTo("profile")}
+        />
+      ) : currentRoute === "leaderboard" ? (
+        <LeaderboardPage
+          onNavigate={navigateTo}
+          onBackToGame={() => navigateTo("scaleGuess")}
+          onOpenLogin={openLogin}
+        />
       ) : (
         <HomePage onNavigate={navigateTo} />
       )}

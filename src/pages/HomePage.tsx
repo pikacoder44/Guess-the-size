@@ -4,9 +4,10 @@ import { HeroSection } from "@/components/home/HeroSection";
 import { PlayerStats } from "@/components/home/PlayerStats";
 import { GameSection } from "@/components/home/GameSection";
 import { LeaderboardModal } from "@/components/leaderboard/LeaderboardModal";
+import type { AppRoute } from "@/App";
 
 interface HomePageProps {
-  onNavigate: (route: "home" | "scaleGuess" | "login" | "register") => void;
+  onNavigate: (route: AppRoute) => void;
 }
 
 export function HomePage({ onNavigate }: HomePageProps) {
@@ -15,6 +16,8 @@ export function HomePage({ onNavigate }: HomePageProps) {
   const handleCardNavigate = (href: string) => {
     if (href === "/scaleGuess" || href === "/scaleguess") {
       onNavigate("scaleGuess");
+    } else if (href === "/leaderboard") {
+      onNavigate("leaderboard");
     } else if (href === "/login") {
       onNavigate("login");
     } else if (href === "/register") {
@@ -39,11 +42,11 @@ export function HomePage({ onNavigate }: HomePageProps) {
         <button
           type="button"
           id="open-leaderboard-btn"
-          onClick={() => setShowLeaderboard(true)}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-secondary/80 hover:bg-secondary border border-border text-xs font-medium text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+          onClick={() => onNavigate("leaderboard")}
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-secondary/80 hover:bg-secondary border border-border text-xs font-medium text-muted-foreground hover:text-foreground transition-colors cursor-pointer group"
         >
-          <Trophy className="w-3.5 h-3.5 text-primary" />
-          Leaderboard
+          <Trophy className="w-3.5 h-3.5 text-primary group-hover:scale-105 transition-transform" />
+          <span>Global Leaderboard</span>
         </button>
       </div>
       <GameSection onNavigate={handleCardNavigate} />

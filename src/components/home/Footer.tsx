@@ -1,7 +1,8 @@
-import { Brain, ExternalLink, Code2 } from "lucide-react";
+import { Brain, ExternalLink, Code2, Trophy } from "lucide-react";
+import type { AppRoute } from "@/App";
 
 interface FooterProps {
-  onNavigate?: (route: "home" | "scaleGuess") => void;
+  onNavigate?: (route: AppRoute) => void;
 }
 
 function GithubIcon({ className = "w-4 h-4" }: { className?: string }) {
@@ -25,11 +26,11 @@ function GithubIcon({ className = "w-4 h-4" }: { className?: string }) {
 const CURRENT_YEAR = new Date().getFullYear();
 
 export function Footer({ onNavigate }: FooterProps) {
-  const handleGameClick = (route: "home" | "scaleGuess") => {
+  const handleGameClick = (route: AppRoute) => {
     if (onNavigate) {
       onNavigate(route);
     } else {
-      const target = route === "home" ? "/" : "/scaleGuess";
+      const target = route === "home" ? "/" : route === "scaleGuess" ? "/scaleGuess" : `/${route}`;
       history.pushState(null, "", target);
       window.dispatchEvent(new PopStateEvent("popstate"));
     }
@@ -90,6 +91,19 @@ export function Footer({ onNavigate }: FooterProps) {
                 >
                   <span>ScaleGuess</span>
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                </button>
+              </li>
+              <li>
+                <button
+                  type="button"
+                  onClick={() => handleGameClick("leaderboard")}
+                  className="hover:text-primary transition-colors flex items-center gap-1.5 cursor-pointer text-left"
+                >
+                  <Trophy className="w-3 h-3 text-primary" />
+                  <span>Hall of Fame</span>
+                  <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-primary/10 text-primary border border-primary/20">
+                    Top 10
+                  </span>
                 </button>
               </li>
               <li className="flex items-center gap-1.5 text-muted-foreground/60">

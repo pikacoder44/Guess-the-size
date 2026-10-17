@@ -2,13 +2,14 @@ import { useGame } from "@/game/useGame";
 import { GameBoard } from "@/components/game/GameBoard";
 import { ResultPanel } from "@/components/game/ResultPanel";
 import { pickRandomPuzzle } from "@/game/puzzles";
-import { ArrowLeft, HelpCircle } from "lucide-react";
+import { ArrowLeft, HelpCircle, Trophy } from "lucide-react";
 
 interface ScaleGuessPageProps {
   onBackToHome: () => void;
+  onNavigateLeaderboard?: () => void;
 }
 
-export function ScaleGuessPage({ onBackToHome }: ScaleGuessPageProps) {
+export function ScaleGuessPage({ onBackToHome, onNavigateLeaderboard }: ScaleGuessPageProps) {
   const game = useGame();
   const { state } = game;
   const playing = state?.phase === "PLAYING";
@@ -93,6 +94,31 @@ export function ScaleGuessPage({ onBackToHome }: ScaleGuessPageProps) {
             />
           )
         )}
+
+        {/* Secondary Global Leaderboard button directly below interaction block */}
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-2 px-1">
+          <div className="text-[11px] font-mono text-muted-foreground/60 hidden sm:block">
+            High stakes spatial challenge · Calibrated precision
+          </div>
+          <button
+            type="button"
+            id="game-leaderboard-cta"
+            onClick={onNavigateLeaderboard}
+            className="group relative inline-flex items-center gap-2.5 px-4 py-2 rounded-xl bg-card/35 hover:bg-card/75 border border-border/60 hover:border-amber-400/70 hover:shadow-[0_0_20px_rgba(245,158,11,0.22)] backdrop-blur-md text-xs font-medium text-muted-foreground hover:text-amber-300 transition-all duration-300 hover:scale-[1.03] active:scale-[0.98] cursor-pointer ml-auto sm:ml-0 overflow-hidden"
+            aria-label="View Global Leaderboard"
+          >
+            {/* Shimmer sweep effect on button hover */}
+            <span
+              className="absolute inset-0 w-1/2 h-full bg-gradient-to-r from-transparent via-amber-400/15 to-transparent -translate-x-full group-hover:translate-x-[300%] transition-transform duration-1000 ease-out pointer-events-none"
+              aria-hidden="true"
+            />
+            <Trophy className="w-4 h-4 text-amber-400/80 group-hover:text-amber-400 group-hover:scale-110 transition-all duration-300 drop-shadow-[0_0_10px_rgba(251,191,36,0.6)]" />
+            <span className="font-semibold tracking-wide">Global Leaderboard</span>
+            <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded-full bg-amber-400/15 text-amber-300 border border-amber-400/30 group-hover:bg-amber-400/25 group-hover:border-amber-400/50 transition-colors">
+              Hall of Fame
+            </span>
+          </button>
+        </div>
       </div>
     </main>
   );

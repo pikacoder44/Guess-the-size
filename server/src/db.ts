@@ -43,6 +43,7 @@ if (isPlaceholderUrl) {
     locale: string | null;
     created_at: string;
     updated_at: string;
+    is_history_public?: boolean;
   }
 
   interface MemoryGameResult {
@@ -56,10 +57,34 @@ if (isPlaceholderUrl) {
     completed_at: string;
   }
 
-  const memoryUsers: MemoryUser[] = [];
-  const memoryGameResults: MemoryGameResult[] = [];
-  let nextUserId = 1;
-  let nextResultId = 1;
+  const memoryUsers: MemoryUser[] = [
+    { id: 1, username: 'ApexEstimator', name: 'Kai Sterling', email: 'kai@example.com', password: null, google_id: null, github_id: null, avatar_url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&auto=format&fit=crop&q=80', email_verified: true, given_name: 'Kai', family_name: 'Sterling', locale: 'en', created_at: new Date(Date.now() - 86400000 * 30).toISOString(), updated_at: new Date().toISOString(), is_history_public: true },
+    { id: 2, username: 'QuantumScale', name: 'Elena Rostova', email: 'elena@example.com', password: null, google_id: null, github_id: null, avatar_url: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=120&auto=format&fit=crop&q=80', email_verified: true, given_name: 'Elena', family_name: 'Rostova', locale: 'en', created_at: new Date(Date.now() - 86400000 * 25).toISOString(), updated_at: new Date().toISOString(), is_history_public: true },
+    { id: 3, username: 'PixelMaster', name: 'Marcus Chen', email: 'marcus@example.com', password: null, google_id: null, github_id: null, avatar_url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=120&auto=format&fit=crop&q=80', email_verified: true, given_name: 'Marcus', family_name: 'Chen', locale: 'en', created_at: new Date(Date.now() - 86400000 * 20).toISOString(), updated_at: new Date().toISOString(), is_history_public: true },
+    { id: 4, username: 'MetricWhiz', name: 'Sophia Lin', email: 'sophia@example.com', password: null, google_id: null, github_id: null, avatar_url: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=120&auto=format&fit=crop&q=80', email_verified: true, given_name: 'Sophia', family_name: 'Lin', locale: 'en', created_at: new Date(Date.now() - 86400000 * 18).toISOString(), updated_at: new Date().toISOString(), is_history_public: true },
+    { id: 5, username: 'VoxelVision', name: 'David Novak', email: 'david@example.com', password: null, google_id: null, github_id: null, avatar_url: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=120&auto=format&fit=crop&q=80', email_verified: true, given_name: 'David', family_name: 'Novak', locale: 'en', created_at: new Date(Date.now() - 86400000 * 15).toISOString(), updated_at: new Date().toISOString(), is_history_public: true },
+    { id: 6, username: 'ScalePro99', name: 'Aria Thorne', email: 'aria@example.com', password: null, google_id: null, github_id: null, avatar_url: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=120&auto=format&fit=crop&q=80', email_verified: true, given_name: 'Aria', family_name: 'Thorne', locale: 'en', created_at: new Date(Date.now() - 86400000 * 12).toISOString(), updated_at: new Date().toISOString(), is_history_public: true },
+    { id: 7, username: 'ChronoGauge', name: 'Lucas Meyer', email: 'lucas@example.com', password: null, google_id: null, github_id: null, avatar_url: null, email_verified: true, given_name: 'Lucas', family_name: 'Meyer', locale: 'en', created_at: new Date(Date.now() - 86400000 * 10).toISOString(), updated_at: new Date().toISOString(), is_history_public: false },
+    { id: 8, username: 'NovaPrecision', name: 'Zoe Vance', email: 'zoe@example.com', password: null, google_id: null, github_id: null, avatar_url: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=120&auto=format&fit=crop&q=80', email_verified: true, given_name: 'Zoe', family_name: 'Vance', locale: 'en', created_at: new Date(Date.now() - 86400000 * 8).toISOString(), updated_at: new Date().toISOString(), is_history_public: true },
+    { id: 9, username: 'SpatialSense', name: 'Jordan Reed', email: 'jordan@example.com', password: null, google_id: null, github_id: null, avatar_url: null, email_verified: true, given_name: 'Jordan', family_name: 'Reed', locale: 'en', created_at: new Date(Date.now() - 86400000 * 5).toISOString(), updated_at: new Date().toISOString(), is_history_public: true },
+    { id: 10, username: 'ByteSize', name: 'Samira Patel', email: 'samira@example.com', password: null, google_id: null, github_id: null, avatar_url: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=120&auto=format&fit=crop&q=80', email_verified: true, given_name: 'Samira', family_name: 'Patel', locale: 'en', created_at: new Date(Date.now() - 86400000 * 3).toISOString(), updated_at: new Date().toISOString(), is_history_public: true },
+  ];
+
+  const memoryGameResults: MemoryGameResult[] = [
+    { id: 1, user_id: 1, mode: 'daily', date: new Date().toISOString().slice(0, 10), total_score: 100, average_error: 0.2, rounds: [], completed_at: new Date(Date.now() - 3600000 * 2).toISOString() },
+    { id: 2, user_id: 2, mode: 'practice', date: new Date().toISOString().slice(0, 10), total_score: 99, average_error: 0.8, rounds: [], completed_at: new Date(Date.now() - 3600000 * 5).toISOString() },
+    { id: 3, user_id: 3, mode: 'daily', date: new Date().toISOString().slice(0, 10), total_score: 98, average_error: 1.4, rounds: [], completed_at: new Date(Date.now() - 3600000 * 12).toISOString() },
+    { id: 4, user_id: 4, mode: 'practice', date: new Date().toISOString().slice(0, 10), total_score: 97, average_error: 2.1, rounds: [], completed_at: new Date(Date.now() - 3600000 * 18).toISOString() },
+    { id: 5, user_id: 5, mode: 'practice', date: new Date().toISOString().slice(0, 10), total_score: 95, average_error: 3.5, rounds: [], completed_at: new Date(Date.now() - 3600000 * 24).toISOString() },
+    { id: 6, user_id: 6, mode: 'daily', date: new Date().toISOString().slice(0, 10), total_score: 94, average_error: 4.2, rounds: [], completed_at: new Date(Date.now() - 3600000 * 30).toISOString() },
+    { id: 7, user_id: 7, mode: 'practice', date: new Date().toISOString().slice(0, 10), total_score: 92, average_error: 5.6, rounds: [], completed_at: new Date(Date.now() - 3600000 * 36).toISOString() },
+    { id: 8, user_id: 8, mode: 'daily', date: new Date().toISOString().slice(0, 10), total_score: 91, average_error: 6.3, rounds: [], completed_at: new Date(Date.now() - 3600000 * 42).toISOString() },
+    { id: 9, user_id: 9, mode: 'practice', date: new Date().toISOString().slice(0, 10), total_score: 89, average_error: 7.9, rounds: [], completed_at: new Date(Date.now() - 3600000 * 48).toISOString() },
+    { id: 10, user_id: 10, mode: 'practice', date: new Date().toISOString().slice(0, 10), total_score: 88, average_error: 8.8, rounds: [], completed_at: new Date(Date.now() - 3600000 * 60).toISOString() },
+  ];
+
+  let nextUserId = 11;
+  let nextResultId = 11;
 
   pool = {
     async query<T = any>(queryText: string, values: any[] = []): Promise<{ rows: T[] }> {
@@ -317,6 +342,17 @@ if (isPlaceholderUrl) {
         return { rows: userResults.slice(0, 20) as unknown as T[] };
       }
 
+      // Rank calculation query
+      if (normalized.includes('COUNT(DISTINCT user_id)::int + 1 as rank')) {
+        const score = Number(values[0]);
+        const higherUsers = new Set(
+          memoryGameResults
+            .filter((r) => r.total_score > score && r.user_id !== null)
+            .map((r) => r.user_id),
+        );
+        return { rows: [{ rank: higherUsers.size + 1 } as unknown as T] };
+      }
+
       // Leaderboard query
       if (normalized.includes('FROM game_results gr') && normalized.includes('JOIN users u')) {
         const topResults = [...memoryGameResults]
@@ -332,6 +368,7 @@ if (isPlaceholderUrl) {
               mode: r.mode,
               date: r.date,
               completed_at: r.completed_at,
+              user_id: user?.id ?? r.user_id,
               username: user?.username ?? 'Anonymous',
               name: user?.name ?? null,
               avatar_url: user?.avatar_url ?? null,
@@ -423,6 +460,7 @@ export async function initDb(): Promise<void> {
   await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS family_name TEXT;`);
   await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS locale TEXT;`);
   await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW();`);
+  await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS is_history_public BOOLEAN DEFAULT TRUE;`);
   
   // Make password nullable for OAuth/Google users
   try {

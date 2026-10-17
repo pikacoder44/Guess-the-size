@@ -14,6 +14,7 @@ export interface UserStats {
   dailyGamesCompleted: number;
   bestScore: number;
   averageScore: number;
+  rank?: number | null;
 }
 
 export interface LeaderboardEntry {
@@ -23,9 +24,33 @@ export interface LeaderboardEntry {
   mode: string;
   date: string | null;
   completed_at: string;
+  user_id?: number | null;
   username: string;
   name: string | null;
   avatar_url: string | null;
+}
+
+export interface PublicPlayerProfile {
+  user: {
+    id: number;
+    username: string;
+    name: string | null;
+    avatar_url: string | null;
+    member_since?: string;
+    is_history_public: boolean;
+  };
+  stats: {
+    gamesPlayed: number;
+    bestScore: number;
+    averageScore: number;
+  };
+  recentScores: Array<{
+    id: number;
+    mode: string;
+    total_score: number;
+    average_error: number;
+    completed_at: string;
+  }>;
 }
 
 async function handleResponse<T>(res: Response): Promise<T> {
@@ -67,4 +92,11 @@ export async function getMyScores(token: string): Promise<{
 export async function getLeaderboard(): Promise<{ leaderboard: LeaderboardEntry[] }> {
   const res = await fetch(`${API_BASE}/api/scores/leaderboard`);
   return handleResponse(res);
+}
+
+export async function getPublicPlayerProfile(
+  userIdOrUsername: number | string
+): Promise<PublicPlayerProfile> {
+  const res = await fetch(`${API_BASE}/api/scores/user/${encodeURIComponent(userIdOrUsername)}`);
+  return handleResponse<PublicPlayerProfile>(res);
 }
