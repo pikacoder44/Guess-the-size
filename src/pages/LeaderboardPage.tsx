@@ -31,6 +31,7 @@ const FALLBACK_CHAMPIONS: LeaderboardEntry[] = [
     avatar_url: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&auto=format&fit=crop&q=80",
     total_score: 494,
     average_error: 0.2,
+    elapsed_ms: 38500,
     mode: "daily",
     date: new Date().toISOString().slice(0, 10),
     completed_at: new Date(Date.now() - 3600000 * 2).toISOString(),
@@ -43,6 +44,7 @@ const FALLBACK_CHAMPIONS: LeaderboardEntry[] = [
     avatar_url: "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=120&auto=format&fit=crop&q=80",
     total_score: 489,
     average_error: 0.8,
+    elapsed_ms: 42100,
     mode: "practice",
     date: new Date().toISOString().slice(0, 10),
     completed_at: new Date(Date.now() - 3600000 * 5).toISOString(),
@@ -55,6 +57,7 @@ const FALLBACK_CHAMPIONS: LeaderboardEntry[] = [
     avatar_url: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=120&auto=format&fit=crop&q=80",
     total_score: 483,
     average_error: 1.4,
+    elapsed_ms: 51200,
     mode: "daily",
     date: new Date().toISOString().slice(0, 10),
     completed_at: new Date(Date.now() - 3600000 * 12).toISOString(),
@@ -67,6 +70,7 @@ const FALLBACK_CHAMPIONS: LeaderboardEntry[] = [
     avatar_url: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=120&auto=format&fit=crop&q=80",
     total_score: 477,
     average_error: 2.1,
+    elapsed_ms: 60800,
     mode: "practice",
     date: new Date().toISOString().slice(0, 10),
     completed_at: new Date(Date.now() - 3600000 * 18).toISOString(),
@@ -79,6 +83,7 @@ const FALLBACK_CHAMPIONS: LeaderboardEntry[] = [
     avatar_url: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=120&auto=format&fit=crop&q=80",
     total_score: 471,
     average_error: 3.5,
+    elapsed_ms: 74300,
     mode: "practice",
     date: new Date().toISOString().slice(0, 10),
     completed_at: new Date(Date.now() - 3600000 * 24).toISOString(),
@@ -91,6 +96,7 @@ const FALLBACK_CHAMPIONS: LeaderboardEntry[] = [
     avatar_url: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=120&auto=format&fit=crop&q=80",
     total_score: 465,
     average_error: 4.2,
+    elapsed_ms: 88600,
     mode: "daily",
     date: new Date().toISOString().slice(0, 10),
     completed_at: new Date(Date.now() - 3600000 * 30).toISOString(),
@@ -103,6 +109,7 @@ const FALLBACK_CHAMPIONS: LeaderboardEntry[] = [
     avatar_url: null,
     total_score: 458,
     average_error: 5.6,
+    elapsed_ms: 95100,
     mode: "practice",
     date: new Date().toISOString().slice(0, 10),
     completed_at: new Date(Date.now() - 3600000 * 36).toISOString(),
@@ -115,6 +122,7 @@ const FALLBACK_CHAMPIONS: LeaderboardEntry[] = [
     avatar_url: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=120&auto=format&fit=crop&q=80",
     total_score: 449,
     average_error: 6.3,
+    elapsed_ms: 103400,
     mode: "daily",
     date: new Date().toISOString().slice(0, 10),
     completed_at: new Date(Date.now() - 3600000 * 42).toISOString(),
@@ -127,6 +135,7 @@ const FALLBACK_CHAMPIONS: LeaderboardEntry[] = [
     avatar_url: null,
     total_score: 441,
     average_error: 7.9,
+    elapsed_ms: 118700,
     mode: "practice",
     date: new Date().toISOString().slice(0, 10),
     completed_at: new Date(Date.now() - 3600000 * 48).toISOString(),
@@ -139,6 +148,7 @@ const FALLBACK_CHAMPIONS: LeaderboardEntry[] = [
     avatar_url: "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=120&auto=format&fit=crop&q=80",
     total_score: 432,
     average_error: 8.8,
+    elapsed_ms: 132900,
     mode: "practice",
     date: new Date().toISOString().slice(0, 10),
     completed_at: new Date(Date.now() - 3600000 * 60).toISOString(),
@@ -159,6 +169,18 @@ function formatTimeAgo(isoString: string): string {
   } catch {
     return "Recently";
   }
+}
+
+/**
+ * Formats the tie-breaker precision stats shown beneath each score.
+ * Example: "±1.8% Error · 42.5s"
+ */
+function formatTieBreaker(averageError: number, elapsedMs: number | null | undefined): string {
+  const errorStr = `\u00b1${averageError.toFixed(1)}% Error`;
+  if (!elapsedMs || elapsedMs <= 0) return errorStr;
+  const totalSec = elapsedMs / 1000;
+  const timeStr = `${totalSec.toFixed(1)}s`;
+  return `${errorStr} \u00b7 ${timeStr}`;
 }
 
 function PlayerAvatar({
@@ -370,9 +392,9 @@ export function LeaderboardPage({ onNavigate, onBackToGame, onOpenLogin }: Leade
           {/* Desktop Table Header: Rank, Player, Date Recorded, High Score */}
           <div className="hidden md:grid grid-cols-12 gap-3 px-4 py-2 text-[10px] font-mono uppercase tracking-wider text-muted-foreground/75 border-b border-border/30">
             <div className="col-span-1 text-center">Rank</div>
-            <div className="col-span-7">Player Info</div>
+            <div className="col-span-6">Player Info</div>
             <div className="col-span-2 text-right">Date Recorded</div>
-            <div className="col-span-2 text-right">High Score</div>
+            <div className="col-span-3 text-right">Score · Precision</div>
           </div>
 
           {/* ── Rows List: Top 3 Podium (Visual Flare) + 4-10 (Sleek Flat) ── */}
@@ -457,7 +479,7 @@ export function LeaderboardPage({ onNavigate, onBackToGame, onOpenLogin }: Leade
                       </div>
 
                       {/* High Score */}
-                      <div className="md:col-span-2 flex items-center justify-between md:justify-end gap-3">
+                      <div className="md:col-span-4 flex items-center justify-between md:justify-end gap-3">
                         <div className="md:hidden flex items-center gap-1 text-[11px] font-mono text-muted-foreground">
                           <Clock className="w-3 h-3 opacity-60" />
                           <span>{formatTimeAgo(entry.completed_at)}</span>
@@ -472,6 +494,9 @@ export function LeaderboardPage({ onNavigate, onBackToGame, onOpenLogin }: Leade
                               /500
                             </span>
                           </div>
+                          <p className="text-[10px] font-mono text-amber-300/60 mt-0.5 text-right">
+                            {formatTieBreaker(entry.average_error, entry.elapsed_ms)}
+                          </p>
                         </div>
                       </div>
                     </div>
@@ -541,7 +566,7 @@ export function LeaderboardPage({ onNavigate, onBackToGame, onOpenLogin }: Leade
                       </div>
 
                       {/* Score */}
-                      <div className="md:col-span-2 flex items-center justify-between md:justify-end gap-3">
+                      <div className="md:col-span-4 flex items-center justify-between md:justify-end gap-3">
                         <div className="md:hidden flex items-center gap-1 text-[11px] font-mono text-muted-foreground">
                           <Clock className="w-3 h-3 opacity-60" />
                           <span>{formatTimeAgo(entry.completed_at)}</span>
@@ -556,6 +581,9 @@ export function LeaderboardPage({ onNavigate, onBackToGame, onOpenLogin }: Leade
                               /500
                             </span>
                           </div>
+                          <p className="text-[10px] font-mono text-slate-400/70 mt-0.5 text-right">
+                            {formatTieBreaker(entry.average_error, entry.elapsed_ms)}
+                          </p>
                         </div>
                       </div>
                     </div>
@@ -625,7 +653,7 @@ export function LeaderboardPage({ onNavigate, onBackToGame, onOpenLogin }: Leade
                       </div>
 
                       {/* Score */}
-                      <div className="md:col-span-2 flex items-center justify-between md:justify-end gap-3">
+                      <div className="md:col-span-4 flex items-center justify-between md:justify-end gap-3">
                         <div className="md:hidden flex items-center gap-1 text-[11px] font-mono text-muted-foreground">
                           <Clock className="w-3 h-3 opacity-60" />
                           <span>{formatTimeAgo(entry.completed_at)}</span>
@@ -640,6 +668,9 @@ export function LeaderboardPage({ onNavigate, onBackToGame, onOpenLogin }: Leade
                               /500
                             </span>
                           </div>
+                          <p className="text-[10px] font-mono text-amber-600/60 mt-0.5 text-right">
+                            {formatTieBreaker(entry.average_error, entry.elapsed_ms)}
+                          </p>
                         </div>
                       </div>
                     </div>
@@ -708,7 +739,7 @@ export function LeaderboardPage({ onNavigate, onBackToGame, onOpenLogin }: Leade
                     </div>
 
                     {/* Score */}
-                    <div className="md:col-span-2 flex items-center justify-between md:justify-end gap-3">
+                    <div className="md:col-span-4 flex items-center justify-between md:justify-end gap-3">
                       <div className="md:hidden flex items-center gap-1 text-[11px] font-mono text-muted-foreground">
                         <Clock className="w-3 h-3 opacity-60" />
                         <span>{formatTimeAgo(entry.completed_at)}</span>
@@ -723,6 +754,9 @@ export function LeaderboardPage({ onNavigate, onBackToGame, onOpenLogin }: Leade
                             /500
                           </span>
                         </div>
+                        <p className="text-[10px] font-mono text-muted-foreground/60 mt-0.5 text-right">
+                          {formatTieBreaker(entry.average_error, entry.elapsed_ms)}
+                        </p>
                       </div>
                     </div>
                   </div>

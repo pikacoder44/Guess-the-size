@@ -510,6 +510,11 @@ function ProfilePageContent({ user, token, onBack, updateProfile, isSubmitting }
                       <Trophy className="w-3 h-3 text-muted-foreground" />
                       <span className="font-mono font-bold text-primary">{g.total_score}</span>
                       <span className="text-muted-foreground font-mono">/ 500</span>
+                      {typeof g.average_error === "number" && (
+                        <span className="text-muted-foreground/70 font-mono text-[10px]">
+                          (±{g.average_error.toFixed(1)}% err)
+                        </span>
+                      )}
                     </div>
                     <span className="text-muted-foreground">
                       {new Date(g.completed_at).toLocaleDateString()}

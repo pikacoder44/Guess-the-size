@@ -53,6 +53,7 @@ if (isPlaceholderUrl) {
     date: string | null;
     total_score: number;
     average_error: number;
+    elapsed_ms: number;
     rounds: any[];
     completed_at: string;
   }
@@ -71,16 +72,16 @@ if (isPlaceholderUrl) {
   ];
 
   const memoryGameResults: MemoryGameResult[] = [
-    { id: 1, user_id: 1, mode: 'daily', date: new Date().toISOString().slice(0, 10), total_score: 494, average_error: 0.2, rounds: [], completed_at: new Date(Date.now() - 3600000 * 2).toISOString() },
-    { id: 2, user_id: 2, mode: 'practice', date: new Date().toISOString().slice(0, 10), total_score: 489, average_error: 0.8, rounds: [], completed_at: new Date(Date.now() - 3600000 * 5).toISOString() },
-    { id: 3, user_id: 3, mode: 'daily', date: new Date().toISOString().slice(0, 10), total_score: 483, average_error: 1.4, rounds: [], completed_at: new Date(Date.now() - 3600000 * 12).toISOString() },
-    { id: 4, user_id: 4, mode: 'practice', date: new Date().toISOString().slice(0, 10), total_score: 477, average_error: 2.1, rounds: [], completed_at: new Date(Date.now() - 3600000 * 18).toISOString() },
-    { id: 5, user_id: 5, mode: 'practice', date: new Date().toISOString().slice(0, 10), total_score: 471, average_error: 3.5, rounds: [], completed_at: new Date(Date.now() - 3600000 * 24).toISOString() },
-    { id: 6, user_id: 6, mode: 'daily', date: new Date().toISOString().slice(0, 10), total_score: 465, average_error: 4.2, rounds: [], completed_at: new Date(Date.now() - 3600000 * 30).toISOString() },
-    { id: 7, user_id: 7, mode: 'practice', date: new Date().toISOString().slice(0, 10), total_score: 458, average_error: 5.6, rounds: [], completed_at: new Date(Date.now() - 3600000 * 36).toISOString() },
-    { id: 8, user_id: 8, mode: 'daily', date: new Date().toISOString().slice(0, 10), total_score: 449, average_error: 6.3, rounds: [], completed_at: new Date(Date.now() - 3600000 * 42).toISOString() },
-    { id: 9, user_id: 9, mode: 'practice', date: new Date().toISOString().slice(0, 10), total_score: 441, average_error: 7.9, rounds: [], completed_at: new Date(Date.now() - 3600000 * 48).toISOString() },
-    { id: 10, user_id: 10, mode: 'practice', date: new Date().toISOString().slice(0, 10), total_score: 432, average_error: 8.8, rounds: [], completed_at: new Date(Date.now() - 3600000 * 60).toISOString() },
+    { id: 1, user_id: 1, mode: 'daily', date: new Date().toISOString().slice(0, 10), total_score: 494, average_error: 0.2, elapsed_ms: 38500, rounds: [], completed_at: new Date(Date.now() - 3600000 * 2).toISOString() },
+    { id: 2, user_id: 2, mode: 'practice', date: new Date().toISOString().slice(0, 10), total_score: 489, average_error: 0.8, elapsed_ms: 42100, rounds: [], completed_at: new Date(Date.now() - 3600000 * 5).toISOString() },
+    { id: 3, user_id: 3, mode: 'daily', date: new Date().toISOString().slice(0, 10), total_score: 483, average_error: 1.4, elapsed_ms: 51200, rounds: [], completed_at: new Date(Date.now() - 3600000 * 12).toISOString() },
+    { id: 4, user_id: 4, mode: 'practice', date: new Date().toISOString().slice(0, 10), total_score: 477, average_error: 2.1, elapsed_ms: 60800, rounds: [], completed_at: new Date(Date.now() - 3600000 * 18).toISOString() },
+    { id: 5, user_id: 5, mode: 'practice', date: new Date().toISOString().slice(0, 10), total_score: 471, average_error: 3.5, elapsed_ms: 74300, rounds: [], completed_at: new Date(Date.now() - 3600000 * 24).toISOString() },
+    { id: 6, user_id: 6, mode: 'daily', date: new Date().toISOString().slice(0, 10), total_score: 465, average_error: 4.2, elapsed_ms: 88600, rounds: [], completed_at: new Date(Date.now() - 3600000 * 30).toISOString() },
+    { id: 7, user_id: 7, mode: 'practice', date: new Date().toISOString().slice(0, 10), total_score: 458, average_error: 5.6, elapsed_ms: 95100, rounds: [], completed_at: new Date(Date.now() - 3600000 * 36).toISOString() },
+    { id: 8, user_id: 8, mode: 'daily', date: new Date().toISOString().slice(0, 10), total_score: 449, average_error: 6.3, elapsed_ms: 103400, rounds: [], completed_at: new Date(Date.now() - 3600000 * 42).toISOString() },
+    { id: 9, user_id: 9, mode: 'practice', date: new Date().toISOString().slice(0, 10), total_score: 441, average_error: 7.9, elapsed_ms: 118700, rounds: [], completed_at: new Date(Date.now() - 3600000 * 48).toISOString() },
+    { id: 10, user_id: 10, mode: 'practice', date: new Date().toISOString().slice(0, 10), total_score: 432, average_error: 8.8, elapsed_ms: 132900, rounds: [], completed_at: new Date(Date.now() - 3600000 * 60).toISOString() },
   ];
 
   let nextUserId = 11;
@@ -295,14 +296,31 @@ if (isPlaceholderUrl) {
 
       // INSERT INTO game_results
       if (normalized.startsWith('INSERT INTO game_results')) {
-        const [user_id, mode, date, total_score, average_error, rounds] = values;
+        const colMatch = queryText.match(/INSERT\s+INTO\s+game_results\s*\(([^)]+)\)/i);
+        let user_id: any, mode: any, date: any, total_score: any, average_error: any, elapsed_ms: any, rounds: any;
+        if (colMatch) {
+          const cols = colMatch[1].split(',').map((c) => c.trim().toLowerCase());
+          cols.forEach((col, idx) => {
+            const val = values[idx];
+            if (col === 'user_id') user_id = val;
+            else if (col === 'mode') mode = val;
+            else if (col === 'date') date = val;
+            else if (col === 'total_score') total_score = val;
+            else if (col === 'average_error') average_error = val;
+            else if (col === 'elapsed_ms') elapsed_ms = val;
+            else if (col === 'rounds') rounds = val;
+          });
+        } else {
+          [user_id, mode, date, total_score, average_error, elapsed_ms, rounds] = values;
+        }
         const newResult: MemoryGameResult = {
           id: nextResultId++,
           user_id: user_id ? Number(user_id) : null,
-          mode: String(mode),
+          mode: String(mode ?? 'practice'),
           date: date ? String(date) : null,
-          total_score: Number(total_score),
-          average_error: Number(average_error),
+          total_score: Number(total_score ?? 0),
+          average_error: Number(average_error ?? 0),
+          elapsed_ms: Number(elapsed_ms ?? 0),
           rounds: Array.isArray(rounds) ? rounds : [],
           completed_at: new Date().toISOString(),
         };
@@ -317,7 +335,7 @@ if (isPlaceholderUrl) {
           .filter((r) => r.user_id === userId)
           .sort((a, b) => new Date(b.completed_at).getTime() - new Date(a.completed_at).getTime());
 
-        // Stats aggregate query
+        // Stats aggregate query (used by /me route)
         if (normalized.toLowerCase().includes('count(*)::int as games_played')) {
           const gamesPlayed = userResults.length;
           const dailyCompleted = userResults.filter((r) => r.mode === 'daily').length;
@@ -327,12 +345,23 @@ if (isPlaceholderUrl) {
               ? Math.round(userResults.reduce((acc, r) => acc + r.total_score, 0) / gamesPlayed)
               : 0;
 
+          // Personal best by 4-tier tie-breaker
+          const sortedBest = [...userResults].sort((a, b) =>
+            b.total_score - a.total_score ||
+            a.average_error - b.average_error ||
+            a.elapsed_ms - b.elapsed_ms ||
+            new Date(a.completed_at).getTime() - new Date(b.completed_at).getTime()
+          );
+          const personalBest = sortedBest[0];
+
           return {
             rows: [
               {
                 games_played: gamesPlayed,
                 daily_completed: dailyCompleted,
                 best_score: bestScore,
+                best_average_error: personalBest?.average_error ?? 0,
+                best_elapsed_ms: personalBest?.elapsed_ms ?? 0,
                 average_score: avgScore,
               } as unknown as T,
             ],
@@ -342,15 +371,49 @@ if (isPlaceholderUrl) {
         return { rows: userResults.slice(0, 20) as unknown as T[] };
       }
 
-      // Rank calculation query
-      if (normalized.toLowerCase().includes('count(distinct user_id)::int + 1 as rank')) {
+      // Rank calculation query (used by /me route with tie-breaker params)
+      if (
+        normalized.toLowerCase().includes('count(*)::int + 1 as rank') ||
+        normalized.toLowerCase().includes('count(distinct user_id)::int + 1 as rank')
+      ) {
         const score = Number(values[0]);
-        const higherUsers = new Set(
-          memoryGameResults
-            .filter((r) => r.total_score > score && r.user_id !== null)
-            .map((r) => r.user_id),
-        );
-        return { rows: [{ rank: higherUsers.size + 1 } as unknown as T] };
+        const avgErr = values.length >= 2 ? Number(values[1]) : null;
+        const elapsedMs = values.length >= 3 ? Number(values[2]) : null;
+
+        // Per-user best records for rank comparison
+        const userBestMap = new Map<number, MemoryGameResult>();
+        for (const r of memoryGameResults) {
+          if (r.user_id === null || r.user_id === undefined) continue;
+          const existing = userBestMap.get(r.user_id);
+          if (
+            !existing ||
+            r.total_score > existing.total_score ||
+            (r.total_score === existing.total_score && r.average_error < existing.average_error) ||
+            (r.total_score === existing.total_score &&
+              r.average_error === existing.average_error &&
+              r.elapsed_ms < existing.elapsed_ms) ||
+            (r.total_score === existing.total_score &&
+              r.average_error === existing.average_error &&
+              r.elapsed_ms === existing.elapsed_ms &&
+              new Date(r.completed_at) < new Date(existing.completed_at))
+          ) {
+            userBestMap.set(r.user_id, r);
+          }
+        }
+
+        let ahead = 0;
+        for (const best of userBestMap.values()) {
+          const beatsScore = best.total_score > score;
+          const beatsByError = avgErr !== null && best.total_score === score && best.average_error < avgErr;
+          const beatsByTime =
+            elapsedMs !== null &&
+            avgErr !== null &&
+            best.total_score === score &&
+            best.average_error === avgErr &&
+            best.elapsed_ms < elapsedMs;
+          if (beatsScore || beatsByError || beatsByTime) ahead++;
+        }
+        return { rows: [{ rank: ahead + 1 } as unknown as T] };
       }
 
       // Leaderboard query (supporting window query WITH ranked_scores AS (...) and direct joins)
@@ -358,30 +421,36 @@ if (isPlaceholderUrl) {
         normalized.includes('ranked_scores') ||
         (normalized.includes('FROM game_results') && normalized.includes('JOIN users'))
       ) {
-        // Group results by user_id, selecting each user's single highest total_score attempt
+        // Per-user best: 4-tier tie-breaker (score DESC, error ASC, elapsed_ms ASC, completed_at ASC)
         const userBestMap = new Map<number, MemoryGameResult>();
         for (const r of memoryGameResults) {
           if (r.user_id === null || r.user_id === undefined) continue;
           const existing = userBestMap.get(r.user_id);
-          if (!existing) {
+          if (
+            !existing ||
+            r.total_score > existing.total_score ||
+            (r.total_score === existing.total_score && r.average_error < existing.average_error) ||
+            (r.total_score === existing.total_score &&
+              r.average_error === existing.average_error &&
+              r.elapsed_ms < existing.elapsed_ms) ||
+            (r.total_score === existing.total_score &&
+              r.average_error === existing.average_error &&
+              r.elapsed_ms === existing.elapsed_ms &&
+              new Date(r.completed_at) < new Date(existing.completed_at))
+          ) {
             userBestMap.set(r.user_id, r);
-          } else {
-            // Pick higher score, or lower average error if tied, or earlier completion
-            if (
-              r.total_score > existing.total_score ||
-              (r.total_score === existing.total_score && r.average_error < existing.average_error) ||
-              (r.total_score === existing.total_score &&
-                r.average_error === existing.average_error &&
-                new Date(r.completed_at) < new Date(existing.completed_at))
-            ) {
-              userBestMap.set(r.user_id, r);
-            }
           }
         }
 
-        // Sort by total_score descending, tie-break by average_error ascending, limit to top 10
+        // Sort by same hierarchy, return top 10 with joined user data
         const topResults = Array.from(userBestMap.values())
-          .sort((a, b) => b.total_score - a.total_score || a.average_error - b.average_error)
+          .sort(
+            (a, b) =>
+              b.total_score - a.total_score ||
+              a.average_error - b.average_error ||
+              a.elapsed_ms - b.elapsed_ms ||
+              new Date(a.completed_at).getTime() - new Date(b.completed_at).getTime(),
+          )
           .slice(0, 10)
           .map((r) => {
             const user = memoryUsers.find((u) => u.id === r.user_id);
@@ -389,6 +458,7 @@ if (isPlaceholderUrl) {
               id: r.id,
               total_score: r.total_score,
               average_error: r.average_error,
+              elapsed_ms: r.elapsed_ms,
               mode: r.mode,
               date: r.date,
               completed_at: r.completed_at,
@@ -533,10 +603,14 @@ export async function initDb(): Promise<void> {
       date           TEXT,
       total_score    INTEGER          NOT NULL,
       average_error  DOUBLE PRECISION NOT NULL,
+      elapsed_ms     INTEGER          NOT NULL DEFAULT 0,
       rounds         JSONB            DEFAULT '[]'::jsonb,
       completed_at   TIMESTAMPTZ      NOT NULL DEFAULT NOW()
     );
   `);
+
+  // Non-destructive column addition for existing tables
+  await pool.query(`ALTER TABLE game_results ADD COLUMN IF NOT EXISTS elapsed_ms INTEGER NOT NULL DEFAULT 0;`);
 
   await pool.query(`
     CREATE INDEX IF NOT EXISTS game_results_user_id_idx ON game_results (user_id);

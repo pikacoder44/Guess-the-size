@@ -6,6 +6,7 @@ export interface GameResult {
   date: string | null;
   total_score: number;
   average_error: number;
+  elapsed_ms: number | null;
   completed_at: string;
 }
 
@@ -13,6 +14,7 @@ export interface UserStats {
   gamesPlayed: number;
   dailyGamesCompleted: number;
   bestScore: number;
+  bestAverageError?: number;
   averageScore: number;
   rank?: number | null;
 }
@@ -21,6 +23,8 @@ export interface LeaderboardEntry {
   id: number;
   total_score: number;
   average_error: number;
+  /** Total ms across all rounds — used for tie-breaking display. */
+  elapsed_ms: number | null;
   mode: string;
   date: string | null;
   completed_at: string;
@@ -49,6 +53,7 @@ export interface PublicPlayerProfile {
     mode: string;
     total_score: number;
     average_error: number;
+    elapsed_ms: number | null;
     completed_at: string;
   }>;
 }
@@ -59,13 +64,23 @@ async function handleResponse<T>(res: Response): Promise<T> {
   return data as T;
 }
 
+export interface RoundGuessPayload {
+  /** Player's guessed measurement in metres. */
+  guess: number;
+  /** Correct measurement in metres. */
+  correct: number;
+  /** Time spent on this round in milliseconds. */
+  elapsedMs: number;
+  /** Optional metadata carried through to storage. */
+  [key: string]: unknown;
+}
+
 export async function submitScore(
   token: string,
   payload: {
-    totalScore: number;
-    averageError: number;
     mode?: string;
-    rounds?: unknown[];
+    /** Array of per-round guesses. Scores are recalculated server-side. */
+    rounds: RoundGuessPayload[];
   }
 ): Promise<{ success: boolean; result: GameResult }> {
   const res = await fetch(`${API_BASE}/api/scores`, {

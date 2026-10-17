@@ -78,6 +78,7 @@ export function PublicPlayerProfileModal({ player, onClose }: PublicPlayerProfil
                     mode: player.mode || "practice",
                     total_score: player.total_score,
                     average_error: player.average_error,
+                    elapsed_ms: null,
                     completed_at: player.completed_at,
                   },
                   {
@@ -85,6 +86,7 @@ export function PublicPlayerProfileModal({ player, onClose }: PublicPlayerProfil
                     mode: "practice",
                     total_score: Math.max(65, player.total_score - 3),
                     average_error: Number((player.average_error + 1.2).toFixed(1)),
+                    elapsed_ms: null,
                     completed_at: new Date(new Date(player.completed_at).getTime() - 86400000).toISOString(),
                   },
                   {
@@ -92,6 +94,7 @@ export function PublicPlayerProfileModal({ player, onClose }: PublicPlayerProfil
                     mode: "daily",
                     total_score: Math.max(60, player.total_score - 7),
                     average_error: Number((player.average_error + 2.4).toFixed(1)),
+                    elapsed_ms: null,
                     completed_at: new Date(new Date(player.completed_at).getTime() - 86400000 * 2).toISOString(),
                   },
                 ],

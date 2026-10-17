@@ -5,6 +5,8 @@ export interface GameResultRow {
   date: string | null;
   total_score: number;
   average_error: number;
+  /** Total milliseconds spent across all rounds. Null for legacy rows without timing. */
+  elapsed_ms: number | null;
   rounds: unknown;
   completed_at: string;
 }
@@ -13,6 +15,8 @@ export interface LeaderboardEntryRow {
   id: number;
   total_score: number;
   average_error: number;
+  /** Total milliseconds spent across all rounds (tie-breaker). */
+  elapsed_ms: number | null;
   mode: string;
   date: string | null;
   completed_at: string;
@@ -26,6 +30,7 @@ export interface UserStatsSummary {
   gamesPlayed: number;
   dailyGamesCompleted: number;
   bestScore: number;
+  bestAverageError: number;
   averageScore: number;
   rank: number | null;
 }
@@ -50,6 +55,7 @@ export interface PublicPlayerProfile {
     mode: string;
     total_score: number;
     average_error: number;
+    elapsed_ms: number | null;
     completed_at: string;
   }>;
 }

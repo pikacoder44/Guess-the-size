@@ -82,6 +82,7 @@ export function PublicProfilePage({
                       mode: "daily",
                       total_score: matched.score,
                       average_error: 1.2,
+                      elapsed_ms: null,
                       completed_at: new Date(Date.now() - 3600000 * 4).toISOString(),
                     },
                     {
@@ -89,6 +90,7 @@ export function PublicProfilePage({
                       mode: "practice",
                       total_score: Math.max(0, matched.score - 4),
                       average_error: 3.1,
+                      elapsed_ms: null,
                       completed_at: new Date(Date.now() - 3600000 * 24).toISOString(),
                     },
                   ],

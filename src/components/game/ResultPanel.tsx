@@ -64,11 +64,30 @@ export function ResultPanel({
   const submittedSessionRef = useRef<boolean>(false);
   const [saved, setSaved] = useState(false);
 
+  // Track when each round started so we can compute per-round elapsedMs.
+  // We record the timestamp when the phase transitions into a new PLAYING round.
+  const roundStartTimeRef = useRef<number>(performance.now());
+  const lastRoundCountRef = useRef<number>(state.rounds.length);
+  const roundElapsedMsRef = useRef<number[]>([]);
+
   const isFinalRound = state.phase === "FINISHED";
   const currentRoundScore =
     state.roundScores[state.roundScores.length - 1] ?? 0;
   const currentRoundError =
     state.roundErrors[state.roundErrors.length - 1] ?? 0;
+
+  // When a round is completed (rounds array grows), record its elapsed time.
+  useEffect(() => {
+    const prev = lastRoundCountRef.current;
+    const curr = state.rounds.length;
+    if (curr > prev) {
+      const elapsed = Math.round(performance.now() - roundStartTimeRef.current);
+      roundElapsedMsRef.current = [...roundElapsedMsRef.current, elapsed];
+      lastRoundCountRef.current = curr;
+      // Reset timer for next round
+      roundStartTimeRef.current = performance.now();
+    }
+  }, [state.rounds.length]);
 
   const guess = state.finalGuessScale ?? state.guessScale;
   const correct = state.puzzle.target.actualMeasurement;
@@ -81,26 +100,28 @@ export function ResultPanel({
     if (!token || !isFinalRound || submittedSessionRef.current) return;
     submittedSessionRef.current = true;
 
+    // Build the rounds payload that the server uses to recalculate scores
+    const roundsPayload = state.rounds.map((r, i) => ({
+      // Required fields for server-side score recalculation
+      guess: r.guessScale,
+      correct: r.actualMeasurement,
+      elapsedMs: roundElapsedMsRef.current[i] ?? 0,
+      // Metadata carried through for storage / future analytics
+      round: r.round,
+      puzzleId: r.puzzle.id,
+      referenceName: r.puzzle.reference.name,
+      targetName: r.puzzle.target.name,
+    }));
+
     submitScore(token, {
-      totalScore: state.totalScore,
-      averageError: Number(state.averageError.toFixed(2)),
       mode: "classic",
-      rounds: state.rounds.map((r) => ({
-        round: r.round,
-        puzzleId: r.puzzle.id,
-        referenceName: r.puzzle.reference.name,
-        targetName: r.puzzle.target.name,
-        guess: r.guessScale,
-        actual: r.actualMeasurement,
-        errorPercent: Number(r.errorPercent.toFixed(2)),
-        score: r.score,
-      })),
+      rounds: roundsPayload,
     })
       .then(() => setSaved(true))
       .catch((err) => {
         console.error("Failed to submit classic game score:", err);
       });
-  }, [token, isFinalRound, state.totalScore, state.averageError, state.rounds]);
+  }, [token, isFinalRound, state.rounds]);
 
   // Auto-focus primary progression button
   useEffect(() => {
