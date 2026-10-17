@@ -29,7 +29,7 @@ function fieldClass(hasError: boolean, isValid: boolean, extra = ""): string {
     "placeholder:text-muted-foreground/40 transition-colors duration-150 " +
     "focus:outline-none focus:ring-2 focus:ring-primary/30 font-sans ";
   if (hasError) return base + "border-destructive/60 " + extra;
-  if (isValid)  return base + "border-emerald-500/40 " + extra;
+  if (isValid) return base + "border-emerald-500/40 " + extra;
   return base + "border-border/70 focus:border-primary/50 " + extra;
 }
 
@@ -45,6 +45,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
     login,
     register,
     loginWithGoogle,
+    loginWithGitHub,
     isSubmitting,
     error: serverError,
     clearError,
@@ -57,7 +58,9 @@ export const AuthPage: React.FC<AuthPageProps> = ({
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [socialLoading, setSocialLoading] = useState<"google" | "github" | null>(null);
+  const [socialLoading, setSocialLoading] = useState<
+    "google" | "github" | null
+  >(null);
   const [clientErrors, setClientErrors] = useState<{
     username?: string;
     password?: string;
@@ -76,7 +79,9 @@ export const AuthPage: React.FC<AuthPageProps> = ({
 
   const isUsernameValid = username.length > 0 && !validateUsername(username);
   const isConfirmValid =
-    mode === "register" && confirmPassword.length > 0 && confirmPassword === password;
+    mode === "register" &&
+    confirmPassword.length > 0 &&
+    confirmPassword === password;
 
   const anyLoading = isSubmitting || socialLoading !== null;
 
@@ -90,14 +95,20 @@ export const AuthPage: React.FC<AuthPageProps> = ({
   };
 
   const validateForm = (): boolean => {
-    const errors: { username?: string; password?: string; confirmPassword?: string } = {};
+    const errors: {
+      username?: string;
+      password?: string;
+      confirmPassword?: string;
+    } = {};
     const userErr = validateUsername(username);
     if (userErr) errors.username = userErr;
     const passErr = validatePassword(password);
     if (passErr) errors.password = passErr;
     if (mode === "register") {
-      if (!confirmPassword) errors.confirmPassword = "Please confirm your password.";
-      else if (password !== confirmPassword) errors.confirmPassword = "Passwords do not match.";
+      if (!confirmPassword)
+        errors.confirmPassword = "Please confirm your password.";
+      else if (password !== confirmPassword)
+        errors.confirmPassword = "Passwords do not match.";
     }
     setClientErrors(errors);
     return Object.keys(errors).length === 0;
@@ -112,13 +123,19 @@ export const AuthPage: React.FC<AuthPageProps> = ({
       const ok = await login(username, password);
       if (ok) {
         setSuccessMessage(`Welcome back, ${username}!`);
-        setTimeout(() => { onSuccess?.(); onClose?.(); }, 600);
+        setTimeout(() => {
+          onSuccess?.();
+          onClose?.();
+        }, 600);
       }
     } else {
       const ok = await register(username, password);
       if (ok) {
         setSuccessMessage(`Account created. Welcome, ${username}!`);
-        setTimeout(() => { onSuccess?.(); onClose?.(); }, 700);
+        setTimeout(() => {
+          onSuccess?.();
+          onClose?.();
+        }, 700);
       }
     }
   };
@@ -131,7 +148,10 @@ export const AuthPage: React.FC<AuthPageProps> = ({
       const ok = await loginWithGoogle({ credential });
       if (ok) {
         setSuccessMessage("Signed in with Google!");
-        setTimeout(() => { onSuccess?.(); onClose?.(); }, 600);
+        setTimeout(() => {
+          onSuccess?.();
+          onClose?.();
+        }, 600);
       }
     } finally {
       setSocialLoading(null);
@@ -146,7 +166,10 @@ export const AuthPage: React.FC<AuthPageProps> = ({
       const ok = await loginWithGoogle({ access_token: accessToken });
       if (ok) {
         setSuccessMessage("Signed in with Google!");
-        setTimeout(() => { onSuccess?.(); onClose?.(); }, 600);
+        setTimeout(() => {
+          onSuccess?.();
+          onClose?.();
+        }, 600);
       }
     } finally {
       setSocialLoading(null);
@@ -169,11 +192,26 @@ export const AuthPage: React.FC<AuthPageProps> = ({
     setSuccessMessage(null);
     setSocialLoading("github");
     try {
-      await new Promise<void>((resolve) => setTimeout(resolve, 1400));
-      const ok = await loginWithGoogle({ name: "GitHub Explorer", email: "explorer+github@scale.app" });
+      const githubClientId = import.meta.env.VITE_GITHUB_CLIENT_ID;
+      if (
+        githubClientId &&
+        githubClientId.trim() &&
+        githubClientId !== "your-github-client-id"
+      ) {
+        // Build clean origin strictly matching GitHub App settings (http://localhost:5173)
+        const redirectUri = window.location.origin.replace(/\/$/, "");
+
+        window.location.href = `https://github.com/login/oauth/authorize?client_id=${githubClientId.trim()}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=read:user,user:email`;
+        return;
+      }
+
+      const ok = await loginWithGitHub();
       if (ok) {
         setSuccessMessage("Signed in with GitHub!");
-        setTimeout(() => { onSuccess?.(); onClose?.(); }, 600);
+        setTimeout(() => {
+          onSuccess?.();
+          onClose?.();
+        }, 600);
       }
     } finally {
       setSocialLoading(null);
@@ -181,7 +219,8 @@ export const AuthPage: React.FC<AuthPageProps> = ({
   };
 
   const handleExit = () => {
-    if (onClose) onClose(); else closeAuth();
+    if (onClose) onClose();
+    else closeAuth();
   };
 
   /* ─────────────── Render ─────────────── */
@@ -196,15 +235,22 @@ export const AuthPage: React.FC<AuthPageProps> = ({
           w-full max-w-md relative overflow-hidden font-sans
           bg-card/95 backdrop-blur-xl border rounded-2xl shadow-2xl
           transition-all duration-200
-          ${isModal
-            ? "border-border/60 ring-1 ring-white/5 p-7 sm:p-8"
-            : "border-border/80 p-6 sm:p-8"
+          ${
+            isModal
+              ? "border-border/60 ring-1 ring-white/5 p-7 sm:p-8"
+              : "border-border/80 p-6 sm:p-8"
           }
         `}
       >
         {/* Ambient glows */}
-        <div className="absolute -top-32 -right-32 w-64 h-64 bg-primary/8 rounded-full blur-3xl pointer-events-none" aria-hidden="true" />
-        <div className="absolute -bottom-32 -left-32 w-64 h-64 bg-primary/4 rounded-full blur-3xl pointer-events-none" aria-hidden="true" />
+        <div
+          className="absolute -top-32 -right-32 w-64 h-64 bg-primary/8 rounded-full blur-3xl pointer-events-none"
+          aria-hidden="true"
+        />
+        <div
+          className="absolute -bottom-32 -left-32 w-64 h-64 bg-primary/4 rounded-full blur-3xl pointer-events-none"
+          aria-hidden="true"
+        />
 
         {/* Back to game — only when rendered as a page, not a modal */}
         {!isModal && (
@@ -227,7 +273,9 @@ export const AuthPage: React.FC<AuthPageProps> = ({
             {mode === "login" ? "Sign in" : "Create an account"}
           </h2>
           <p className="text-sm text-muted-foreground mt-1">
-            {mode === "login" ? "Welcome back to ScaleGuess." : "Start tracking your size estimates."}
+            {mode === "login"
+              ? "Welcome back to ScaleGuess."
+              : "Start tracking your size estimates."}
           </p>
         </div>
 
@@ -246,9 +294,10 @@ export const AuthPage: React.FC<AuthPageProps> = ({
               onClick={() => handleModeSwitch(tab)}
               className={`
                 py-2 text-sm font-medium rounded-lg transition-all duration-200
-                ${mode === tab
-                  ? "bg-card text-foreground shadow-sm border border-border/60"
-                  : "text-muted-foreground hover:text-foreground"
+                ${
+                  mode === tab
+                    ? "bg-card text-foreground shadow-sm border border-border/60"
+                    : "text-muted-foreground hover:text-foreground"
                 }
               `}
             >
@@ -280,7 +329,10 @@ export const AuthPage: React.FC<AuthPageProps> = ({
             </div>
             <button
               type="button"
-              onClick={() => { clearError(); setClientErrors({}); }}
+              onClick={() => {
+                clearError();
+                setClientErrors({});
+              }}
               aria-label="Dismiss error"
               className="text-muted-foreground hover:text-foreground transition-colors"
             >
@@ -317,11 +369,17 @@ export const AuthPage: React.FC<AuthPageProps> = ({
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="space-y-4 relative z-10" noValidate>
-
+        <form
+          onSubmit={handleSubmit}
+          className="space-y-4 relative z-10"
+          noValidate
+        >
           {/* Username */}
           <div className="space-y-1.5">
-            <label htmlFor="auth-username" className="text-sm font-medium text-foreground">
+            <label
+              htmlFor="auth-username"
+              className="text-sm font-medium text-foreground"
+            >
               Username
             </label>
             <div className="relative">
@@ -337,17 +395,26 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                 }}
                 maxLength={32}
                 placeholder="your_username"
-                className={fieldClass(!!clientErrors.username, isUsernameValid, isUsernameValid ? "pr-9" : "")}
+                className={fieldClass(
+                  !!clientErrors.username,
+                  isUsernameValid,
+                  isUsernameValid ? "pr-9" : "",
+                )}
                 disabled={anyLoading}
                 aria-invalid={!!clientErrors.username}
-                aria-describedby={clientErrors.username ? "username-error" : undefined}
+                aria-describedby={
+                  clientErrors.username ? "username-error" : undefined
+                }
               />
               {isUsernameValid && (
                 <CheckCircle2 className="w-4 h-4 text-emerald-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
               )}
             </div>
             {clientErrors.username && (
-              <p id="username-error" className="text-xs text-destructive flex items-center gap-1.5">
+              <p
+                id="username-error"
+                className="text-xs text-destructive flex items-center gap-1.5"
+              >
                 <AlertCircle className="w-3.5 h-3.5 shrink-0" />
                 {clientErrors.username}
               </p>
@@ -356,14 +423,19 @@ export const AuthPage: React.FC<AuthPageProps> = ({
 
           {/* Password */}
           <div className="space-y-1.5">
-            <label htmlFor="auth-password" className="text-sm font-medium text-foreground">
+            <label
+              htmlFor="auth-password"
+              className="text-sm font-medium text-foreground"
+            >
               Password
             </label>
             <div className="relative">
               <input
                 id="auth-password"
                 type={showPassword ? "text" : "password"}
-                autoComplete={mode === "login" ? "current-password" : "new-password"}
+                autoComplete={
+                  mode === "login" ? "current-password" : "new-password"
+                }
                 value={password}
                 onChange={(e) => {
                   setPassword(e.target.value);
@@ -374,7 +446,9 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                 className={fieldClass(!!clientErrors.password, false, "pr-10")}
                 disabled={anyLoading}
                 aria-invalid={!!clientErrors.password}
-                aria-describedby={clientErrors.password ? "password-error" : undefined}
+                aria-describedby={
+                  clientErrors.password ? "password-error" : undefined
+                }
               />
               <button
                 type="button"
@@ -382,11 +456,18 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
                 aria-label={showPassword ? "Hide password" : "Show password"}
               >
-                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                {showPassword ? (
+                  <EyeOff className="w-4 h-4" />
+                ) : (
+                  <Eye className="w-4 h-4" />
+                )}
               </button>
             </div>
             {clientErrors.password && (
-              <p id="password-error" className="text-xs text-destructive flex items-center gap-1.5">
+              <p
+                id="password-error"
+                className="text-xs text-destructive flex items-center gap-1.5"
+              >
                 <AlertCircle className="w-3.5 h-3.5 shrink-0" />
                 {clientErrors.password}
               </p>
@@ -396,7 +477,10 @@ export const AuthPage: React.FC<AuthPageProps> = ({
           {/* Confirm Password */}
           {mode === "register" && (
             <div className="space-y-1.5 animate-in fade-in slide-in-from-top-1 duration-150">
-              <label htmlFor="auth-confirm-password" className="text-sm font-medium text-foreground">
+              <label
+                htmlFor="auth-confirm-password"
+                className="text-sm font-medium text-foreground"
+              >
                 Confirm Password
               </label>
               <div className="relative">
@@ -408,13 +492,22 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                   onChange={(e) => {
                     setConfirmPassword(e.target.value);
                     if (clientErrors.confirmPassword)
-                      setClientErrors((p) => ({ ...p, confirmPassword: undefined }));
+                      setClientErrors((p) => ({
+                        ...p,
+                        confirmPassword: undefined,
+                      }));
                   }}
                   placeholder="••••••••"
-                  className={fieldClass(!!clientErrors.confirmPassword, isConfirmValid, isConfirmValid ? "pr-16" : "pr-10")}
+                  className={fieldClass(
+                    !!clientErrors.confirmPassword,
+                    isConfirmValid,
+                    isConfirmValid ? "pr-16" : "pr-10",
+                  )}
                   disabled={anyLoading}
                   aria-invalid={!!clientErrors.confirmPassword}
-                  aria-describedby={clientErrors.confirmPassword ? "confirm-error" : undefined}
+                  aria-describedby={
+                    clientErrors.confirmPassword ? "confirm-error" : undefined
+                  }
                 />
                 {isConfirmValid && (
                   <CheckCircle2 className="w-4 h-4 text-emerald-400 absolute right-9 top-1/2 -translate-y-1/2 pointer-events-none" />
@@ -423,13 +516,22 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                   type="button"
                   onClick={() => setShowConfirmPassword((s) => !s)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                  aria-label={showConfirmPassword ? "Hide password" : "Show password"}
+                  aria-label={
+                    showConfirmPassword ? "Hide password" : "Show password"
+                  }
                 >
-                  {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  {showConfirmPassword ? (
+                    <EyeOff className="w-4 h-4" />
+                  ) : (
+                    <Eye className="w-4 h-4" />
+                  )}
                 </button>
               </div>
               {clientErrors.confirmPassword && (
-                <p id="confirm-error" className="text-xs text-destructive flex items-center gap-1.5">
+                <p
+                  id="confirm-error"
+                  className="text-xs text-destructive flex items-center gap-1.5"
+                >
                   <AlertCircle className="w-3.5 h-3.5 shrink-0" />
                   {clientErrors.confirmPassword}
                 </p>
@@ -458,14 +560,17 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                 <Loader2 className="w-4 h-4 animate-spin" />
                 {mode === "login" ? "Signing in…" : "Creating account…"}
               </>
+            ) : mode === "login" ? (
+              "Sign in"
             ) : (
-              mode === "login" ? "Sign in" : "Create account"
+              "Create account"
             )}
           </button>
 
           {mode === "register" && (
             <p className="text-[11px] text-muted-foreground/70 text-center pt-1">
-              Profile picture is optional — you can add or change it anytime in Profile Settings.
+              Profile picture is optional — you can add or change it anytime in
+              Profile Settings.
             </p>
           )}
         </form>

@@ -35,6 +35,7 @@ if (isPlaceholderUrl) {
     email: string | null;
     password: string | null;
     google_id: string | null;
+    github_id: string | null;
     avatar_url: string | null;
     email_verified: boolean;
     given_name: string | null;
@@ -86,6 +87,7 @@ if (isPlaceholderUrl) {
         let email: string | null = null;
         let name: string | null = null;
         let google_id: string | null = null;
+        let github_id: string | null = null;
         let avatar_url: string | null = null;
         let email_verified = false;
         let given_name: string | null = null;
@@ -102,6 +104,7 @@ if (isPlaceholderUrl) {
             else if (col === 'email') email = val ? String(val) : null;
             else if (col === 'name') name = val ? String(val) : null;
             else if (col === 'google_id') google_id = val ? String(val) : null;
+            else if (col === 'github_id') github_id = val ? String(val) : null;
             else if (col === 'avatar_url') avatar_url = val ? String(val) : null;
             else if (col === 'email_verified') email_verified = Boolean(val);
             else if (col === 'given_name') given_name = val ? String(val) : null;
@@ -144,6 +147,17 @@ if (isPlaceholderUrl) {
           }
         }
 
+        if (github_id) {
+          const githubIdExists = memoryUsers.some(
+            (u) => u.github_id && u.github_id === String(github_id)
+          );
+          if (githubIdExists) {
+            const err: any = new Error('duplicate key value violates unique constraint "users_github_id_idx"');
+            err.code = '23505';
+            throw err;
+          }
+        }
+
         const newUser: MemoryUser = {
           id: nextUserId++,
           username: String(username),
@@ -151,6 +165,7 @@ if (isPlaceholderUrl) {
           email: email ? String(email) : null,
           password: password ? String(password) : null,
           google_id: google_id ? String(google_id) : null,
+          github_id: github_id ? String(github_id) : null,
           avatar_url: avatar_url ? String(avatar_url) : null,
           email_verified: Boolean(email_verified),
           given_name: given_name ? String(given_name) : null,
@@ -167,6 +182,13 @@ if (isPlaceholderUrl) {
       if (normalized.includes('WHERE google_id = $1')) {
         const gid = String(values[0]);
         const user = memoryUsers.find((u) => u.google_id === gid);
+        return { rows: user ? [user as unknown as T] : [] };
+      }
+
+      // SELECT * FROM users WHERE github_id = $1
+      if (normalized.includes('WHERE github_id = $1')) {
+        const ghId = String(values[0]);
+        const user = memoryUsers.find((u) => u.github_id === ghId);
         return { rows: user ? [user as unknown as T] : [] };
       }
 
@@ -224,6 +246,8 @@ if (isPlaceholderUrl) {
                   user.avatar_url = val ? String(val) : null;
                 } else if (assignment.startsWith('google_id')) {
                   if (val !== undefined && val !== null) user.google_id = String(val);
+                } else if (assignment.startsWith('github_id')) {
+                  if (val !== undefined && val !== null) user.github_id = String(val);
                 } else if (assignment.startsWith('email_verified')) {
                   if (val !== undefined && val !== null) user.email_verified = Boolean(val);
                 } else if (assignment.startsWith('email')) {
@@ -392,6 +416,7 @@ export async function initDb(): Promise<void> {
   await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS name TEXT;`);
   await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS email TEXT;`);
   await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS google_id TEXT;`);
+  await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS github_id TEXT;`);
   await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_url TEXT;`);
   await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verified BOOLEAN DEFAULT FALSE;`);
   await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS given_name TEXT;`);
@@ -429,6 +454,12 @@ export async function initDb(): Promise<void> {
     CREATE UNIQUE INDEX IF NOT EXISTS users_google_id_idx
       ON users (google_id)
       WHERE google_id IS NOT NULL;
+  `);
+
+  await pool.query(`
+    CREATE UNIQUE INDEX IF NOT EXISTS users_github_id_idx
+      ON users (github_id)
+      WHERE github_id IS NOT NULL;
   `);
 
   // 2. Game results / scores table for ScaleGuess

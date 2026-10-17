@@ -9,7 +9,7 @@ dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import { optionalAuth } from './middleware/auth.js';
-import authRouter from './routes/auth.js';
+import authRouter from './routes/auth/index.js';
 import scoresRouter from './routes/scores.js';
 import { initDb, checkDbHealth } from './db.js';
 
@@ -86,7 +86,7 @@ app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
   app.listen(PORT, () => {
     console.log(`\n🚀 GuessTheSize API running on http://localhost:${PORT}`);
     console.log(`   Health:      http://localhost:${PORT}/api/health`);
-    console.log(`   Auth:        http://localhost:${PORT}/api/auth/register | /login | /google | /me`);
+    console.log(`   Auth:        http://localhost:${PORT}/api/auth/register | /login | /google | /github | /me`);
     console.log(`   Scores:      http://localhost:${PORT}/api/scores | /me | /leaderboard\n`);
   });
 })();
