@@ -114,14 +114,14 @@ export function LeaderboardModal({ onClose }: LeaderboardModalProps) {
               {/* Score */}
               <div className="shrink-0 text-right">
                 <p className="text-base font-extrabold font-mono text-primary">{entry.total_score}</p>
-                <p className="text-[10px] text-muted-foreground">/100</p>
+                <p className="text-[10px] text-muted-foreground font-mono">/500</p>
               </div>
             </div>
           ))}
         </div>
 
         <div className="px-6 py-3 border-t border-border/40">
-          <p className="text-[11px] text-muted-foreground text-center">Ranked by highest single-round score</p>
+          <p className="text-[11px] text-muted-foreground text-center">Ranked by highest 5-round score (max 500)</p>
         </div>
       </div>
     </div>

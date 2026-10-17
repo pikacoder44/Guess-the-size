@@ -1,6 +1,15 @@
 import { useEffect, useRef, useState } from "react";
-import { ArrowRight, Award, Percent, Target, CloudCheck } from "lucide-react";
-import { calculateScore, formatMeasurement, percentError } from "@/game/scoring";
+import {
+  ArrowRight,
+  Award,
+  Percent,
+  Target,
+  CloudCheck,
+  Trophy,
+  RotateCcw,
+  Sparkles,
+} from "lucide-react";
+import { formatMeasurement } from "@/game/scoring";
 import { useAuth } from "@/context/AuthContext";
 import { submitScore } from "@/lib/scoreApi";
 import type { GameState } from "@/game/useGame";
@@ -8,6 +17,8 @@ import type { GameState } from "@/game/useGame";
 export interface ResultPanelProps {
   state: GameState;
   onNextRound?: () => void;
+  onPlayAgain?: () => void;
+  onNavigateLeaderboard?: () => void;
 }
 
 function useCountUp(target: number, duration = 800) {
@@ -32,71 +43,269 @@ function useCountUp(target: number, duration = 800) {
     return () => cancelAnimationFrame(rafId);
   }, [target, duration]);
 
-  return value;
+  return target === 0 ? 0 : value;
 }
 
-export function ResultPanel({ state, onNextRound }: ResultPanelProps) {
-  const nextBtnRef = useRef<HTMLButtonElement>(null);
+function getRatingTier(score: number): { label: string; color: string } {
+  if (score >= 450) return { label: "Flawless Precision", color: "text-amber-400 border-amber-400/30 bg-amber-400/10" };
+  if (score >= 375) return { label: "Master Estimator", color: "text-emerald-400 border-emerald-400/30 bg-emerald-400/10" };
+  if (score >= 275) return { label: "Sharp Spatial Sense", color: "text-primary border-primary/30 bg-primary/10" };
+  return { label: "Spatial Trainee", color: "text-muted-foreground border-border bg-secondary" };
+}
+
+export function ResultPanel({
+  state,
+  onNextRound,
+  onPlayAgain,
+  onNavigateLeaderboard,
+}: ResultPanelProps) {
+  const primaryBtnRef = useRef<HTMLButtonElement>(null);
   const { token } = useAuth();
-  const submitted = useRef(false);
+  const submittedSessionRef = useRef<boolean>(false);
   const [saved, setSaved] = useState(false);
+
+  const isFinalRound = state.phase === "FINISHED";
+  const currentRoundScore =
+    state.roundScores[state.roundScores.length - 1] ?? 0;
+  const currentRoundError =
+    state.roundErrors[state.roundErrors.length - 1] ?? 0;
 
   const guess = state.finalGuessScale ?? state.guessScale;
   const correct = state.puzzle.target.actualMeasurement;
-  const err = percentError(guess, correct);
-  const score = calculateScore(guess, correct);
-  const animatedScore = useCountUp(score);
 
-  // Submit score once per result for authenticated users
+  const animatedRoundScore = useCountUp(currentRoundScore);
+  const animatedFinalScore = useCountUp(state.totalScore, 1000);
+
+  // Submit final cumulative score on completion of Round 5
   useEffect(() => {
-    if (!token || submitted.current) return;
-    submitted.current = true;
+    if (!token || !isFinalRound || submittedSessionRef.current) return;
+    submittedSessionRef.current = true;
+
     submitScore(token, {
-      totalScore: score,
-      averageError: Math.abs(err),
-      mode: "practice",
+      totalScore: state.totalScore,
+      averageError: Number(state.averageError.toFixed(2)),
+      mode: "classic",
+      rounds: state.rounds.map((r) => ({
+        round: r.round,
+        puzzleId: r.puzzle.id,
+        referenceName: r.puzzle.reference.name,
+        targetName: r.puzzle.target.name,
+        guess: r.guessScale,
+        actual: r.actualMeasurement,
+        errorPercent: Number(r.errorPercent.toFixed(2)),
+        score: r.score,
+      })),
     })
       .then(() => setSaved(true))
-      .catch(() => { /* non-fatal: guest experience unchanged */ });
-  }, [token, score, err]);
+      .catch((err) => {
+        console.error("Failed to submit classic game score:", err);
+      });
+  }, [token, isFinalRound, state.totalScore, state.averageError, state.rounds]);
 
-  // Auto-focus the progression button when results appear
+  // Auto-focus primary progression button
   useEffect(() => {
-    nextBtnRef.current?.focus();
-  }, []);
+    primaryBtnRef.current?.focus();
+  }, [isFinalRound]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if ((e.key === "Enter" || e.key === " ") && onNextRound) {
-      e.preventDefault();
-      onNextRound();
+    if (e.key === "Enter" || e.key === " ") {
+      if (!isFinalRound && onNextRound) {
+        e.preventDefault();
+        onNextRound();
+      } else if (isFinalRound && onPlayAgain) {
+        e.preventDefault();
+        onPlayAgain();
+      }
     }
   };
 
+  if (isFinalRound) {
+    const tier = getRatingTier(state.totalScore);
+    const overallAccuracy = Math.max(0, 100 - state.averageError);
+
+    return (
+      <div
+        className="flex flex-col gap-4 animate-in fade-in slide-in-from-bottom-2 duration-300"
+        onKeyDown={handleKeyDown}
+        tabIndex={-1}
+      >
+        <section
+          className="result-panel relative overflow-hidden flex flex-col gap-5 p-5 sm:p-6 bg-card/90 border border-primary/30 rounded-2xl shadow-xl shadow-black/30 backdrop-blur-md"
+          aria-live="polite"
+          aria-label="Final Game Result"
+        >
+          {/* Decorative ambient background glows */}
+          <div className="absolute -top-16 -right-16 w-48 h-48 bg-primary/20 rounded-full blur-3xl pointer-events-none" />
+          <div className="absolute -bottom-16 -left-16 w-48 h-48 bg-amber-500/15 rounded-full blur-3xl pointer-events-none" />
+
+          {/* Header banner */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-border/70 relative z-10">
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 rounded-xl bg-amber-400/10 border border-amber-400/30 text-amber-400">
+                <Trophy className="w-6 h-6 drop-shadow-[0_0_8px_rgba(251,191,36,0.6)]" />
+              </div>
+              <div>
+                <h2 className="font-display font-extrabold text-xl text-foreground tracking-tight flex items-center gap-2">
+                  <span>5-Round Challenge Complete</span>
+                  <Sparkles className="w-4 h-4 text-amber-400 animate-pulse" />
+                </h2>
+                <p className="text-xs text-muted-foreground font-mono mt-0.5">
+                  Classic Mode · 5 Distinct Spatial Estimations
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <span className={`text-xs font-mono font-semibold px-3 py-1 rounded-full border ${tier.color}`}>
+                {tier.label}
+              </span>
+              {saved && (
+                <span className="inline-flex items-center gap-1 text-emerald-400 text-xs font-mono bg-emerald-400/10 px-2.5 py-1 rounded-full border border-emerald-400/20">
+                  <CloudCheck className="w-3.5 h-3.5" />
+                  <span>Saved</span>
+                </span>
+              )}
+            </div>
+          </div>
+
+          {/* Top Score Summary Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 relative z-10">
+            {/* Final Cumulative Score out of 500 */}
+            <div className="bg-secondary/40 border border-border/80 rounded-xl p-4 flex flex-col justify-center">
+              <span className="text-[11px] font-mono uppercase tracking-wider text-muted-foreground">
+                Final Score
+              </span>
+              <div className="font-mono text-3xl sm:text-4xl font-extrabold text-primary flex items-baseline gap-1 mt-1">
+                <span>{animatedFinalScore}</span>
+                <span className="text-sm font-normal text-muted-foreground">/ 500</span>
+              </div>
+            </div>
+
+            {/* Overall Average Error */}
+            <div className="bg-secondary/40 border border-border/80 rounded-xl p-4 flex flex-col justify-center">
+              <span className="text-[11px] font-mono uppercase tracking-wider text-muted-foreground">
+                Average Error
+              </span>
+              <div className="font-mono text-2xl sm:text-3xl font-bold text-foreground mt-1">
+                {`${state.averageError.toFixed(1)}%`}
+              </div>
+            </div>
+
+            {/* Overall Accuracy */}
+            <div className="bg-secondary/40 border border-border/80 rounded-xl p-4 flex flex-col justify-center">
+              <span className="text-[11px] font-mono uppercase tracking-wider text-muted-foreground">
+                Overall Accuracy
+              </span>
+              <div className="font-mono text-2xl sm:text-3xl font-bold text-emerald-400 mt-1">
+                {`${overallAccuracy.toFixed(1)}%`}
+              </div>
+            </div>
+          </div>
+
+          {/* Round-by-Round Breakdown */}
+          <div className="relative z-10 flex flex-col gap-2">
+            <h3 className="text-xs font-mono uppercase tracking-wider text-muted-foreground font-semibold px-1">
+              Round Breakdown
+            </h3>
+            <div className="overflow-x-auto rounded-xl border border-border/80 bg-background/50">
+              <table className="w-full text-left text-xs font-mono">
+                <thead>
+                  <tr className="border-b border-border/60 bg-secondary/50 text-muted-foreground">
+                    <th className="py-2.5 px-3 font-semibold">Round</th>
+                    <th className="py-2.5 px-3 font-semibold">Challenge</th>
+                    <th className="py-2.5 px-3 font-semibold">Your Guess</th>
+                    <th className="py-2.5 px-3 font-semibold">Actual</th>
+                    <th className="py-2.5 px-3 font-semibold">Off By</th>
+                    <th className="py-2.5 px-3 font-semibold text-right">Score</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border/40">
+                  {state.rounds.map((r) => (
+                    <tr key={r.round} className="hover:bg-secondary/30 transition-colors">
+                      <td className="py-2.5 px-3 font-bold text-foreground">
+                        {`Round ${r.round}`}
+                      </td>
+                      <td className="py-2.5 px-3 text-muted-foreground">
+                        <span className="text-foreground font-medium">{r.puzzle.target.name}</span>
+                        <span className="text-muted-foreground/60"> vs {r.puzzle.reference.name}</span>
+                      </td>
+                      <td className="py-2.5 px-3 text-target font-medium">
+                        {formatMeasurement(r.guessScale)}
+                      </td>
+                      <td className="py-2.5 px-3 text-correct font-medium">
+                        {formatMeasurement(r.actualMeasurement)}
+                      </td>
+                      <td className="py-2.5 px-3 text-muted-foreground">
+                        {`${r.errorPercent.toFixed(1)}%`}
+                      </td>
+                      <td className="py-2.5 px-3 text-right font-extrabold text-primary">
+                        {`${r.score} / 100`}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        {/* Primary Action Buttons */}
+        <div className="flex flex-col sm:flex-row justify-between items-center gap-3 pt-1">
+          <span className="text-xs text-muted-foreground hidden sm:inline">
+            Press <kbd className="px-1.5 py-0.5 rounded bg-secondary border border-border text-foreground font-mono">Enter</kbd> to play again
+          </span>
+          <div className="flex items-center gap-3 w-full sm:w-auto">
+            {onNavigateLeaderboard && (
+              <button
+                type="button"
+                onClick={onNavigateLeaderboard}
+                className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-secondary/80 hover:bg-secondary border border-border text-xs font-mono font-semibold text-foreground hover:text-amber-300 transition-colors cursor-pointer w-full sm:w-auto"
+              >
+                <Trophy className="w-4 h-4 text-amber-400" />
+                <span>Leaderboard</span>
+              </button>
+            )}
+            {onPlayAgain && (
+              <button
+                ref={primaryBtnRef}
+                type="button"
+                onClick={() => onPlayAgain?.()}
+                className="lock-btn flex items-center justify-center gap-2 shadow-lg shadow-primary/20 cursor-pointer w-full sm:w-auto"
+                aria-label="Play another 5-round game"
+              >
+                <RotateCcw className="h-4 w-4" />
+                <span>Play Again</span>
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Intermediate Round Result (Rounds 1, 2, 3, 4)
   return (
     <div
       className="flex flex-col gap-4 animate-in fade-in slide-in-from-bottom-2 duration-300"
       onKeyDown={handleKeyDown}
       tabIndex={-1}
     >
-      <section className="result-panel relative overflow-hidden" aria-live="polite" aria-label="Game Result">
+      <section className="result-panel relative overflow-hidden" aria-live="polite" aria-label="Round Result">
         {/* Subtle decorative glow */}
         <div className="absolute -top-12 -right-12 w-32 h-32 bg-primary/10 rounded-full blur-2xl pointer-events-none" />
 
-        {/* 1. Score */}
+        {/* 1. Score for this round */}
         <div className="min-w-0 flex flex-col justify-center">
-          <div className="text-xs uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-            <span>Score</span>
-            {saved && (
-              <span className="inline-flex items-center gap-0.5 text-emerald-400">
-                <CloudCheck className="w-3 h-3" />
-                <span className="text-[10px] normal-case">Saved</span>
-              </span>
-            )}
+          <div className="text-xs uppercase tracking-wider text-muted-foreground flex items-center gap-1.5 whitespace-nowrap">
+            <span>Round {state.currentRound} Score</span>
           </div>
           <div className="font-mono text-3xl font-extrabold text-primary flex items-baseline gap-1 mt-0.5">
-            <span>{animatedScore}</span>
+            <span>{animatedRoundScore}</span>
             <span className="text-sm font-normal text-muted-foreground">/100</span>
           </div>
+          <span className="text-[11px] font-mono text-muted-foreground/80 mt-1 whitespace-nowrap">
+            Total so far: <strong className="text-foreground">{state.totalScore}</strong> / 500
+          </span>
         </div>
 
         {/* 2. Your Answer */}
@@ -117,12 +326,12 @@ export function ResultPanel({ state, onNextRound }: ResultPanelProps) {
 
         {/* 4. Off by */}
         <div className="min-w-0 flex flex-col justify-center">
-          <div className="text-xs uppercase tracking-wider text-muted-foreground flex items-center gap-1">
+          <div className="text-xs uppercase tracking-wider text-muted-foreground flex items-center gap-1 whitespace-nowrap">
             <Percent className="h-3.5 w-3.5 opacity-70" />
             <span>Off by</span>
           </div>
           <div className="font-mono text-xl text-foreground font-semibold mt-1">
-            {`${Math.abs(err).toFixed(1)}%`}
+            {`${currentRoundError.toFixed(1)}%`}
           </div>
         </div>
       </section>
@@ -134,13 +343,13 @@ export function ResultPanel({ state, onNextRound }: ResultPanelProps) {
             Press <kbd className="px-1.5 py-0.5 rounded bg-secondary border border-border text-foreground font-mono">Enter</kbd> to continue
           </span>
           <button
-            ref={nextBtnRef}
+            ref={primaryBtnRef}
             type="button"
-            className="lock-btn flex items-center gap-2 shadow-lg shadow-primary/20"
-            onClick={onNextRound}
-            aria-label="Advance to next round"
+            className="lock-btn flex items-center gap-2 shadow-lg shadow-primary/20 cursor-pointer"
+            onClick={() => onNextRound?.()}
+            aria-label={`Advance to round ${state.currentRound + 1}`}
           >
-            <span>Next Round</span>
+            <span>{`Next Round (${state.currentRound + 1}/${state.totalRounds})`}</span>
             <ArrowRight className="h-4 w-4" />
           </button>
         </div>

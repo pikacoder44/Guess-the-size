@@ -263,7 +263,7 @@ export function PublicProfilePage({
             <span className="font-mono text-2xl sm:text-3xl font-black text-amber-400 drop-shadow-[0_0_10px_rgba(251,191,36,0.4)]">
               {stats.bestScore}
             </span>
-            <span className="text-xs font-mono text-muted-foreground font-semibold">/100</span>
+            <span className="text-xs font-mono text-muted-foreground font-semibold">/500</span>
           </div>
         </div>
 
@@ -309,7 +309,7 @@ export function PublicProfilePage({
                   <div className="flex items-center gap-3">
                     <span className="font-mono font-bold text-sm text-amber-400">
                       {game.total_score}
-                      <span className="text-[10px] text-muted-foreground font-normal">/100</span>
+                      <span className="text-[10px] text-muted-foreground font-normal">/500</span>
                     </span>
                     <span className="text-[10px] font-mono uppercase px-2 py-0.5 rounded bg-secondary text-muted-foreground border border-border/40">
                       {game.mode || "Classic"}

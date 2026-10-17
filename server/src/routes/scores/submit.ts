@@ -19,7 +19,7 @@ router.post('/', async (req: Request, res: Response): Promise<void> => {
 
   const cleanTotalScore = Math.max(0, Math.min(500, Math.round(totalScore)));
   const cleanAvgError = typeof averageError === 'number' && !isNaN(averageError) ? averageError : 0;
-  const cleanMode = mode === 'daily' ? 'daily' : 'practice';
+  const cleanMode = ['daily', 'classic'].includes(mode) ? mode : 'practice';
   const cleanDate = typeof date === 'string' ? date.slice(0, 10) : null;
   const cleanRounds = Array.isArray(rounds) ? rounds : [];
   const userId = req.user?.userId ?? null;

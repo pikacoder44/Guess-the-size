@@ -526,7 +526,7 @@ const ProfileSettingsModalContent: React.FC = () => {
                       <div className="flex items-center gap-1.5">
                         <Trophy className="w-3 h-3 text-muted-foreground" />
                         <span className="font-mono font-bold text-primary">{g.total_score}</span>
-                        <span className="text-muted-foreground">/ 100</span>
+                        <span className="text-muted-foreground font-mono">/ 500</span>
                       </div>
                       <span className="text-muted-foreground">
                         {new Date(g.completed_at).toLocaleDateString()}

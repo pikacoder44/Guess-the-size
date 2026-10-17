@@ -107,12 +107,19 @@ export const PUZZLES: Puzzle[] = [
   { id: "dog-horse", reference: dog, target: horse },
   { id: "bicycle-motorcycle", reference: bicycle, target: motorcycle },
   { id: "horse-car", reference: horse, target: car },
+  { id: "bus-car", reference: bus, target: car },
+  { id: "horse-dog", reference: horse, target: dog },
+  { id: "motorcycle-bicycle", reference: motorcycle, target: bicycle },
+  { id: "car-motorcycle", reference: car, target: motorcycle },
+  { id: "dog-car", reference: dog, target: car },
+  { id: "bicycle-bus", reference: bicycle, target: bus },
 ];
 
-export function pickRandomPuzzle(currentId?: string): Puzzle {
-  const pool =
-    currentId && PUZZLES.length > 1
-      ? PUZZLES.filter((p) => p.id !== currentId)
-      : PUZZLES;
-  return pool[Math.floor(Math.random() * pool.length)] ?? PUZZLES[0]!;
+export function pickRandomPuzzle(excludeIds?: string | string[]): Puzzle {
+  const excludeSet = new Set(
+    Array.isArray(excludeIds) ? excludeIds : excludeIds ? [excludeIds] : [],
+  );
+  const pool = PUZZLES.filter((p) => !excludeSet.has(p.id));
+  const available = pool.length > 0 ? pool : PUZZLES;
+  return available[Math.floor(Math.random() * available.length)] ?? PUZZLES[0]!;
 }

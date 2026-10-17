@@ -29,7 +29,7 @@ const FALLBACK_CHAMPIONS: LeaderboardEntry[] = [
     username: "ApexEstimator",
     name: "Kai Sterling",
     avatar_url: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&auto=format&fit=crop&q=80",
-    total_score: 100,
+    total_score: 494,
     average_error: 0.2,
     mode: "daily",
     date: new Date().toISOString().slice(0, 10),
@@ -41,7 +41,7 @@ const FALLBACK_CHAMPIONS: LeaderboardEntry[] = [
     username: "QuantumScale",
     name: "Elena Rostova",
     avatar_url: "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=120&auto=format&fit=crop&q=80",
-    total_score: 99,
+    total_score: 489,
     average_error: 0.8,
     mode: "practice",
     date: new Date().toISOString().slice(0, 10),
@@ -53,7 +53,7 @@ const FALLBACK_CHAMPIONS: LeaderboardEntry[] = [
     username: "PixelMaster",
     name: "Marcus Chen",
     avatar_url: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=120&auto=format&fit=crop&q=80",
-    total_score: 98,
+    total_score: 483,
     average_error: 1.4,
     mode: "daily",
     date: new Date().toISOString().slice(0, 10),
@@ -65,7 +65,7 @@ const FALLBACK_CHAMPIONS: LeaderboardEntry[] = [
     username: "MetricWhiz",
     name: "Sophia Lin",
     avatar_url: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=120&auto=format&fit=crop&q=80",
-    total_score: 97,
+    total_score: 477,
     average_error: 2.1,
     mode: "practice",
     date: new Date().toISOString().slice(0, 10),
@@ -77,7 +77,7 @@ const FALLBACK_CHAMPIONS: LeaderboardEntry[] = [
     username: "VoxelVision",
     name: "David Novak",
     avatar_url: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=120&auto=format&fit=crop&q=80",
-    total_score: 95,
+    total_score: 471,
     average_error: 3.5,
     mode: "practice",
     date: new Date().toISOString().slice(0, 10),
@@ -89,7 +89,7 @@ const FALLBACK_CHAMPIONS: LeaderboardEntry[] = [
     username: "ScalePro99",
     name: "Aria Thorne",
     avatar_url: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=120&auto=format&fit=crop&q=80",
-    total_score: 94,
+    total_score: 465,
     average_error: 4.2,
     mode: "daily",
     date: new Date().toISOString().slice(0, 10),
@@ -101,7 +101,7 @@ const FALLBACK_CHAMPIONS: LeaderboardEntry[] = [
     username: "ChronoGauge",
     name: "Lucas Meyer",
     avatar_url: null,
-    total_score: 92,
+    total_score: 458,
     average_error: 5.6,
     mode: "practice",
     date: new Date().toISOString().slice(0, 10),
@@ -113,7 +113,7 @@ const FALLBACK_CHAMPIONS: LeaderboardEntry[] = [
     username: "NovaPrecision",
     name: "Zoe Vance",
     avatar_url: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=120&auto=format&fit=crop&q=80",
-    total_score: 91,
+    total_score: 449,
     average_error: 6.3,
     mode: "daily",
     date: new Date().toISOString().slice(0, 10),
@@ -125,7 +125,7 @@ const FALLBACK_CHAMPIONS: LeaderboardEntry[] = [
     username: "SpatialSense",
     name: "Jordan Reed",
     avatar_url: null,
-    total_score: 89,
+    total_score: 441,
     average_error: 7.9,
     mode: "practice",
     date: new Date().toISOString().slice(0, 10),
@@ -137,7 +137,7 @@ const FALLBACK_CHAMPIONS: LeaderboardEntry[] = [
     username: "ByteSize",
     name: "Samira Patel",
     avatar_url: "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=120&auto=format&fit=crop&q=80",
-    total_score: 88,
+    total_score: 432,
     average_error: 8.8,
     mode: "practice",
     date: new Date().toISOString().slice(0, 10),
@@ -469,7 +469,7 @@ export function LeaderboardPage({ onNavigate, onBackToGame, onOpenLogin }: Leade
                               {entry.total_score}
                             </span>
                             <span className="text-xs font-mono text-amber-300/70 font-semibold">
-                              /100
+                              /500
                             </span>
                           </div>
                         </div>
@@ -553,7 +553,7 @@ export function LeaderboardPage({ onNavigate, onBackToGame, onOpenLogin }: Leade
                               {entry.total_score}
                             </span>
                             <span className="text-xs font-mono text-slate-400 font-semibold">
-                              /100
+                              /500
                             </span>
                           </div>
                         </div>
@@ -637,7 +637,7 @@ export function LeaderboardPage({ onNavigate, onBackToGame, onOpenLogin }: Leade
                               {entry.total_score}
                             </span>
                             <span className="text-xs font-mono text-amber-600/70 font-semibold">
-                              /100
+                              /500
                             </span>
                           </div>
                         </div>
@@ -720,7 +720,7 @@ export function LeaderboardPage({ onNavigate, onBackToGame, onOpenLogin }: Leade
                             {entry.total_score}
                           </span>
                           <span className="text-[11px] font-mono text-muted-foreground font-normal">
-                            /100
+                            /500
                           </span>
                         </div>
                       </div>
@@ -798,7 +798,7 @@ export function LeaderboardPage({ onNavigate, onBackToGame, onOpenLogin }: Leade
                           {myStats?.bestScore ?? 0}
                         </span>
                         <span className="text-xs font-mono text-emerald-400/70 font-semibold">
-                          /100
+                          /500
                         </span>
                       </div>
                       <span className="text-[10px] font-mono text-emerald-400/70 hidden sm:block">

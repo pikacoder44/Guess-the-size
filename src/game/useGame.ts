@@ -14,7 +14,11 @@ import {
   type Vec,
   type Viewport,
 } from "./geometry";
-import type { GamePhase, Puzzle } from "./types";
+import { calculateScore, percentError } from "./scoring";
+import { pickRandomPuzzle } from "./puzzles";
+import type { GamePhase, Puzzle, RoundRecord } from "./types";
+
+export const TOTAL_ROUNDS = 5;
 
 const INITIAL_MARGIN = 0.55;
 const FIT_MARGIN = 0.85;
@@ -33,6 +37,20 @@ export type GameState = {
   guessScale: number;
   /** Captured on Lock In; never overwritten. */
   finalGuessScale: number | null;
+  /** Current 1-indexed round (1..5). */
+  currentRound: number;
+  /** Total rounds in session (5). */
+  totalRounds: number;
+  /** Scores for completed rounds (0..100 each). */
+  roundScores: number[];
+  /** Percentage errors for completed rounds. */
+  roundErrors: number[];
+  /** Full history of each completed round. */
+  rounds: RoundRecord[];
+  /** Cumulative total score across rounds (0..500). */
+  totalScore: number;
+  /** Overall average error across completed rounds. */
+  averageError: number;
 };
 type Action =
   | { type: "init"; puzzle: Puzzle; viewport: Viewport }
@@ -42,6 +60,8 @@ type Action =
   | { type: "zoom"; factor: number }
   | { type: "fit" }
   | { type: "lockIn" }
+  | { type: "nextRound"; puzzle: Puzzle }
+  | { type: "restart"; puzzle: Puzzle }
   | { type: "setCamera"; camera: Camera };
 
 /* ---------- Floor-Anchored Camera Helper ---------- */
@@ -112,7 +132,7 @@ export function correctRect(s: GameState): Rect {
 
 export function sceneRect(s: GameState): Rect {
   const rects = [referenceRect(s), guessRect(s)];
-  if (s.phase === "RESULT") {
+  if (s.phase !== "PLAYING") {
     rects.push(correctRect(s));
   }
   return unionRects(...rects);
@@ -145,6 +165,13 @@ function createInitialState(puzzle: Puzzle, viewport: Viewport): GameState {
     },
     guessScale,
     finalGuessScale: null,
+    currentRound: 1,
+    totalRounds: TOTAL_ROUNDS,
+    roundScores: [],
+    roundErrors: [],
+    rounds: [],
+    totalScore: 0,
+    averageError: 0,
   };
 
   return {
@@ -257,11 +284,112 @@ function reducer(state: GameState | null, action: Action): GameState | null {
       };
     case "lockIn": {
       if (state.phase !== "PLAYING") return state;
+      const guess = state.guessScale;
+      const actual = state.puzzle.target.actualMeasurement;
+      const score = calculateScore(guess, actual);
+      const errorPercent = Math.abs(percentError(guess, actual));
+
+      const roundRecord: RoundRecord = {
+        round: state.currentRound,
+        puzzle: state.puzzle,
+        guessScale: guess,
+        actualMeasurement: actual,
+        errorPercent,
+        score,
+      };
+
+      const nextRoundScores = [...state.roundScores, score];
+      const nextRoundErrors = [...state.roundErrors, errorPercent];
+      const nextRounds = [...state.rounds, roundRecord];
+      const nextTotalScore = nextRoundScores.reduce((sum, s) => sum + s, 0);
+      const nextAverageError =
+        nextRoundErrors.reduce((sum, e) => sum + e, 0) / nextRoundErrors.length;
+      const isFinished = state.currentRound >= state.totalRounds;
+
       return {
         ...state,
-        phase: "RESULT",
-        finalGuessScale: state.guessScale,
+        phase: isFinished ? "FINISHED" : "RESULT",
+        finalGuessScale: guess,
+        roundScores: nextRoundScores,
+        roundErrors: nextRoundErrors,
+        rounds: nextRounds,
+        totalScore: nextTotalScore,
+        averageError: nextAverageError,
       };
+    }
+    case "nextRound": {
+      if (state.phase !== "RESULT" || state.currentRound >= state.totalRounds) {
+        return state;
+      }
+      const rawPuzzle = action.puzzle;
+      const isActionPuzzleValid =
+        rawPuzzle &&
+        typeof rawPuzzle === "object" &&
+        "reference" in rawPuzzle &&
+        "target" in rawPuzzle &&
+        rawPuzzle.reference &&
+        rawPuzzle.target;
+
+      const nextPuzzle = isActionPuzzleValid
+        ? rawPuzzle
+        : pickRandomPuzzle([
+            ...state.rounds.map((r) => r.puzzle.id),
+            state.puzzle.id,
+          ]);
+
+      const refSize = sizeFor(
+        nextPuzzle.reference,
+        nextPuzzle.reference.actualMeasurement,
+      );
+      const startSize = sizeFor(
+        nextPuzzle.target,
+        nextPuzzle.target.axis === "height" ? refSize.h : 1,
+      );
+      const guessScale =
+        nextPuzzle.target.axis === "height"
+          ? refSize.h
+          : refSize.h * (startSize.w / startSize.h);
+      const targetSize = sizeFor(nextPuzzle.target, guessScale);
+      const gap = refSize.w * REFERENCE_GAP;
+
+      const nextBase: GameState = {
+        ...state,
+        puzzle: nextPuzzle,
+        phase: "PLAYING",
+        currentRound: state.currentRound + 1,
+        referenceCenter: { x: refSize.w / 2, y: refSize.h / 2 },
+        targetCenter: {
+          x: refSize.w + gap + targetSize.w / 2,
+          y: targetSize.h / 2,
+        },
+        guessScale,
+        finalGuessScale: null,
+      };
+
+      return {
+        ...nextBase,
+        camera: fitCameraToFloor(
+          sceneRect(nextBase),
+          state.viewport,
+          INITIAL_MARGIN,
+          true,
+        ),
+      };
+    }
+    case "restart": {
+      const rawPuzzle = action.puzzle;
+      const isActionPuzzleValid =
+        rawPuzzle &&
+        typeof rawPuzzle === "object" &&
+        "reference" in rawPuzzle &&
+        "target" in rawPuzzle &&
+        rawPuzzle.reference &&
+        rawPuzzle.target;
+
+      const nextPuzzle = isActionPuzzleValid
+        ? rawPuzzle
+        : pickRandomPuzzle();
+      return createInitialState(nextPuzzle, state.viewport);
     }
     case "setCamera":
       return { ...state, camera: action.camera };
@@ -337,7 +465,7 @@ export function useGame() {
 
     const lockedState: GameState = {
       ...state,
-      phase: "RESULT",
+      phase: state.currentRound >= state.totalRounds ? "FINISHED" : "RESULT",
       finalGuessScale: state.guessScale,
     };
 
@@ -392,6 +520,38 @@ export function useGame() {
     zoomOut: () => smoothZoom(0.8),
     fitBoth: smoothFit,
     lockIn,
+    nextRound: (puzzle?: unknown) => {
+      if (!state) return;
+      if (animRef.current) cancelAnimationFrame(animRef.current);
+      const isParamPuzzleValid =
+        puzzle &&
+        typeof puzzle === "object" &&
+        "reference" in puzzle &&
+        "target" in puzzle &&
+        (puzzle as Puzzle).reference &&
+        (puzzle as Puzzle).target;
+      const validPuzzle = isParamPuzzleValid ? (puzzle as Puzzle) : undefined;
+      const playedIds = [
+        ...state.rounds.map((r) => r.puzzle.id),
+        state.puzzle.id,
+      ];
+      const nextPuzzle = validPuzzle ?? pickRandomPuzzle(playedIds);
+      dispatch({ type: "nextRound", puzzle: nextPuzzle });
+    },
+    restartGame: (puzzle?: unknown) => {
+      if (!state) return;
+      if (animRef.current) cancelAnimationFrame(animRef.current);
+      const isParamPuzzleValid =
+        puzzle &&
+        typeof puzzle === "object" &&
+        "reference" in puzzle &&
+        "target" in puzzle &&
+        (puzzle as Puzzle).reference &&
+        (puzzle as Puzzle).target;
+      const validPuzzle = isParamPuzzleValid ? (puzzle as Puzzle) : undefined;
+      const nextPuzzle = validPuzzle ?? pickRandomPuzzle();
+      dispatch({ type: "restart", puzzle: nextPuzzle });
+    },
   };
 }
 

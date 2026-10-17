@@ -23,4 +23,13 @@ export type Puzzle = {
   target: GameObject;
 };
 
-export type GamePhase = "PLAYING" | "RESULT";
+export type GamePhase = "PLAYING" | "RESULT" | "FINISHED";
+
+export type RoundRecord = {
+  round: number;
+  puzzle: Puzzle;
+  guessScale: number;
+  actualMeasurement: number;
+  errorPercent: number;
+  score: number;
+};

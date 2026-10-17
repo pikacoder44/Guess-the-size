@@ -272,6 +272,15 @@ export function GameBoard({ game }: { game: GameApi }) {
           </div>
         </>
       )}
+
+      {!state && (
+        <div className="absolute inset-0 flex items-center justify-center bg-card/10 backdrop-blur-xs">
+          <div className="flex flex-col items-center gap-2 text-muted-foreground">
+            <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+            <span className="text-xs font-mono tracking-wider">Loading Round...</span>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

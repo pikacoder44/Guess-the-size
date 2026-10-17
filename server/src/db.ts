@@ -71,16 +71,16 @@ if (isPlaceholderUrl) {
   ];
 
   const memoryGameResults: MemoryGameResult[] = [
-    { id: 1, user_id: 1, mode: 'daily', date: new Date().toISOString().slice(0, 10), total_score: 100, average_error: 0.2, rounds: [], completed_at: new Date(Date.now() - 3600000 * 2).toISOString() },
-    { id: 2, user_id: 2, mode: 'practice', date: new Date().toISOString().slice(0, 10), total_score: 99, average_error: 0.8, rounds: [], completed_at: new Date(Date.now() - 3600000 * 5).toISOString() },
-    { id: 3, user_id: 3, mode: 'daily', date: new Date().toISOString().slice(0, 10), total_score: 98, average_error: 1.4, rounds: [], completed_at: new Date(Date.now() - 3600000 * 12).toISOString() },
-    { id: 4, user_id: 4, mode: 'practice', date: new Date().toISOString().slice(0, 10), total_score: 97, average_error: 2.1, rounds: [], completed_at: new Date(Date.now() - 3600000 * 18).toISOString() },
-    { id: 5, user_id: 5, mode: 'practice', date: new Date().toISOString().slice(0, 10), total_score: 95, average_error: 3.5, rounds: [], completed_at: new Date(Date.now() - 3600000 * 24).toISOString() },
-    { id: 6, user_id: 6, mode: 'daily', date: new Date().toISOString().slice(0, 10), total_score: 94, average_error: 4.2, rounds: [], completed_at: new Date(Date.now() - 3600000 * 30).toISOString() },
-    { id: 7, user_id: 7, mode: 'practice', date: new Date().toISOString().slice(0, 10), total_score: 92, average_error: 5.6, rounds: [], completed_at: new Date(Date.now() - 3600000 * 36).toISOString() },
-    { id: 8, user_id: 8, mode: 'daily', date: new Date().toISOString().slice(0, 10), total_score: 91, average_error: 6.3, rounds: [], completed_at: new Date(Date.now() - 3600000 * 42).toISOString() },
-    { id: 9, user_id: 9, mode: 'practice', date: new Date().toISOString().slice(0, 10), total_score: 89, average_error: 7.9, rounds: [], completed_at: new Date(Date.now() - 3600000 * 48).toISOString() },
-    { id: 10, user_id: 10, mode: 'practice', date: new Date().toISOString().slice(0, 10), total_score: 88, average_error: 8.8, rounds: [], completed_at: new Date(Date.now() - 3600000 * 60).toISOString() },
+    { id: 1, user_id: 1, mode: 'daily', date: new Date().toISOString().slice(0, 10), total_score: 494, average_error: 0.2, rounds: [], completed_at: new Date(Date.now() - 3600000 * 2).toISOString() },
+    { id: 2, user_id: 2, mode: 'practice', date: new Date().toISOString().slice(0, 10), total_score: 489, average_error: 0.8, rounds: [], completed_at: new Date(Date.now() - 3600000 * 5).toISOString() },
+    { id: 3, user_id: 3, mode: 'daily', date: new Date().toISOString().slice(0, 10), total_score: 483, average_error: 1.4, rounds: [], completed_at: new Date(Date.now() - 3600000 * 12).toISOString() },
+    { id: 4, user_id: 4, mode: 'practice', date: new Date().toISOString().slice(0, 10), total_score: 477, average_error: 2.1, rounds: [], completed_at: new Date(Date.now() - 3600000 * 18).toISOString() },
+    { id: 5, user_id: 5, mode: 'practice', date: new Date().toISOString().slice(0, 10), total_score: 471, average_error: 3.5, rounds: [], completed_at: new Date(Date.now() - 3600000 * 24).toISOString() },
+    { id: 6, user_id: 6, mode: 'daily', date: new Date().toISOString().slice(0, 10), total_score: 465, average_error: 4.2, rounds: [], completed_at: new Date(Date.now() - 3600000 * 30).toISOString() },
+    { id: 7, user_id: 7, mode: 'practice', date: new Date().toISOString().slice(0, 10), total_score: 458, average_error: 5.6, rounds: [], completed_at: new Date(Date.now() - 3600000 * 36).toISOString() },
+    { id: 8, user_id: 8, mode: 'daily', date: new Date().toISOString().slice(0, 10), total_score: 449, average_error: 6.3, rounds: [], completed_at: new Date(Date.now() - 3600000 * 42).toISOString() },
+    { id: 9, user_id: 9, mode: 'practice', date: new Date().toISOString().slice(0, 10), total_score: 441, average_error: 7.9, rounds: [], completed_at: new Date(Date.now() - 3600000 * 48).toISOString() },
+    { id: 10, user_id: 10, mode: 'practice', date: new Date().toISOString().slice(0, 10), total_score: 432, average_error: 8.8, rounds: [], completed_at: new Date(Date.now() - 3600000 * 60).toISOString() },
   ];
 
   let nextUserId = 11;

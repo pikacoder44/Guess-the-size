@@ -191,7 +191,7 @@ export function PublicPlayerProfileModal({ player, onClose }: PublicPlayerProfil
                 className="text-lg font-bold font-display text-foreground truncate flex items-center gap-2"
               >
                 <span>{displayName}</span>
-                {bestScore >= 98 && (
+                {bestScore >= 450 && (
                   <Sparkles className="w-4 h-4 text-amber-400 shrink-0 drop-shadow-[0_0_8px_rgba(251,191,36,0.6)]" />
                 )}
               </h2>
@@ -223,7 +223,7 @@ export function PublicPlayerProfileModal({ player, onClose }: PublicPlayerProfil
               <span className="font-mono text-xl font-black text-foreground drop-shadow-sm">
                 {bestScore}
               </span>
-              <span className="text-[10px] font-mono text-muted-foreground">/100 pts</span>
+              <span className="text-[10px] font-mono text-muted-foreground">/500 pts</span>
             </div>
 
             {/* Rounds Played */}
@@ -313,7 +313,7 @@ export function PublicPlayerProfileModal({ player, onClose }: PublicPlayerProfil
                       <span className="font-mono text-sm font-bold text-amber-400">
                         {scoreItem.total_score}
                       </span>
-                      <span className="text-[10px] font-mono text-muted-foreground">/100</span>
+                      <span className="text-[10px] font-mono text-muted-foreground">/500</span>
                       {scoreItem.average_error !== undefined && (
                         <p className="text-[9px] font-mono text-muted-foreground">
                           ±{scoreItem.average_error.toFixed(1)}%
