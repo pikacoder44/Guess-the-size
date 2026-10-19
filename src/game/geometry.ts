@@ -40,14 +40,14 @@ export function aspectOf(obj: GameObject): number {
 /** World dimensions of an object for a given measurement along its axis. */
 export function sizeFor(obj: GameObject, measurement: number): Size {
   const aspect = aspectOf(obj);
-  return obj.axis === "height"
+  return obj.axis === "height" || obj.axis === "diameter"
     ? { w: measurement * aspect, h: measurement }
     : { w: measurement, h: measurement / aspect };
 }
 
 /** Inverse of sizeFor: the measurement along the object's axis. */
 export function measurementFor(obj: GameObject, size: Size): number {
-  return obj.axis === "height" ? size.h : size.w;
+  return obj.axis === "height" || obj.axis === "diameter" ? size.h : size.w;
 }
 
 /** Smallest measurement scale so the object's smallest screen dimension is at least `minPx`. */
@@ -102,6 +102,32 @@ export function fitCamera(rect: Rect, vp: Viewport, margin = 1): Camera {
     zoom: fitZoom(rect, vp) * margin,
   };
 }
+
+/**
+ * Calculates a floor-anchored camera that frames all objects in `scene`
+ * with a padding margin (default 10% on left, right, and top) while pinning
+ * baseline y = 0 cleanly above the bottom edge.
+ */
+export function fitResultCamera(
+  scene: Rect,
+  vp: Viewport,
+  padFraction = 0.1,
+): Camera {
+  const padW = Math.max(16, vp.width * padFraction);
+  const padH = Math.max(16, vp.height * padFraction);
+  const availW = Math.max(20, vp.width - 2 * padW);
+  const availH = Math.max(20, vp.height - FLOOR_BOTTOM_PADDING_PX - padH);
+
+  const sceneW = Math.max(0.01, scene.maxX - scene.minX);
+  const sceneH = Math.max(0.01, scene.maxY - 0);
+
+  const zoom = Math.min(availW / sceneW, availH / sceneH);
+  const cy = (vp.height / 2 - FLOOR_BOTTOM_PADDING_PX) / zoom;
+  const cx = (scene.minX + scene.maxX) / 2;
+
+  return { cx, cy, zoom };
+}
+
 
 export function zoomLimits(
   scene: Rect,

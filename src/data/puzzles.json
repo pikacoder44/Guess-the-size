@@ -1,0 +1,74 @@
+[
+  {
+    "id": "burj-khalifa",
+    "name": "Burj Khalifa",
+    "category": "macro",
+    "actualMeasurementMeters": 828,
+    "axis": "height",
+    "svgUrl": "/silhouettes/burj_khalifa.svg",
+    "source": "Wikidata (Q12495)"
+  },
+  {
+    "id": "eiffel-tower",
+    "name": "Eiffel Tower",
+    "category": "macro",
+    "actualMeasurementMeters": 330,
+    "axis": "height",
+    "svgUrl": "/silhouettes/eiffel_tower.svg",
+    "source": "Wikidata (Q243)"
+  },
+  {
+    "id": "moon",
+    "name": "Moon",
+    "category": "cosmic",
+    "actualMeasurementMeters": 3476200,
+    "axis": "diameter",
+    "svgUrl": "/silhouettes/moon.svg",
+    "source": "Wikidata (Q405)"
+  },
+  {
+    "id": "saturn-v",
+    "name": "Saturn V",
+    "category": "macro",
+    "actualMeasurementMeters": 110.65,
+    "axis": "height",
+    "svgUrl": "/silhouettes/saturn_v.svg",
+    "source": "Wikidata (Q22396)"
+  },
+  {
+    "id": "blue-whale",
+    "name": "Blue Whale",
+    "category": "macro",
+    "actualMeasurementMeters": 27.1,
+    "axis": "length",
+    "svgUrl": "/silhouettes/blue_whale.svg",
+    "source": "Wikidata (Q42196)"
+  },
+  {
+    "id": "human",
+    "name": "Human",
+    "category": "everyday",
+    "actualMeasurementMeters": 1.75,
+    "axis": "height",
+    "svgUrl": "/silhouettes/human.svg",
+    "source": "Wikidata (Q180)"
+  },
+  {
+    "id": "dog",
+    "name": "Dog",
+    "category": "everyday",
+    "actualMeasurementMeters": 0.8,
+    "axis": "height",
+    "svgUrl": "/silhouettes/dog.svg",
+    "source": "Wikidata (Q144)"
+  },
+  {
+    "id": "car-sedan",
+    "name": "Sedan Car",
+    "category": "everyday",
+    "actualMeasurementMeters": 4.5,
+    "axis": "length",
+    "svgUrl": "/silhouettes/car_sedan.svg",
+    "source": "Wikidata (Q1420)"
+  }
+]

@@ -123,9 +123,9 @@ export function ResultPanel({
       });
   }, [token, isFinalRound, state.rounds]);
 
-  // Auto-focus primary progression button
+  // Focus progression button without scrolling the page
   useEffect(() => {
-    primaryBtnRef.current?.focus();
+    primaryBtnRef.current?.focus({ preventScroll: true });
   }, [isFinalRound]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {

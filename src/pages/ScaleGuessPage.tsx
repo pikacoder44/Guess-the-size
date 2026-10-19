@@ -117,7 +117,10 @@ export function ScaleGuessPage({ onBackToHome, onNavigateLeaderboard }: ScaleGue
             <button
               type="button"
               className="lock-btn w-full sm:w-auto shadow-md shadow-primary/20 cursor-pointer"
-              onClick={game.lockIn}
+              onClick={(e) => {
+                e.preventDefault();
+                game.lockIn();
+              }}
               disabled={!state}
             >
               Lock In Guess

@@ -16,6 +16,11 @@ export function calculateScore(guess: number, correct: number): number {
 
 export function formatMeasurement(metres: number): string {
   if (metres <= 0) return "0 cm";
+  if (metres >= 1000) {
+    const km = metres / 1000;
+    const formatted = km >= 100 ? Math.round(km).toLocaleString("en-US") : km.toFixed(1);
+    return `${formatted} km`;
+  }
   const cm = Math.round(metres * 100);
   return cm < 100 ? `${cm} cm` : `${(cm / 100).toFixed(2)} m`;
 }

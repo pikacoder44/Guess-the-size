@@ -1,11 +1,14 @@
 import type { ComponentType } from "react";
+import type { ItemCategory, PuzzleItem, ItemAxis } from "@/types/puzzle";
 
-export type MeasurementAxis = "height" | "length";
+export type MeasurementAxis = "height" | "length" | "diameter";
+export type { PuzzleItem, ItemCategory, ItemAxis };
 
 /** A resolution-independent silhouette. Paths must touch all four viewBox edges. */
 export type Silhouette = {
   viewBox: { x: number; y: number; width: number; height: number };
-  Shape: ComponentType;
+  Shape?: ComponentType;
+  svgUrl?: string;
 };
 
 export type GameObject = {
@@ -15,12 +18,16 @@ export type GameObject = {
   /** Real-world measurement in metres along `axis`. */
   actualMeasurement: number;
   axis: MeasurementAxis;
+  category?: ItemCategory;
+  svgUrl?: string;
+  source?: string;
 };
 
 export type Puzzle = {
   id: string;
   reference: GameObject;
   target: GameObject;
+  category?: ItemCategory;
 };
 
 export type GamePhase = "PLAYING" | "RESULT" | "FINISHED";

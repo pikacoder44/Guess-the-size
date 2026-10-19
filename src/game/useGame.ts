@@ -2,6 +2,7 @@ import { useReducer, useRef, useEffect } from "react";
 import {
   clampCamera,
   clampCenter,
+  fitResultCamera,
   fitZoom,
   minScaleForPx,
   rectFromCenter,
@@ -15,8 +16,10 @@ import {
   type Viewport,
 } from "./geometry";
 import { calculateScore, percentError } from "./scoring";
-import { pickRandomPuzzle } from "./puzzles";
+import { pickRandomPuzzle, generateGameSession } from "./puzzles";
 import type { GamePhase, Puzzle, RoundRecord } from "./types";
+
+export { generateGameSession, pickRandomPuzzle } from "./puzzles";
 
 export const TOTAL_ROUNDS = 5;
 
@@ -28,6 +31,7 @@ const FLOOR_LEFT_PADDING_PX = 5; // Clearance from left border on round start
 
 export type GameState = {
   puzzle: Puzzle;
+  sessionPuzzles: Puzzle[];
   phase: GamePhase;
   viewport: Viewport;
   camera: Camera;
@@ -53,15 +57,15 @@ export type GameState = {
   averageError: number;
 };
 type Action =
-  | { type: "init"; puzzle: Puzzle; viewport: Viewport }
+  | { type: "init"; puzzle: Puzzle | Puzzle[]; viewport: Viewport }
   | { type: "viewport"; viewport: Viewport }
   | { type: "moveTarget"; center: Vec }
   | { type: "resizeTarget"; scale: number }
   | { type: "zoom"; factor: number }
   | { type: "fit" }
   | { type: "lockIn" }
-  | { type: "nextRound"; puzzle: Puzzle }
-  | { type: "restart"; puzzle: Puzzle }
+  | { type: "nextRound"; puzzle?: Puzzle }
+  | { type: "restart"; puzzle?: Puzzle | Puzzle[] }
   | { type: "setCamera"; camera: Camera };
 
 /* ---------- Floor-Anchored Camera Helper ---------- */
@@ -119,12 +123,15 @@ export function correctRect(s: GameState): Rect {
   );
   const ref = referenceRect(s);
 
-  // Convert 2 screen pixels into world units so it's always ~2px on screen
-  const gapMeters = 2 / s.camera.zoom;
+  // Safe screen-space gap converted to world units, clamped so it never explodes
+  const zoom = s.camera?.zoom && s.camera.zoom > 1e-9 ? s.camera.zoom : 1;
+  const screenGapPx = 16;
+  const gapMeters = Math.min(
+    Math.max(ref.maxX * 0.15, screenGapPx / zoom),
+    Math.max(10, actualSize.w * 0.05),
+  );
 
-  // Left edge touches ref.maxX + gapMeters
   const centerX = ref.maxX + gapMeters + actualSize.w / 2;
-  // Bottom sits flush on baseline y = 0
   const centerY = actualSize.h / 2;
 
   return rectFromCenter({ x: centerX, y: centerY }, actualSize);
@@ -138,21 +145,38 @@ export function sceneRect(s: GameState): Rect {
   return unionRects(...rects);
 }
 
-function createInitialState(puzzle: Puzzle, viewport: Viewport): GameState {
+function createInitialState(
+  puzzleInput: Puzzle | Puzzle[],
+  viewport: Viewport,
+): GameState {
+  const sessionPuzzles: Puzzle[] = Array.isArray(puzzleInput)
+    ? puzzleInput.length >= TOTAL_ROUNDS
+      ? puzzleInput
+      : [
+          ...puzzleInput,
+          ...generateGameSession({ count: TOTAL_ROUNDS - puzzleInput.length }),
+        ]
+    : [
+        puzzleInput,
+        ...generateGameSession({
+          count: TOTAL_ROUNDS - 1,
+          excludeIds: [puzzleInput.id],
+        }),
+      ];
+  const puzzle = sessionPuzzles[0]!;
   const refSize = sizeFor(puzzle.reference, puzzle.reference.actualMeasurement);
-  const startSize = sizeFor(
-    puzzle.target,
-    puzzle.target.axis === "height" ? refSize.h : 1,
-  );
-  const guessScale =
-    puzzle.target.axis === "height"
-      ? refSize.h
-      : refSize.h * (startSize.w / startSize.h);
+  const isVertical =
+    puzzle.target.axis === "height" || puzzle.target.axis === "diameter";
+  const startSize = sizeFor(puzzle.target, isVertical ? refSize.h : 1);
+  const guessScale = isVertical
+    ? refSize.h
+    : refSize.h * (startSize.w / startSize.h);
   const targetSize = sizeFor(puzzle.target, guessScale);
   const gap = refSize.w * REFERENCE_GAP;
 
   const base: GameState = {
     puzzle,
+    sessionPuzzles,
     phase: "PLAYING",
     viewport,
     camera: { cx: 0, cy: 0, zoom: 1 },
@@ -277,11 +301,14 @@ function reducer(state: GameState | null, action: Action): GameState | null {
         ),
       };
     }
-    case "fit":
-      return {
-        ...state,
-        camera: fitCameraToFloor(sceneRect(state), state.viewport, FIT_MARGIN),
-      };
+    case "fit": {
+      const scene = sceneRect(state);
+      const camera =
+        state.phase === "PLAYING"
+          ? fitCameraToFloor(scene, state.viewport, FIT_MARGIN)
+          : fitResultCamera(scene, state.viewport, 0.1);
+      return { ...state, camera };
+    }
     case "lockIn": {
       if (state.phase !== "PLAYING") return state;
       const guess = state.guessScale;
@@ -306,7 +333,7 @@ function reducer(state: GameState | null, action: Action): GameState | null {
         nextRoundErrors.reduce((sum, e) => sum + e, 0) / nextRoundErrors.length;
       const isFinished = state.currentRound >= state.totalRounds;
 
-      return {
+      const lockedBase: GameState = {
         ...state,
         phase: isFinished ? "FINISHED" : "RESULT",
         finalGuessScale: guess,
@@ -315,6 +342,15 @@ function reducer(state: GameState | null, action: Action): GameState | null {
         rounds: nextRounds,
         totalScore: nextTotalScore,
         averageError: nextAverageError,
+      };
+
+      // Auto-fit BOTH silhouettes (reference + target guess & actual) inside the canvas with 10% padding margin
+      const fullScene = sceneRect(lockedBase);
+      const targetCamera = fitResultCamera(fullScene, state.viewport, 0.1);
+
+      return {
+        ...lockedBase,
+        camera: targetCamera,
       };
     }
     case "nextRound": {
@@ -330,25 +366,30 @@ function reducer(state: GameState | null, action: Action): GameState | null {
         rawPuzzle.reference &&
         rawPuzzle.target;
 
+      const sessionNext =
+        state.sessionPuzzles && state.sessionPuzzles[state.currentRound];
       const nextPuzzle = isActionPuzzleValid
         ? rawPuzzle
-        : pickRandomPuzzle([
+        : (sessionNext ??
+          pickRandomPuzzle([
             ...state.rounds.map((r) => r.puzzle.id),
             state.puzzle.id,
-          ]);
+          ]));
 
       const refSize = sizeFor(
         nextPuzzle.reference,
         nextPuzzle.reference.actualMeasurement,
       );
+      const isNextVertical =
+        nextPuzzle.target.axis === "height" ||
+        nextPuzzle.target.axis === "diameter";
       const startSize = sizeFor(
         nextPuzzle.target,
-        nextPuzzle.target.axis === "height" ? refSize.h : 1,
+        isNextVertical ? refSize.h : 1,
       );
-      const guessScale =
-        nextPuzzle.target.axis === "height"
-          ? refSize.h
-          : refSize.h * (startSize.w / startSize.h);
+      const guessScale = isNextVertical
+        ? refSize.h
+        : refSize.h * (startSize.w / startSize.h);
       const targetSize = sizeFor(nextPuzzle.target, guessScale);
       const gap = refSize.w * REFERENCE_GAP;
 
@@ -378,18 +419,21 @@ function reducer(state: GameState | null, action: Action): GameState | null {
     }
     case "restart": {
       const rawPuzzle = action.puzzle;
+      if (Array.isArray(rawPuzzle) && rawPuzzle.length > 0) {
+        return createInitialState(rawPuzzle, state.viewport);
+      }
       const isActionPuzzleValid =
         rawPuzzle &&
         typeof rawPuzzle === "object" &&
         "reference" in rawPuzzle &&
         "target" in rawPuzzle &&
-        rawPuzzle.reference &&
-        rawPuzzle.target;
+        (rawPuzzle as Puzzle).reference &&
+        (rawPuzzle as Puzzle).target;
 
-      const nextPuzzle = isActionPuzzleValid
-        ? rawPuzzle
-        : pickRandomPuzzle();
-      return createInitialState(nextPuzzle, state.viewport);
+      const nextSession = isActionPuzzleValid
+        ? (rawPuzzle as Puzzle)
+        : generateGameSession();
+      return createInitialState(nextSession, state.viewport);
     }
     case "setCamera":
       return { ...state, camera: action.camera };
@@ -452,41 +496,18 @@ export function useGame() {
   // Smooth Fit Both
   const smoothFit = () => {
     if (!state) return;
-    const targetCam = fitCameraToFloor(
-      sceneRect(state),
-      state.viewport,
-      FIT_MARGIN,
-    );
+    const scene = sceneRect(state);
+    const targetCam =
+      state.phase === "PLAYING"
+        ? fitCameraToFloor(scene, state.viewport, FIT_MARGIN)
+        : fitResultCamera(scene, state.viewport, 0.1);
     animateCameraTo(targetCam, 400);
   };
 
   const lockIn = () => {
     if (!state || state.phase !== "PLAYING") return;
-
-    const lockedState: GameState = {
-      ...state,
-      phase: state.currentRound >= state.totalRounds ? "FINISHED" : "RESULT",
-      finalGuessScale: state.guessScale,
-    };
-
-    const targetRect = correctRect(lockedState);
-    const availH = Math.max(
-      1,
-      state.viewport.height - FLOOR_BOTTOM_PADDING_PX - 40,
-    );
-    const availW = Math.max(1, state.viewport.width * FIT_MARGIN);
-
-    const rectW = Math.max(0.1, targetRect.maxX - targetRect.minX);
-    const rectH = Math.max(0.1, targetRect.maxY - 0);
-
-    const zoom = Math.min(availW / rectW, availH / rectH);
-    const cy = (state.viewport.height / 2 - FLOOR_BOTTOM_PADDING_PX) / zoom;
-    const cx = (targetRect.minX + targetRect.maxX) / 2;
-
-    const targetCamera: Camera = { cx, cy, zoom };
-
+    if (animRef.current) cancelAnimationFrame(animRef.current);
     dispatch({ type: "lockIn" });
-    animateCameraTo(targetCamera, 900);
   };
 
   useEffect(() => {
@@ -510,7 +531,7 @@ export function useGame() {
       state && fitBaseZoom
         ? Math.round((state.camera.zoom / fitBaseZoom) * 100)
         : 0,
-    init: (puzzle: Puzzle, viewport: Viewport) =>
+    init: (puzzle: Puzzle | Puzzle[], viewport: Viewport) =>
       dispatch({ type: "init", puzzle, viewport }),
     setViewport: (viewport: Viewport) =>
       dispatch({ type: "viewport", viewport }),
@@ -531,16 +552,15 @@ export function useGame() {
         (puzzle as Puzzle).reference &&
         (puzzle as Puzzle).target;
       const validPuzzle = isParamPuzzleValid ? (puzzle as Puzzle) : undefined;
-      const playedIds = [
-        ...state.rounds.map((r) => r.puzzle.id),
-        state.puzzle.id,
-      ];
-      const nextPuzzle = validPuzzle ?? pickRandomPuzzle(playedIds);
-      dispatch({ type: "nextRound", puzzle: nextPuzzle });
+      dispatch({ type: "nextRound", puzzle: validPuzzle });
     },
     restartGame: (puzzle?: unknown) => {
       if (!state) return;
       if (animRef.current) cancelAnimationFrame(animRef.current);
+      if (Array.isArray(puzzle) && puzzle.length > 0) {
+        dispatch({ type: "restart", puzzle: puzzle as Puzzle[] });
+        return;
+      }
       const isParamPuzzleValid =
         puzzle &&
         typeof puzzle === "object" &&
@@ -548,9 +568,10 @@ export function useGame() {
         "target" in puzzle &&
         (puzzle as Puzzle).reference &&
         (puzzle as Puzzle).target;
-      const validPuzzle = isParamPuzzleValid ? (puzzle as Puzzle) : undefined;
-      const nextPuzzle = validPuzzle ?? pickRandomPuzzle();
-      dispatch({ type: "restart", puzzle: nextPuzzle });
+      const validPuzzle = isParamPuzzleValid
+        ? (puzzle as Puzzle)
+        : generateGameSession();
+      dispatch({ type: "restart", puzzle: validPuzzle });
     },
   };
 }
