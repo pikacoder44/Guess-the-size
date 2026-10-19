@@ -1,6 +1,7 @@
 import { Pool } from 'pg';
 import dotenv from 'dotenv';
 import path from 'node:path';
+import fs from 'node:fs';
 
 dotenv.config();
 dotenv.config({ path: path.resolve(__dirname, '../.env') });
@@ -83,6 +84,85 @@ if (isPlaceholderUrl) {
     { id: 9, user_id: 9, mode: 'practice', date: new Date().toISOString().slice(0, 10), total_score: 441, average_error: 7.9, elapsed_ms: 118700, rounds: [], completed_at: new Date(Date.now() - 3600000 * 48).toISOString() },
     { id: 10, user_id: 10, mode: 'practice', date: new Date().toISOString().slice(0, 10), total_score: 432, average_error: 8.8, elapsed_ms: 132900, rounds: [], completed_at: new Date(Date.now() - 3600000 * 60).toISOString() },
   ];
+
+  interface MemoryPuzzleItem {
+    id: string;
+    name: string;
+    category: string;
+    actual_measurement_meters: number;
+    axis: string;
+    svg_url: string;
+    view_box: any;
+    source: string;
+    created_at: string;
+    updated_at: string;
+  }
+
+  interface MemoryPuzzle {
+    id: string;
+    reference_item_id: string;
+    target_item_id: string;
+    category: string;
+    puzzle_type: string;
+    active_date: string | null;
+    created_at: string;
+  }
+
+  const memoryPuzzleItems: MemoryPuzzleItem[] = [];
+  const memoryPuzzles: MemoryPuzzle[] = [];
+
+  try {
+    const candidateItemPaths = [
+      path.resolve(process.cwd(), 'src/data/puzzles.json'),
+      path.resolve(__dirname, '../../../src/data/puzzles.json'),
+      path.resolve(__dirname, '../../src/data/puzzles.json'),
+    ];
+    const rawItemsPath = candidateItemPaths.find((p) => fs.existsSync(p));
+    if (rawItemsPath) {
+      const itemsData = JSON.parse(fs.readFileSync(rawItemsPath, 'utf-8'));
+      for (const it of itemsData) {
+        memoryPuzzleItems.push({
+          id: it.id,
+          name: it.name,
+          category: it.category,
+          actual_measurement_meters: it.actualMeasurementMeters,
+          axis: it.axis,
+          svg_url: it.svgUrl,
+          view_box: it.viewBox || { x: 0, y: 0, width: 100, height: 100 },
+          source: it.source,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        });
+      }
+    }
+  } catch (err) {
+    console.warn('Could not pre-load memoryPuzzleItems:', (err as Error).message);
+  }
+
+  try {
+    const candidateSetPaths = [
+      path.resolve(process.cwd(), 'src/data/puzzleSets.json'),
+      path.resolve(__dirname, '../../../src/data/puzzleSets.json'),
+      path.resolve(__dirname, '../../src/data/puzzleSets.json'),
+    ];
+    const rawPuzzlesPath = candidateSetPaths.find((p) => fs.existsSync(p));
+    if (rawPuzzlesPath) {
+      const puzzlesData = JSON.parse(fs.readFileSync(rawPuzzlesPath, 'utf-8'));
+      for (const p of puzzlesData) {
+        memoryPuzzles.push({
+          id: p.id,
+          reference_item_id: p.referenceId,
+          target_item_id: p.targetId,
+          category: p.category,
+          puzzle_type: p.puzzleType || 'standard',
+          active_date: p.activeDate || null,
+          created_at: new Date().toISOString(),
+        });
+      }
+    }
+  } catch (err) {
+    console.warn('Could not pre-load memoryPuzzles:', (err as Error).message);
+  }
 
   let nextUserId = 11;
   let nextResultId = 11;
@@ -472,6 +552,127 @@ if (isPlaceholderUrl) {
         return { rows: topResults as unknown as T[] };
       }
 
+      // SELECT ... FROM puzzle_items
+      if (normalized.includes('FROM puzzle_items')) {
+        if (normalized.includes('WHERE id = $1')) {
+          const id = String(values[0]);
+          const item = memoryPuzzleItems.find((i) => i.id === id);
+          return { rows: item ? [item as unknown as T] : [] };
+        }
+        if (normalized.includes('WHERE category = $1')) {
+          const cat = String(values[0]);
+          const filtered = memoryPuzzleItems.filter((i) => i.category === cat);
+          return { rows: filtered as unknown as T[] };
+        }
+        return { rows: memoryPuzzleItems as unknown as T[] };
+      }
+
+      // INSERT INTO puzzle_items
+      if (normalized.startsWith('INSERT INTO puzzle_items')) {
+        const id = String(values[0] ?? '');
+        const name = String(values[1] ?? '');
+        const category = String(values[2] ?? '');
+        const actual_measurement_meters = Number(values[3] ?? 0);
+        const axis = String(values[4] ?? 'height');
+        const svg_url = String(values[5] ?? '');
+        const view_box = typeof values[6] === 'string' ? JSON.parse(values[6]) : values[6];
+        const source = String(values[7] ?? '');
+
+        const existingIdx = memoryPuzzleItems.findIndex((i) => i.id === id);
+        const item: MemoryPuzzleItem = {
+          id,
+          name,
+          category,
+          actual_measurement_meters,
+          axis,
+          svg_url,
+          view_box,
+          source,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        };
+        if (existingIdx >= 0) {
+          memoryPuzzleItems[existingIdx] = item;
+        } else {
+          memoryPuzzleItems.push(item);
+        }
+        return { rows: [item as unknown as T] };
+      }
+
+      // SELECT ... FROM puzzles
+      if (normalized.includes('FROM puzzles')) {
+        let results = memoryPuzzles;
+
+        if (normalized.includes('WHERE active_date = $1') || normalized.includes('WHERE p.active_date = $1')) {
+          const date = String(values[0]);
+          results = results.filter((p) => p.active_date === date);
+        } else if (normalized.includes('WHERE category = $1') || normalized.includes('WHERE p.category = $1')) {
+          const cat = String(values[0]);
+          results = results.filter((p) => p.category === cat);
+        } else if (normalized.includes('WHERE id = $1') || normalized.includes('WHERE p.id = $1')) {
+          const id = String(values[0]);
+          results = results.filter((p) => p.id === id);
+        }
+
+        // Map joined objects if query joins puzzle_items
+        const joined = results.map((p) => {
+          const ref = memoryPuzzleItems.find((i) => i.id === p.reference_item_id);
+          const target = memoryPuzzleItems.find((i) => i.id === p.target_item_id);
+          return {
+            id: p.id,
+            category: p.category,
+            puzzle_type: p.puzzle_type,
+            active_date: p.active_date,
+            created_at: p.created_at,
+            reference_item_id: p.reference_item_id,
+            target_item_id: p.target_item_id,
+            ref_name: ref?.name,
+            ref_category: ref?.category,
+            ref_actual_measurement_meters: ref?.actual_measurement_meters,
+            ref_axis: ref?.axis,
+            ref_svg_url: ref?.svg_url,
+            ref_view_box: ref?.view_box,
+            ref_source: ref?.source,
+            target_name: target?.name,
+            target_category: target?.category,
+            target_actual_measurement_meters: target?.actual_measurement_meters,
+            target_axis: target?.axis,
+            target_svg_url: target?.svg_url,
+            target_view_box: target?.view_box,
+            target_source: target?.source,
+          };
+        });
+
+        return { rows: joined as unknown as T[] };
+      }
+
+      // INSERT INTO puzzles
+      if (normalized.startsWith('INSERT INTO puzzles')) {
+        const id = String(values[0] ?? '');
+        const reference_item_id = String(values[1] ?? '');
+        const target_item_id = String(values[2] ?? '');
+        const category = String(values[3] ?? '');
+        const puzzle_type = String(values[4] ?? 'standard');
+        const active_date = values[5] ? String(values[5]) : null;
+
+        const existingIdx = memoryPuzzles.findIndex((p) => p.id === id);
+        const pz: MemoryPuzzle = {
+          id,
+          reference_item_id,
+          target_item_id,
+          category,
+          puzzle_type,
+          active_date,
+          created_at: new Date().toISOString(),
+        };
+        if (existingIdx >= 0) {
+          memoryPuzzles[existingIdx] = pz;
+        } else {
+          memoryPuzzles.push(pz);
+        }
+        return { rows: [pz as unknown as T] };
+      }
+
       return { rows: [] };
     },
   };
@@ -623,6 +824,127 @@ export async function initDb(): Promise<void> {
   await pool.query(`
     CREATE INDEX IF NOT EXISTS game_results_total_score_idx ON game_results (total_score DESC);
   `);
+
+  // 3. Puzzle items catalog
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS puzzle_items (
+      id                        TEXT             PRIMARY KEY,
+      name                      TEXT             NOT NULL,
+      category                  TEXT             NOT NULL,
+      actual_measurement_meters DOUBLE PRECISION NOT NULL,
+      axis                      TEXT             NOT NULL,
+      svg_url                   TEXT             NOT NULL,
+      view_box                  JSONB            NOT NULL,
+      source                    TEXT             NOT NULL,
+      created_at                TIMESTAMPTZ      NOT NULL DEFAULT NOW(),
+      updated_at                TIMESTAMPTZ      NOT NULL DEFAULT NOW()
+    );
+  `);
+
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS puzzle_items_category_idx ON puzzle_items (category);
+  `);
+
+  // 4. Puzzles pairings
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS puzzles (
+      id                TEXT        PRIMARY KEY,
+      reference_item_id TEXT        NOT NULL REFERENCES puzzle_items(id) ON DELETE CASCADE,
+      target_item_id    TEXT        NOT NULL REFERENCES puzzle_items(id) ON DELETE CASCADE,
+      category          TEXT        NOT NULL,
+      puzzle_type       TEXT        NOT NULL DEFAULT 'standard',
+      active_date       TEXT,
+      created_at        TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+  `);
+
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS puzzles_category_idx ON puzzles (category);
+  `);
+
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS puzzles_active_date_idx ON puzzles (active_date);
+  `);
+
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS puzzles_puzzle_type_idx ON puzzles (puzzle_type);
+  `);
+
+  // 5. Seed initial puzzle items and pairings if table is empty
+  try {
+    const { rows: existingRows } = await pool.query('SELECT count(*)::int as count FROM puzzle_items');
+    const count = Number(existingRows?.[0]?.count ?? 0);
+    if (count === 0) {
+      console.log('📦 Seeding initial puzzle items & pairings into database...');
+      const candidateItemPaths = [
+        path.resolve(process.cwd(), 'src/data/puzzles.json'),
+        path.resolve(__dirname, '../../../src/data/puzzles.json'),
+        path.resolve(__dirname, '../../src/data/puzzles.json'),
+      ];
+      const itemsPath = candidateItemPaths.find((p) => fs.existsSync(p));
+      const candidateSetPaths = [
+        path.resolve(process.cwd(), 'src/data/puzzleSets.json'),
+        path.resolve(__dirname, '../../../src/data/puzzleSets.json'),
+        path.resolve(__dirname, '../../src/data/puzzleSets.json'),
+      ];
+      const setsPath = candidateSetPaths.find((p) => fs.existsSync(p));
+
+      if (itemsPath && setsPath) {
+        const items = JSON.parse(fs.readFileSync(itemsPath, 'utf-8'));
+        const puzzleSets = JSON.parse(fs.readFileSync(setsPath, 'utf-8'));
+
+        for (const it of items) {
+          await pool.query(
+            `INSERT INTO puzzle_items (id, name, category, actual_measurement_meters, axis, svg_url, view_box, source)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+             ON CONFLICT (id) DO UPDATE SET
+               name = EXCLUDED.name,
+               category = EXCLUDED.category,
+               actual_measurement_meters = EXCLUDED.actual_measurement_meters,
+               axis = EXCLUDED.axis,
+               svg_url = EXCLUDED.svg_url,
+               view_box = EXCLUDED.view_box,
+               source = EXCLUDED.source,
+               updated_at = NOW()`,
+            [
+              it.id,
+              it.name,
+              it.category,
+              it.actualMeasurementMeters,
+              it.axis,
+              it.svgUrl,
+              JSON.stringify(it.viewBox),
+              it.source,
+            ],
+          );
+        }
+
+        for (const p of puzzleSets) {
+          await pool.query(
+            `INSERT INTO puzzles (id, reference_item_id, target_item_id, category, puzzle_type, active_date)
+             VALUES ($1, $2, $3, $4, $5, $6)
+             ON CONFLICT (id) DO UPDATE SET
+               reference_item_id = EXCLUDED.reference_item_id,
+               target_item_id = EXCLUDED.target_item_id,
+               category = EXCLUDED.category,
+               puzzle_type = EXCLUDED.puzzle_type,
+               active_date = EXCLUDED.active_date`,
+            [
+              p.id,
+              p.referenceId,
+              p.targetId,
+              p.category,
+              p.puzzleType || 'standard',
+              p.activeDate || null,
+            ],
+          );
+        }
+        console.log(`✅ Automatically seeded ${items.length} items & ${puzzleSets.length} puzzles into database.`);
+      }
+    }
+  } catch (err: any) {
+    console.warn('Auto-seed warning:', err.message);
+  }
 
   console.log(`✅ Database tables & indexes verified (${isUsingMemoryStore ? 'In-Memory Mock' : 'Supabase PostgreSQL'}).`);
 }

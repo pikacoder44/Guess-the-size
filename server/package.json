@@ -7,7 +7,8 @@
     "dev": "nodemon --watch src --ext ts --exec \"npx tsx src/index.ts\"",
     "dev:simple": "npx tsx src/index.ts",
     "build": "tsc",
-    "start": "node dist/index.js"
+    "start": "node dist/index.js",
+    "fetch:puzzles": "npx tsx scripts/fetchPuzzles.ts"
   },
   "keywords": [],
   "type": "commonjs",

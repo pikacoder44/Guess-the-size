@@ -1,39 +1,498 @@
 [
   {
-    "id": "burj-khalifa",
-    "name": "Burj Khalifa",
-    "category": "macro",
-    "actualMeasurementMeters": 828,
-    "axis": "height",
-    "svgUrl": "/silhouettes/burj_khalifa.svg",
-    "source": "Wikidata (Q12495)"
-  },
-  {
-    "id": "eiffel-tower",
-    "name": "Eiffel Tower",
-    "category": "macro",
-    "actualMeasurementMeters": 330,
-    "axis": "height",
-    "svgUrl": "/silhouettes/eiffel_tower.svg",
-    "source": "Wikidata (Q243)"
-  },
-  {
-    "id": "moon",
-    "name": "Moon",
-    "category": "cosmic",
-    "actualMeasurementMeters": 3476200,
+    "id": "water-molecule",
+    "name": "Water Molecule",
+    "category": "micro",
+    "actualMeasurementMeters": 2.8e-10,
     "axis": "diameter",
-    "svgUrl": "/silhouettes/moon.svg",
-    "source": "Wikidata (Q405)"
+    "svgUrl": "/silhouettes/water_molecule.svg",
+    "source": "Wikidata (Q283)",
+    "viewBox": {
+      "x": 0,
+      "y": 0,
+      "width": 84,
+      "height": 65
+    }
   },
   {
-    "id": "saturn-v",
-    "name": "Saturn V",
-    "category": "macro",
-    "actualMeasurementMeters": 110.65,
+    "id": "dna-strand",
+    "name": "DNA Double Helix",
+    "category": "micro",
+    "actualMeasurementMeters": 2.5e-9,
+    "axis": "diameter",
+    "svgUrl": "/silhouettes/dna_strand.svg",
+    "source": "Wikidata (Q7430)",
+    "viewBox": {
+      "x": 0,
+      "y": 0,
+      "width": 60,
+      "height": 200
+    }
+  },
+  {
+    "id": "coronavirus",
+    "name": "Coronavirus Particle",
+    "category": "micro",
+    "actualMeasurementMeters": 1.2e-7,
+    "axis": "diameter",
+    "svgUrl": "/silhouettes/coronavirus.svg",
+    "source": "Wikidata (Q820655)",
+    "viewBox": {
+      "x": 0,
+      "y": 0,
+      "width": 96,
+      "height": 96
+    }
+  },
+  {
+    "id": "bacteriophage",
+    "name": "Bacteriophage T4",
+    "category": "micro",
+    "actualMeasurementMeters": 2e-7,
     "axis": "height",
-    "svgUrl": "/silhouettes/saturn_v.svg",
-    "source": "Wikidata (Q22396)"
+    "svgUrl": "/silhouettes/bacteriophage.svg",
+    "source": "Wikidata (Q165103)",
+    "viewBox": {
+      "x": 0,
+      "y": 0,
+      "width": 70,
+      "height": 133
+    }
+  },
+  {
+    "id": "red-blood-cell",
+    "name": "Red Blood Cell",
+    "category": "micro",
+    "actualMeasurementMeters": 0.0000075,
+    "axis": "diameter",
+    "svgUrl": "/silhouettes/red_blood_cell.svg",
+    "source": "Wikidata (Q11083)",
+    "viewBox": {
+      "x": 0,
+      "y": 0,
+      "width": 92,
+      "height": 60
+    }
+  },
+  {
+    "id": "human-hair",
+    "name": "Human Hair Width",
+    "category": "micro",
+    "actualMeasurementMeters": 0.00008,
+    "axis": "diameter",
+    "svgUrl": "/silhouettes/human_hair.svg",
+    "source": "Wikidata (Q80074)",
+    "viewBox": {
+      "x": 0,
+      "y": 0,
+      "width": 21.66,
+      "height": 180
+    }
+  },
+  {
+    "id": "tardigrade",
+    "name": "Tardigrade (Water Bear)",
+    "category": "micro",
+    "actualMeasurementMeters": 0.0005,
+    "axis": "length",
+    "svgUrl": "/silhouettes/tardigrade.svg",
+    "source": "Wikidata (Q178257)",
+    "viewBox": {
+      "x": 0,
+      "y": 0,
+      "width": 116,
+      "height": 54.6
+    }
+  },
+  {
+    "id": "grain-of-sand",
+    "name": "Grain of Sand",
+    "category": "micro",
+    "actualMeasurementMeters": 0.001,
+    "axis": "diameter",
+    "svgUrl": "/silhouettes/grain_of_sand.svg",
+    "source": "Wikidata (Q34679)",
+    "viewBox": {
+      "x": 0,
+      "y": 0,
+      "width": 67,
+      "height": 67
+    }
+  },
+  {
+    "id": "ant",
+    "name": "Worker Ant",
+    "category": "micro",
+    "actualMeasurementMeters": 0.004,
+    "axis": "length",
+    "svgUrl": "/silhouettes/ant.svg",
+    "source": "Wikidata (Q7386)",
+    "viewBox": {
+      "x": 0,
+      "y": 0,
+      "width": 98,
+      "height": 54
+    }
+  },
+  {
+    "id": "housefly",
+    "name": "Common Housefly",
+    "category": "everyday",
+    "actualMeasurementMeters": 0.007,
+    "axis": "length",
+    "svgUrl": "/silhouettes/housefly.svg",
+    "source": "Wikidata (Q166111)",
+    "viewBox": {
+      "x": 0,
+      "y": 0,
+      "width": 75,
+      "height": 56
+    }
+  },
+  {
+    "id": "quarter-coin",
+    "name": "US Quarter Coin",
+    "category": "everyday",
+    "actualMeasurementMeters": 0.02426,
+    "axis": "diameter",
+    "svgUrl": "/silhouettes/quarter_coin.svg",
+    "source": "Wikidata (Q179224)",
+    "viewBox": {
+      "x": 0,
+      "y": 0,
+      "width": 96,
+      "height": 96
+    }
+  },
+  {
+    "id": "tennis-ball",
+    "name": "Tennis Ball",
+    "category": "everyday",
+    "actualMeasurementMeters": 0.067,
+    "axis": "diameter",
+    "svgUrl": "/silhouettes/tennis_ball.svg",
+    "source": "Wikidata (Q815758)",
+    "viewBox": {
+      "x": 0,
+      "y": 0,
+      "width": 96,
+      "height": 96
+    }
+  },
+  {
+    "id": "coffee-mug",
+    "name": "Ceramic Coffee Mug",
+    "category": "everyday",
+    "actualMeasurementMeters": 0.1,
+    "axis": "height",
+    "svgUrl": "/silhouettes/coffee_mug.svg",
+    "source": "Wikidata (Q153978)",
+    "viewBox": {
+      "x": 0,
+      "y": 0,
+      "width": 78.75,
+      "height": 70
+    }
+  },
+  {
+    "id": "iphone",
+    "name": "iPhone 15",
+    "category": "everyday",
+    "actualMeasurementMeters": 0.148,
+    "axis": "height",
+    "svgUrl": "/silhouettes/iphone.svg",
+    "source": "Wikidata (Q121992935) [Live Claim: height]",
+    "viewBox": {
+      "x": 0,
+      "y": 0,
+      "width": 65,
+      "height": 140
+    }
+  },
+  {
+    "id": "banana",
+    "name": "Banana",
+    "category": "everyday",
+    "actualMeasurementMeters": 0.18,
+    "axis": "length",
+    "svgUrl": "/silhouettes/banana.svg",
+    "source": "Wikidata (Q503)",
+    "viewBox": {
+      "x": 0,
+      "y": 0,
+      "width": 129,
+      "height": 35
+    }
+  },
+  {
+    "id": "laptop",
+    "name": "Laptop Computer",
+    "category": "everyday",
+    "actualMeasurementMeters": 0.31,
+    "axis": "length",
+    "svgUrl": "/silhouettes/laptop.svg",
+    "source": "Wikidata (Q3962)",
+    "viewBox": {
+      "x": 0,
+      "y": 0,
+      "width": 130,
+      "height": 70
+    }
+  },
+  {
+    "id": "cat",
+    "name": "Domestic Cat",
+    "category": "everyday",
+    "actualMeasurementMeters": 0.46,
+    "axis": "length",
+    "svgUrl": "/silhouettes/cat.svg",
+    "source": "Wikidata (Q146)",
+    "viewBox": {
+      "x": 0,
+      "y": 0,
+      "width": 90.02,
+      "height": 64
+    }
+  },
+  {
+    "id": "dog",
+    "name": "Golden Retriever Dog",
+    "category": "everyday",
+    "actualMeasurementMeters": 0.8,
+    "axis": "height",
+    "svgUrl": "/silhouettes/dog.svg",
+    "source": "Wikidata (Q144)",
+    "viewBox": {
+      "x": 0,
+      "y": 0,
+      "width": 92,
+      "height": 74
+    }
+  },
+  {
+    "id": "guitar",
+    "name": "Acoustic Guitar",
+    "category": "everyday",
+    "actualMeasurementMeters": 1,
+    "axis": "length",
+    "svgUrl": "/silhouettes/guitar.svg",
+    "source": "Wikidata (Q6607)",
+    "viewBox": {
+      "x": 0,
+      "y": 0,
+      "width": 37,
+      "height": 141.25
+    }
+  },
+  {
+    "id": "penguin",
+    "name": "Emperor Penguin",
+    "category": "everyday",
+    "actualMeasurementMeters": 1.15,
+    "axis": "height",
+    "svgUrl": "/silhouettes/penguin.svg",
+    "source": "Wikidata (Q133356)",
+    "viewBox": {
+      "x": 0,
+      "y": 0,
+      "width": 41.4,
+      "height": 111
+    }
+  },
+  {
+    "id": "child",
+    "name": "School Child",
+    "category": "everyday",
+    "actualMeasurementMeters": 1.2,
+    "axis": "height",
+    "svgUrl": "/silhouettes/child.svg",
+    "source": "Wikidata (Q7569)",
+    "viewBox": {
+      "x": 0,
+      "y": 0,
+      "width": 36,
+      "height": 111
+    }
+  },
+  {
+    "id": "polar-bear",
+    "name": "Polar Bear",
+    "category": "everyday",
+    "actualMeasurementMeters": 1.6,
+    "axis": "height",
+    "svgUrl": "/silhouettes/polar_bear.svg",
+    "source": "Wikidata (Q33609)",
+    "viewBox": {
+      "x": 0,
+      "y": 0,
+      "width": 146,
+      "height": 69
+    }
+  },
+  {
+    "id": "human",
+    "name": "Adult Human",
+    "category": "everyday",
+    "actualMeasurementMeters": 1.75,
+    "axis": "height",
+    "svgUrl": "/silhouettes/human.svg",
+    "source": "Wikidata (Q180)",
+    "viewBox": {
+      "x": 0,
+      "y": 0,
+      "width": 52,
+      "height": 185.91
+    }
+  },
+  {
+    "id": "bicycle",
+    "name": "Commuter Bicycle",
+    "category": "everyday",
+    "actualMeasurementMeters": 1.75,
+    "axis": "length",
+    "svgUrl": "/silhouettes/bicycle.svg",
+    "source": "Wikidata (Q11442)",
+    "viewBox": {
+      "x": 0,
+      "y": 0,
+      "width": 150,
+      "height": 67
+    }
+  },
+  {
+    "id": "door",
+    "name": "Standard Interior Door",
+    "category": "everyday",
+    "actualMeasurementMeters": 2.03,
+    "axis": "height",
+    "svgUrl": "/silhouettes/door.svg",
+    "source": "Wikidata (Q36794)",
+    "viewBox": {
+      "x": 0,
+      "y": 0,
+      "width": 80,
+      "height": 180
+    }
+  },
+  {
+    "id": "motorcycle",
+    "name": "Cruiser Motorcycle",
+    "category": "everyday",
+    "actualMeasurementMeters": 2.15,
+    "axis": "length",
+    "svgUrl": "/silhouettes/motorcycle.svg",
+    "source": "Wikidata (Q34493)",
+    "viewBox": {
+      "x": 0,
+      "y": 0,
+      "width": 158,
+      "height": 69
+    }
+  },
+  {
+    "id": "piano",
+    "name": "Concert Grand Piano",
+    "category": "everyday",
+    "actualMeasurementMeters": 2.75,
+    "axis": "length",
+    "svgUrl": "/silhouettes/piano.svg",
+    "source": "Wikidata (Q592)",
+    "viewBox": {
+      "x": 0,
+      "y": 0,
+      "width": 150,
+      "height": 113
+    }
+  },
+  {
+    "id": "elephant",
+    "name": "African Bush Elephant",
+    "category": "everyday",
+    "actualMeasurementMeters": 4,
+    "axis": "height",
+    "svgUrl": "/silhouettes/elephant.svg",
+    "source": "Wikidata (Q7378) [Live Claim: height]",
+    "viewBox": {
+      "x": 0,
+      "y": 0,
+      "width": 161.97,
+      "height": 100
+    }
+  },
+  {
+    "id": "car-sedan",
+    "name": "Sedan Family Car",
+    "category": "everyday",
+    "actualMeasurementMeters": 4.5,
+    "axis": "length",
+    "svgUrl": "/silhouettes/car_sedan.svg",
+    "source": "Wikidata (Q1420)",
+    "viewBox": {
+      "x": 0,
+      "y": 0,
+      "width": 188,
+      "height": 62
+    }
+  },
+  {
+    "id": "giraffe",
+    "name": "Adult Giraffe",
+    "category": "macro",
+    "actualMeasurementMeters": 5.5,
+    "axis": "height",
+    "svgUrl": "/silhouettes/giraffe.svg",
+    "source": "Wikidata (Q15083) [Live Claim: height]",
+    "viewBox": {
+      "x": 0,
+      "y": 0,
+      "width": 76,
+      "height": 171
+    }
+  },
+  {
+    "id": "school-bus",
+    "name": "American School Bus",
+    "category": "macro",
+    "actualMeasurementMeters": 12,
+    "axis": "length",
+    "svgUrl": "/silhouettes/school_bus.svg",
+    "source": "Wikidata (Q836306)",
+    "viewBox": {
+      "x": 0,
+      "y": 0,
+      "width": 204,
+      "height": 57
+    }
+  },
+  {
+    "id": "trex",
+    "name": "Tyrannosaurus Rex",
+    "category": "macro",
+    "actualMeasurementMeters": 12.3,
+    "axis": "length",
+    "svgUrl": "/silhouettes/trex.svg",
+    "source": "Wikidata (Q130982)",
+    "viewBox": {
+      "x": 0,
+      "y": 0,
+      "width": 185,
+      "height": 94.14
+    }
+  },
+  {
+    "id": "tennis-court",
+    "name": "Regulation Tennis Court",
+    "category": "macro",
+    "actualMeasurementMeters": 23.77,
+    "axis": "length",
+    "svgUrl": "/silhouettes/tennis_court.svg",
+    "source": "Wikidata (Q1067215)",
+    "viewBox": {
+      "x": 0,
+      "y": 0,
+      "width": 190,
+      "height": 88
+    }
   },
   {
     "id": "blue-whale",
@@ -42,33 +501,402 @@
     "actualMeasurementMeters": 27.1,
     "axis": "length",
     "svgUrl": "/silhouettes/blue_whale.svg",
-    "source": "Wikidata (Q42196)"
+    "source": "Wikidata (Q42196) [Live Claim: length]",
+    "viewBox": {
+      "x": 0,
+      "y": 0,
+      "width": 300,
+      "height": 94.58
+    }
   },
   {
-    "id": "human",
-    "name": "Human",
-    "category": "everyday",
-    "actualMeasurementMeters": 1.75,
-    "axis": "height",
-    "svgUrl": "/silhouettes/human.svg",
-    "source": "Wikidata (Q180)"
-  },
-  {
-    "id": "dog",
-    "name": "Dog",
-    "category": "everyday",
-    "actualMeasurementMeters": 0.8,
-    "axis": "height",
-    "svgUrl": "/silhouettes/dog.svg",
-    "source": "Wikidata (Q144)"
-  },
-  {
-    "id": "car-sedan",
-    "name": "Sedan Car",
-    "category": "everyday",
-    "actualMeasurementMeters": 4.5,
+    "id": "boeing-737",
+    "name": "Boeing 737 Airliner",
+    "category": "macro",
+    "actualMeasurementMeters": 12.5,
     "axis": "length",
-    "svgUrl": "/silhouettes/car_sedan.svg",
-    "source": "Wikidata (Q1420)"
+    "svgUrl": "/silhouettes/boeing_737.svg",
+    "source": "Wikidata (Q6387) [Live Claim: height]",
+    "viewBox": {
+      "x": 0,
+      "y": 0,
+      "width": 225,
+      "height": 65
+    }
+  },
+  {
+    "id": "colosseum",
+    "name": "Rome Colosseum",
+    "category": "macro",
+    "actualMeasurementMeters": 48,
+    "axis": "height",
+    "svgUrl": "/silhouettes/colosseum.svg",
+    "source": "Wikidata (Q10285) [Live Claim: height]",
+    "viewBox": {
+      "x": 0,
+      "y": 0,
+      "width": 180,
+      "height": 68
+    }
+  },
+  {
+    "id": "swimming-pool",
+    "name": "Olympic Swimming Pool",
+    "category": "macro",
+    "actualMeasurementMeters": 50,
+    "axis": "length",
+    "svgUrl": "/silhouettes/swimming_pool.svg",
+    "source": "Wikidata (Q1508006)",
+    "viewBox": {
+      "x": 0,
+      "y": 0,
+      "width": 204,
+      "height": 90
+    }
+  },
+  {
+    "id": "space-shuttle",
+    "name": "Space Shuttle Stack",
+    "category": "macro",
+    "actualMeasurementMeters": 56.1,
+    "axis": "height",
+    "svgUrl": "/silhouettes/space_shuttle.svg",
+    "source": "Wikidata (Q131262)",
+    "viewBox": {
+      "x": 0,
+      "y": 0,
+      "width": 52,
+      "height": 150
+    }
+  },
+  {
+    "id": "statue-of-liberty",
+    "name": "Statue of Liberty",
+    "category": "macro",
+    "actualMeasurementMeters": 46,
+    "axis": "height",
+    "svgUrl": "/silhouettes/statue_of_liberty.svg",
+    "source": "Wikidata (Q9202) [Live Claim: height]",
+    "viewBox": {
+      "x": 0,
+      "y": 0,
+      "width": 53,
+      "height": 168
+    }
+  },
+  {
+    "id": "football-pitch",
+    "name": "FIFA Football Pitch",
+    "category": "macro",
+    "actualMeasurementMeters": 105,
+    "axis": "length",
+    "svgUrl": "/silhouettes/football_pitch.svg",
+    "source": "Wikidata (Q854541)",
+    "viewBox": {
+      "x": 0,
+      "y": 0,
+      "width": 204,
+      "height": 120
+    }
+  },
+  {
+    "id": "saturn-v",
+    "name": "Saturn V Moon Rocket",
+    "category": "macro",
+    "actualMeasurementMeters": 110.65,
+    "axis": "height",
+    "svgUrl": "/silhouettes/saturn_v.svg",
+    "source": "Wikidata (Q54363) [Live Claim: height]",
+    "viewBox": {
+      "x": 0,
+      "y": 0,
+      "width": 40,
+      "height": 435
+    }
+  },
+  {
+    "id": "pyramid-giza",
+    "name": "Great Pyramid of Giza",
+    "category": "macro",
+    "actualMeasurementMeters": 138.8,
+    "axis": "height",
+    "svgUrl": "/silhouettes/pyramid_giza.svg",
+    "source": "Wikidata (Q12588)",
+    "viewBox": {
+      "x": 0,
+      "y": 0,
+      "width": 200,
+      "height": 124
+    }
+  },
+  {
+    "id": "wind-turbine",
+    "name": "Offshore Wind Turbine",
+    "category": "macro",
+    "actualMeasurementMeters": 150,
+    "axis": "height",
+    "svgUrl": "/silhouettes/wind_turbine.svg",
+    "source": "Wikidata (Q49833)",
+    "viewBox": {
+      "x": 0,
+      "y": 0,
+      "width": 110,
+      "height": 207
+    }
+  },
+  {
+    "id": "titanic",
+    "name": "RMS Titanic",
+    "category": "macro",
+    "actualMeasurementMeters": 269.1,
+    "axis": "length",
+    "svgUrl": "/silhouettes/titanic.svg",
+    "source": "Wikidata (Q25273)",
+    "viewBox": {
+      "x": 0,
+      "y": 0,
+      "width": 235,
+      "height": 54
+    }
+  },
+  {
+    "id": "eiffel-tower",
+    "name": "Eiffel Tower",
+    "category": "macro",
+    "actualMeasurementMeters": 324,
+    "axis": "height",
+    "svgUrl": "/silhouettes/eiffel_tower.svg",
+    "source": "Wikidata (Q243) [Live Claim: height]",
+    "viewBox": {
+      "x": 0,
+      "y": 0,
+      "width": 90,
+      "height": 330
+    }
+  },
+  {
+    "id": "empire-state",
+    "name": "Empire State Building",
+    "category": "macro",
+    "actualMeasurementMeters": 453,
+    "axis": "height",
+    "svgUrl": "/silhouettes/empire_state.svg",
+    "source": "Wikidata (Q9188) [Live Claim: height]",
+    "viewBox": {
+      "x": 0,
+      "y": 0,
+      "width": 60,
+      "height": 236
+    }
+  },
+  {
+    "id": "seawise-giant",
+    "name": "Seawise Giant Supertanker",
+    "category": "macro",
+    "actualMeasurementMeters": 458.45,
+    "axis": "length",
+    "svgUrl": "/silhouettes/seawise_giant.svg",
+    "source": "Wikidata (Q516104)",
+    "viewBox": {
+      "x": 0,
+      "y": 0,
+      "width": 270,
+      "height": 44
+    }
+  },
+  {
+    "id": "burj-khalifa",
+    "name": "Burj Khalifa",
+    "category": "macro",
+    "actualMeasurementMeters": 828,
+    "axis": "height",
+    "svgUrl": "/silhouettes/burj_khalifa.svg",
+    "source": "Wikidata (Q12495) [Live Claim: height]",
+    "viewBox": {
+      "x": 0,
+      "y": 0,
+      "width": 90,
+      "height": 828
+    }
+  },
+  {
+    "id": "golden-gate",
+    "name": "Golden Gate Bridge",
+    "category": "macro",
+    "actualMeasurementMeters": 2737,
+    "axis": "length",
+    "svgUrl": "/silhouettes/golden_gate.svg",
+    "source": "Wikidata (Q44203)",
+    "viewBox": {
+      "x": 0,
+      "y": 0,
+      "width": 290,
+      "height": 100
+    }
+  },
+  {
+    "id": "mount-everest",
+    "name": "Mount Everest",
+    "category": "cosmic",
+    "actualMeasurementMeters": 3650,
+    "axis": "height",
+    "svgUrl": "/silhouettes/mount_everest.svg",
+    "source": "Wikidata (Q513) [Live Claim: height]",
+    "viewBox": {
+      "x": 0,
+      "y": 0,
+      "width": 215,
+      "height": 123
+    }
+  },
+  {
+    "id": "neutron-star",
+    "name": "Neutron Star",
+    "category": "cosmic",
+    "actualMeasurementMeters": 20000,
+    "axis": "diameter",
+    "svgUrl": "/silhouettes/neutron_star.svg",
+    "source": "Wikidata (Q4202)",
+    "viewBox": {
+      "x": 0,
+      "y": 0,
+      "width": 64,
+      "height": 132
+    }
+  },
+  {
+    "id": "olympus-mons",
+    "name": "Olympus Mons Volcano",
+    "category": "cosmic",
+    "actualMeasurementMeters": 21900,
+    "axis": "height",
+    "svgUrl": "/silhouettes/olympus_mons.svg",
+    "source": "Wikidata (Q522)",
+    "viewBox": {
+      "x": 0,
+      "y": 0,
+      "width": 260,
+      "height": 61
+    }
+  },
+  {
+    "id": "ceres",
+    "name": "Dwarf Planet Ceres",
+    "category": "cosmic",
+    "actualMeasurementMeters": 939400,
+    "axis": "diameter",
+    "svgUrl": "/silhouettes/ceres.svg",
+    "source": "Wikidata (Q596) [Live Claim: diameter]",
+    "viewBox": {
+      "x": 0,
+      "y": 0,
+      "width": 96,
+      "height": 96
+    }
+  },
+  {
+    "id": "moon",
+    "name": "The Moon",
+    "category": "cosmic",
+    "actualMeasurementMeters": 3476200,
+    "axis": "diameter",
+    "svgUrl": "/silhouettes/moon.svg",
+    "source": "Wikidata (Q405) [Live Claim: diameter]",
+    "viewBox": {
+      "x": 0,
+      "y": 0,
+      "width": 100,
+      "height": 100
+    }
+  },
+  {
+    "id": "mercury",
+    "name": "Planet Mercury",
+    "category": "cosmic",
+    "actualMeasurementMeters": 4878000,
+    "axis": "diameter",
+    "svgUrl": "/silhouettes/mercury.svg",
+    "source": "Wikidata (Q308) [Live Claim: diameter]",
+    "viewBox": {
+      "x": 0,
+      "y": 0,
+      "width": 96,
+      "height": 96
+    }
+  },
+  {
+    "id": "mars",
+    "name": "Planet Mars",
+    "category": "cosmic",
+    "actualMeasurementMeters": 6779000,
+    "axis": "diameter",
+    "svgUrl": "/silhouettes/mars.svg",
+    "source": "Wikidata (Q111)",
+    "viewBox": {
+      "x": 0,
+      "y": 0,
+      "width": 96,
+      "height": 96
+    }
+  },
+  {
+    "id": "earth",
+    "name": "Planet Earth",
+    "category": "cosmic",
+    "actualMeasurementMeters": 12742000,
+    "axis": "diameter",
+    "svgUrl": "/silhouettes/earth.svg",
+    "source": "Wikidata (Q2) [Live Claim: diameter]",
+    "viewBox": {
+      "x": 0,
+      "y": 0,
+      "width": 96,
+      "height": 96
+    }
+  },
+  {
+    "id": "saturn",
+    "name": "Planet Saturn",
+    "category": "cosmic",
+    "actualMeasurementMeters": 116464000,
+    "axis": "diameter",
+    "svgUrl": "/silhouettes/saturn.svg",
+    "source": "Wikidata (Q183)",
+    "viewBox": {
+      "x": 0,
+      "y": 0,
+      "width": 160,
+      "height": 64
+    }
+  },
+  {
+    "id": "jupiter",
+    "name": "Planet Jupiter",
+    "category": "cosmic",
+    "actualMeasurementMeters": 142984000,
+    "axis": "diameter",
+    "svgUrl": "/silhouettes/jupiter.svg",
+    "source": "Wikidata (Q319) [Live Claim: diameter]",
+    "viewBox": {
+      "x": 0,
+      "y": 0,
+      "width": 96,
+      "height": 96
+    }
+  },
+  {
+    "id": "sun",
+    "name": "The Sun",
+    "category": "cosmic",
+    "actualMeasurementMeters": 1392700000,
+    "axis": "diameter",
+    "svgUrl": "/silhouettes/sun.svg",
+    "source": "Wikidata (Q525)",
+    "viewBox": {
+      "x": 0,
+      "y": 0,
+      "width": 120,
+      "height": 120
+    }
   }
 ]

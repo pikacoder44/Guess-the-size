@@ -492,13 +492,22 @@ export function normalizeSvg(rawSvg: string): NormalizationResult {
   cleaned = cleaned.replace(/<g\b[^>]*>\s*<\/g>/gi, "");
   cleaned = cleaned.replace(/<g\b[^>]*\/>/gi, "");
 
-  // 4. Extract all shapes: paths, circles, ellipses, polygons
+  // 4. Extract all shapes: paths, circles, ellipses, polygons, rects, lines
   const pathMatches = Array.from(cleaned.matchAll(/<path\b[^>]*?\bd\s*=\s*["']([^"']+)["'][^>]*\/?>/gi));
   const circleMatches = Array.from(cleaned.matchAll(/<circle\b[^>]*?\/?>/gi));
   const ellipseMatches = Array.from(cleaned.matchAll(/<ellipse\b[^>]*?\/?>/gi));
   const polygonMatches = Array.from(cleaned.matchAll(/<polygon\b[^>]*?\bpoints\s*=\s*["']([^"']+)["'][^>]*\/?>/gi));
+  const rectMatches = Array.from(cleaned.matchAll(/<rect\b[^>]*?\/?>/gi));
+  const lineMatches = Array.from(cleaned.matchAll(/<line\b[^>]*?\/?>/gi));
 
-  if (pathMatches.length === 0 && circleMatches.length === 0 && ellipseMatches.length === 0 && polygonMatches.length === 0) {
+  if (
+    pathMatches.length === 0 &&
+    circleMatches.length === 0 &&
+    ellipseMatches.length === 0 &&
+    polygonMatches.length === 0 &&
+    rectMatches.length === 0 &&
+    lineMatches.length === 0
+  ) {
     // If no vector geometry is found, check if there is an existing viewBox
     const vbMatch = cleaned.match(/viewBox\s*=\s*["']([0-9.\s-]+)["']/i);
     if (vbMatch) {
@@ -591,6 +600,42 @@ export function normalizeSvg(rawSvg: string): NormalizationResult {
     }
   }
 
+  for (const rMatch of rectMatches) {
+    const tag = rMatch[0];
+    const xMatch = tag.match(/\bx\s*=\s*["']([0-9.-]+)["']/i);
+    const yMatch = tag.match(/\by\s*=\s*["']([0-9.-]+)["']/i);
+    const wMatch = tag.match(/\bwidth\s*=\s*["']([0-9.-]+)["']/i);
+    const hMatch = tag.match(/\bheight\s*=\s*["']([0-9.-]+)["']/i);
+    if (wMatch && hMatch) {
+      const rx = xMatch ? parseFloat(xMatch[1]!) : 0;
+      const ry = yMatch ? parseFloat(yMatch[1]!) : 0;
+      const rw = parseFloat(wMatch[1]!);
+      const rh = parseFloat(hMatch[1]!);
+      globalMinX = Math.min(globalMinX, rx);
+      globalMinY = Math.min(globalMinY, ry);
+      globalMaxX = Math.max(globalMaxX, rx + rw);
+      globalMaxY = Math.max(globalMaxY, ry + rh);
+    }
+  }
+
+  for (const lMatch of lineMatches) {
+    const tag = lMatch[0];
+    const x1Match = tag.match(/\bx1\s*=\s*["']([0-9.-]+)["']/i);
+    const y1Match = tag.match(/\by1\s*=\s*["']([0-9.-]+)["']/i);
+    const x2Match = tag.match(/\bx2\s*=\s*["']([0-9.-]+)["']/i);
+    const y2Match = tag.match(/\by2\s*=\s*["']([0-9.-]+)["']/i);
+    if (x1Match && y1Match && x2Match && y2Match) {
+      const x1 = parseFloat(x1Match[1]!);
+      const y1 = parseFloat(y1Match[1]!);
+      const x2 = parseFloat(x2Match[1]!);
+      const y2 = parseFloat(y2Match[1]!);
+      globalMinX = Math.min(globalMinX, x1, x2);
+      globalMinY = Math.min(globalMinY, y1, y2);
+      globalMaxX = Math.max(globalMaxX, x1, x2);
+      globalMaxY = Math.max(globalMaxY, y1, y2);
+    }
+  }
+
   const width = Math.max(0.1, globalMaxX - globalMinX);
   const height = Math.max(0.1, globalMaxY - globalMinY);
 
@@ -660,6 +705,54 @@ export function normalizeSvg(rawSvg: string): NormalizationResult {
     }
     const updatedTag = tag.replace(pointsStr, newPoints.join(" "));
     normalizedBody = normalizedBody.replace(tag, updatedTag);
+  }
+
+  // Update rects
+  for (const rMatch of rectMatches) {
+    const tag = rMatch[0];
+    const xMatch = tag.match(/\bx\s*=\s*["']([0-9.-]+)["']/i);
+    const yMatch = tag.match(/\by\s*=\s*["']([0-9.-]+)["']/i);
+    const rx = xMatch ? parseFloat(xMatch[1]!) : 0;
+    const ry = yMatch ? parseFloat(yMatch[1]!) : 0;
+    const newRx = Math.round((rx + dx) * 1000) / 1000;
+    const newRy = Math.round((ry + dy) * 1000) / 1000;
+    let updatedTag = tag;
+    if (xMatch) {
+      updatedTag = updatedTag.replace(xMatch[0], `x="${newRx}"`);
+    } else {
+      updatedTag = updatedTag.replace(/^<rect\b/i, `<rect x="${newRx}"`);
+    }
+    if (yMatch) {
+      updatedTag = updatedTag.replace(yMatch[0], `y="${newRy}"`);
+    } else {
+      updatedTag = updatedTag.replace(/^<rect\b/i, `<rect y="${newRy}"`);
+    }
+    normalizedBody = normalizedBody.replace(tag, updatedTag);
+  }
+
+  // Update lines
+  for (const lMatch of lineMatches) {
+    const tag = lMatch[0];
+    const x1Match = tag.match(/\bx1\s*=\s*["']([0-9.-]+)["']/i);
+    const y1Match = tag.match(/\by1\s*=\s*["']([0-9.-]+)["']/i);
+    const x2Match = tag.match(/\bx2\s*=\s*["']([0-9.-]+)["']/i);
+    const y2Match = tag.match(/\by2\s*=\s*["']([0-9.-]+)["']/i);
+    if (x1Match && y1Match && x2Match && y2Match) {
+      const x1 = parseFloat(x1Match[1]!);
+      const y1 = parseFloat(y1Match[1]!);
+      const x2 = parseFloat(x2Match[1]!);
+      const y2 = parseFloat(y2Match[1]!);
+      const newX1 = Math.round((x1 + dx) * 1000) / 1000;
+      const newY1 = Math.round((y1 + dy) * 1000) / 1000;
+      const newX2 = Math.round((x2 + dx) * 1000) / 1000;
+      const newY2 = Math.round((y2 + dy) * 1000) / 1000;
+      let updatedTag = tag
+        .replace(x1Match[0], `x1="${newX1}"`)
+        .replace(y1Match[0], `y1="${newY1}"`)
+        .replace(x2Match[0], `x2="${newX2}"`)
+        .replace(y2Match[0], `y2="${newY2}"`);
+      normalizedBody = normalizedBody.replace(tag, updatedTag);
+    }
   }
 
   const roundedW = Math.round(width * 100) / 100;

@@ -1,0 +1,410 @@
+[
+  {
+    "id": "water-dna",
+    "referenceId": "water-molecule",
+    "targetId": "dna-strand",
+    "category": "micro"
+  },
+  {
+    "id": "dna-corona",
+    "referenceId": "dna-strand",
+    "targetId": "coronavirus",
+    "category": "micro"
+  },
+  {
+    "id": "corona-phage",
+    "referenceId": "coronavirus",
+    "targetId": "bacteriophage",
+    "category": "micro"
+  },
+  {
+    "id": "phage-rbc",
+    "referenceId": "bacteriophage",
+    "targetId": "red-blood-cell",
+    "category": "micro"
+  },
+  {
+    "id": "rbc-hair",
+    "referenceId": "red-blood-cell",
+    "targetId": "human-hair",
+    "category": "micro"
+  },
+  {
+    "id": "hair-tardigrade",
+    "referenceId": "human-hair",
+    "targetId": "tardigrade",
+    "category": "micro"
+  },
+  {
+    "id": "tardigrade-sand",
+    "referenceId": "tardigrade",
+    "targetId": "grain-of-sand",
+    "category": "micro"
+  },
+  {
+    "id": "sand-ant",
+    "referenceId": "grain-of-sand",
+    "targetId": "ant",
+    "category": "micro"
+  },
+  {
+    "id": "ant-fly",
+    "referenceId": "ant",
+    "targetId": "housefly",
+    "category": "micro"
+  },
+  {
+    "id": "fly-coin",
+    "referenceId": "housefly",
+    "targetId": "quarter-coin",
+    "category": "everyday"
+  },
+  {
+    "id": "coin-tennisball",
+    "referenceId": "quarter-coin",
+    "targetId": "tennis-ball",
+    "category": "everyday"
+  },
+  {
+    "id": "tennisball-mug",
+    "referenceId": "tennis-ball",
+    "targetId": "coffee-mug",
+    "category": "everyday"
+  },
+  {
+    "id": "mug-iphone",
+    "referenceId": "coffee-mug",
+    "targetId": "iphone",
+    "category": "everyday"
+  },
+  {
+    "id": "iphone-banana",
+    "referenceId": "iphone",
+    "targetId": "banana",
+    "category": "everyday"
+  },
+  {
+    "id": "banana-laptop",
+    "referenceId": "banana",
+    "targetId": "laptop",
+    "category": "everyday"
+  },
+  {
+    "id": "laptop-cat",
+    "referenceId": "laptop",
+    "targetId": "cat",
+    "category": "everyday"
+  },
+  {
+    "id": "cat-dog",
+    "referenceId": "cat",
+    "targetId": "dog",
+    "category": "everyday"
+  },
+  {
+    "id": "dog-guitar",
+    "referenceId": "dog",
+    "targetId": "guitar",
+    "category": "everyday"
+  },
+  {
+    "id": "guitar-penguin",
+    "referenceId": "guitar",
+    "targetId": "penguin",
+    "category": "everyday"
+  },
+  {
+    "id": "penguin-child",
+    "referenceId": "penguin",
+    "targetId": "child",
+    "category": "everyday"
+  },
+  {
+    "id": "child-polarbear",
+    "referenceId": "child",
+    "targetId": "polar-bear",
+    "category": "everyday"
+  },
+  {
+    "id": "human-dog",
+    "referenceId": "human",
+    "targetId": "dog",
+    "category": "everyday"
+  },
+  {
+    "id": "human-bicycle",
+    "referenceId": "human",
+    "targetId": "bicycle",
+    "category": "everyday"
+  },
+  {
+    "id": "human-door",
+    "referenceId": "human",
+    "targetId": "door",
+    "category": "everyday"
+  },
+  {
+    "id": "bicycle-motorcycle",
+    "referenceId": "bicycle",
+    "targetId": "motorcycle",
+    "category": "everyday"
+  },
+  {
+    "id": "motorcycle-piano",
+    "referenceId": "motorcycle",
+    "targetId": "piano",
+    "category": "everyday"
+  },
+  {
+    "id": "piano-elephant",
+    "referenceId": "piano",
+    "targetId": "elephant",
+    "category": "everyday"
+  },
+  {
+    "id": "human-car",
+    "referenceId": "human",
+    "targetId": "car-sedan",
+    "category": "everyday"
+  },
+  {
+    "id": "dog-car",
+    "referenceId": "dog",
+    "targetId": "car-sedan",
+    "category": "everyday"
+  },
+  {
+    "id": "car-giraffe",
+    "referenceId": "car-sedan",
+    "targetId": "giraffe",
+    "category": "macro"
+  },
+  {
+    "id": "giraffe-schoolbus",
+    "referenceId": "giraffe",
+    "targetId": "school-bus",
+    "category": "macro"
+  },
+  {
+    "id": "schoolbus-trex",
+    "referenceId": "school-bus",
+    "targetId": "trex",
+    "category": "macro"
+  },
+  {
+    "id": "trex-court",
+    "referenceId": "trex",
+    "targetId": "tennis-court",
+    "category": "macro"
+  },
+  {
+    "id": "court-whale",
+    "referenceId": "tennis-court",
+    "targetId": "blue-whale",
+    "category": "macro"
+  },
+  {
+    "id": "car-whale",
+    "referenceId": "car-sedan",
+    "targetId": "blue-whale",
+    "category": "macro"
+  },
+  {
+    "id": "human-whale",
+    "referenceId": "human",
+    "targetId": "blue-whale",
+    "category": "macro"
+  },
+  {
+    "id": "whale-boeing",
+    "referenceId": "blue-whale",
+    "targetId": "boeing-737",
+    "category": "macro"
+  },
+  {
+    "id": "boeing-colosseum",
+    "referenceId": "boeing-737",
+    "targetId": "colosseum",
+    "category": "macro"
+  },
+  {
+    "id": "colosseum-pool",
+    "referenceId": "colosseum",
+    "targetId": "swimming-pool",
+    "category": "macro"
+  },
+  {
+    "id": "pool-shuttle",
+    "referenceId": "swimming-pool",
+    "targetId": "space-shuttle",
+    "category": "macro"
+  },
+  {
+    "id": "shuttle-liberty",
+    "referenceId": "space-shuttle",
+    "targetId": "statue-of-liberty",
+    "category": "macro"
+  },
+  {
+    "id": "liberty-pitch",
+    "referenceId": "statue-of-liberty",
+    "targetId": "football-pitch",
+    "category": "macro"
+  },
+  {
+    "id": "whale-saturn",
+    "referenceId": "blue-whale",
+    "targetId": "saturn-v",
+    "category": "macro"
+  },
+  {
+    "id": "pitch-saturn",
+    "referenceId": "football-pitch",
+    "targetId": "saturn-v",
+    "category": "macro"
+  },
+  {
+    "id": "saturn-pyramid",
+    "referenceId": "saturn-v",
+    "targetId": "pyramid-giza",
+    "category": "macro"
+  },
+  {
+    "id": "pyramid-windturbine",
+    "referenceId": "pyramid-giza",
+    "targetId": "wind-turbine",
+    "category": "macro"
+  },
+  {
+    "id": "windturbine-titanic",
+    "referenceId": "wind-turbine",
+    "targetId": "titanic",
+    "category": "macro"
+  },
+  {
+    "id": "titanic-eiffel",
+    "referenceId": "titanic",
+    "targetId": "eiffel-tower",
+    "category": "macro"
+  },
+  {
+    "id": "saturn-eiffel",
+    "referenceId": "saturn-v",
+    "targetId": "eiffel-tower",
+    "category": "macro"
+  },
+  {
+    "id": "eiffel-empirestate",
+    "referenceId": "eiffel-tower",
+    "targetId": "empire-state",
+    "category": "macro"
+  },
+  {
+    "id": "empirestate-seawise",
+    "referenceId": "empire-state",
+    "targetId": "seawise-giant",
+    "category": "macro"
+  },
+  {
+    "id": "eiffel-burj",
+    "referenceId": "eiffel-tower",
+    "targetId": "burj-khalifa",
+    "category": "macro"
+  },
+  {
+    "id": "saturn-burj",
+    "referenceId": "saturn-v",
+    "targetId": "burj-khalifa",
+    "category": "macro"
+  },
+  {
+    "id": "burj-goldengate",
+    "referenceId": "burj-khalifa",
+    "targetId": "golden-gate",
+    "category": "macro"
+  },
+  {
+    "id": "goldengate-everest",
+    "referenceId": "golden-gate",
+    "targetId": "mount-everest",
+    "category": "cosmic"
+  },
+  {
+    "id": "burj-everest",
+    "referenceId": "burj-khalifa",
+    "targetId": "mount-everest",
+    "category": "cosmic"
+  },
+  {
+    "id": "everest-neutronstar",
+    "referenceId": "mount-everest",
+    "targetId": "neutron-star",
+    "category": "cosmic"
+  },
+  {
+    "id": "neutronstar-olympus",
+    "referenceId": "neutron-star",
+    "targetId": "olympus-mons",
+    "category": "cosmic"
+  },
+  {
+    "id": "olympus-ceres",
+    "referenceId": "olympus-mons",
+    "targetId": "ceres",
+    "category": "cosmic"
+  },
+  {
+    "id": "ceres-moon",
+    "referenceId": "ceres",
+    "targetId": "moon",
+    "category": "cosmic"
+  },
+  {
+    "id": "burj-moon",
+    "referenceId": "burj-khalifa",
+    "targetId": "moon",
+    "category": "cosmic"
+  },
+  {
+    "id": "saturn-moon",
+    "referenceId": "saturn-v",
+    "targetId": "moon",
+    "category": "cosmic"
+  },
+  {
+    "id": "moon-mercury",
+    "referenceId": "moon",
+    "targetId": "mercury",
+    "category": "cosmic"
+  },
+  {
+    "id": "mercury-mars",
+    "referenceId": "mercury",
+    "targetId": "mars",
+    "category": "cosmic"
+  },
+  {
+    "id": "mars-earth",
+    "referenceId": "mars",
+    "targetId": "earth",
+    "category": "cosmic"
+  },
+  {
+    "id": "earth-saturn",
+    "referenceId": "earth",
+    "targetId": "saturn",
+    "category": "cosmic"
+  },
+  {
+    "id": "saturn-jupiter",
+    "referenceId": "saturn",
+    "targetId": "jupiter",
+    "category": "cosmic"
+  },
+  {
+    "id": "jupiter-sun",
+    "referenceId": "jupiter",
+    "targetId": "sun",
+    "category": "cosmic"
+  }
+]

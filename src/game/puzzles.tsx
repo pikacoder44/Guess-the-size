@@ -1,9 +1,10 @@
 import type { GameObject, Puzzle } from "./types";
-import type { PuzzleItem, ItemCategory } from "@/types/puzzle";
+import type { PuzzleItem, StoredPuzzle, ItemCategory } from "@/types/puzzle";
 import rawPuzzles from "../data/puzzles.json";
+import rawPuzzleSets from "../data/puzzleSets.json";
 
 /**
- * Exact, zero-padding viewBox specifications calculated from normalized SVG silhouettes.
+ * Fallback viewBox cache in case an item doesn't specify an explicit viewBox.
  */
 const SILHOUETTE_VIEWBOXES: Record<string, { x: number; y: number; width: number; height: number }> = {
   "burj-khalifa": { x: 0, y: 0, width: 90, height: 828 },
@@ -18,10 +19,11 @@ const SILHOUETTE_VIEWBOXES: Record<string, { x: number; y: number; width: number
 
 /**
  * Map Wikidata-ingested items to GameObject models for the game engine.
+ * Reads exact zero-empty-space viewBox directly from normalized item records.
  */
 export const GAME_OBJECTS: Record<string, GameObject> = Object.fromEntries(
   (rawPuzzles as PuzzleItem[]).map((item) => {
-    const vb = SILHOUETTE_VIEWBOXES[item.id] ?? { x: 0, y: 0, width: 100, height: 100 };
+    const vb = item.viewBox ?? SILHOUETTE_VIEWBOXES[item.id] ?? { x: 0, y: 0, width: 100, height: 100 };
     const obj: GameObject = {
       id: item.id,
       name: item.name,
@@ -61,95 +63,21 @@ export function getObjectsByCategory(category: ItemCategory): GameObject[] {
 }
 
 /**
- * Curated reference-target puzzle pairings across scales.
+ * Dynamic reference-target puzzle pairings loaded from database/JSON.
  */
-export const PUZZLES: Puzzle[] = [
-  // Everyday Scale Tier
-  {
-    id: "human-dog",
-    reference: GAME_OBJECTS["human"]!,
-    target: GAME_OBJECTS["dog"]!,
-    category: "everyday",
-  },
-  {
-    id: "dog-car",
-    reference: GAME_OBJECTS["dog"]!,
-    target: GAME_OBJECTS["car-sedan"]!,
-    category: "everyday",
-  },
-  {
-    id: "human-car",
-    reference: GAME_OBJECTS["human"]!,
-    target: GAME_OBJECTS["car-sedan"]!,
-    category: "everyday",
-  },
-
-  // Everyday -> Macro Bridge
-  {
-    id: "car-whale",
-    reference: GAME_OBJECTS["car-sedan"]!,
-    target: GAME_OBJECTS["blue-whale"]!,
-    category: "macro",
-  },
-  {
-    id: "human-whale",
-    reference: GAME_OBJECTS["human"]!,
-    target: GAME_OBJECTS["blue-whale"]!,
-    category: "macro",
-  },
-
-  // Macro Scale Tier
-  {
-    id: "whale-saturn",
-    reference: GAME_OBJECTS["blue-whale"]!,
-    target: GAME_OBJECTS["saturn-v"]!,
-    category: "macro",
-  },
-  {
-    id: "saturn-eiffel",
-    reference: GAME_OBJECTS["saturn-v"]!,
-    target: GAME_OBJECTS["eiffel-tower"]!,
-    category: "macro",
-  },
-  {
-    id: "eiffel-burj",
-    reference: GAME_OBJECTS["eiffel-tower"]!,
-    target: GAME_OBJECTS["burj-khalifa"]!,
-    category: "macro",
-  },
-  {
-    id: "saturn-burj",
-    reference: GAME_OBJECTS["saturn-v"]!,
-    target: GAME_OBJECTS["burj-khalifa"]!,
-    category: "macro",
-  },
-  {
-    id: "whale-eiffel",
-    reference: GAME_OBJECTS["blue-whale"]!,
-    target: GAME_OBJECTS["eiffel-tower"]!,
-    category: "macro",
-  },
-  {
-    id: "car-saturn",
-    reference: GAME_OBJECTS["car-sedan"]!,
-    target: GAME_OBJECTS["saturn-v"]!,
-    category: "macro",
-  },
-
-  // Cosmic Scale Tier
-  {
-    id: "burj-moon",
-    reference: GAME_OBJECTS["burj-khalifa"]!,
-    target: GAME_OBJECTS["moon"]!,
-    category: "cosmic",
-  },
-  {
-    id: "saturn-moon",
-    reference: GAME_OBJECTS["saturn-v"]!,
-    target: GAME_OBJECTS["moon"]!,
-    category: "cosmic",
-  },
-];
+export const PUZZLES: Puzzle[] = (rawPuzzleSets as StoredPuzzle[])
+  .map((p): Puzzle | null => {
+    const ref = GAME_OBJECTS[p.referenceId];
+    const target = GAME_OBJECTS[p.targetId];
+    if (!ref || !target) return null;
+    return {
+      id: p.id,
+      reference: ref,
+      target: target,
+      category: p.category,
+    };
+  })
+  .filter((p): p is Puzzle => p !== null);
 
 /**
  * Filter puzzles by scale tier.
@@ -177,8 +105,7 @@ export function pickRandomPuzzle(
 }
 
 /**
- * Generates a 5-round game session with unique target items.
- * Ensures no duplicate items appear across the match.
+ * Generates a game session with unique target items across the match.
  */
 export function generateGameSession(options?: {
   count?: number;

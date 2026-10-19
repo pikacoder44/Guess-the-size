@@ -11,6 +11,7 @@ import cors from 'cors';
 import { optionalAuth } from './middleware/auth.js';
 import authRouter from './routes/auth/index.js';
 import scoresRouter from './routes/scores.js';
+import puzzlesRouter from './routes/puzzles.js';
 import { initDb, checkDbHealth } from './db.js';
 
 const app = express();
@@ -38,6 +39,7 @@ app.use(optionalAuth);
 
 app.use('/api/auth', authRouter);
 app.use('/api/scores', scoresRouter);
+app.use('/api/puzzles', puzzlesRouter);
 
 // Health check with PostgreSQL / Supabase connection inspection
 app.get('/api/health', async (_req: Request, res: Response) => {
@@ -87,7 +89,8 @@ app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     console.log(`\n🚀 GuessTheSize API running on http://localhost:${PORT}`);
     console.log(`   Health:      http://localhost:${PORT}/api/health`);
     console.log(`   Auth:        http://localhost:${PORT}/api/auth/register | /login | /google | /github | /me`);
-    console.log(`   Scores:      http://localhost:${PORT}/api/scores | /me | /leaderboard\n`);
+    console.log(`   Scores:      http://localhost:${PORT}/api/scores | /me | /leaderboard`);
+    console.log(`   Puzzles:     http://localhost:${PORT}/api/puzzles | /items | /session | /daily\n`);
   });
 })();
 
