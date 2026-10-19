@@ -4,6 +4,7 @@ import { AuthModal } from "@/components/auth/AuthModal";
 import { AuthPage } from "@/components/auth/AuthPage";
 import { HomePage } from "@/pages/HomePage";
 import { ScaleGuessPage } from "@/pages/ScaleGuessPage";
+import { NotColorBlindPage } from "@/pages/NotColorBlindPage";
 import { ProfilePage } from "@/pages/ProfilePage";
 import { LeaderboardPage } from "@/pages/LeaderboardPage";
 import { Footer } from "@/components/home/Footer";
@@ -13,6 +14,7 @@ import { LogIn, UserPlus, LogOut, Brain, Settings, Trophy } from "lucide-react";
 export type AppRoute =
   | "home"
   | "scaleGuess"
+  | "notColorBlind"
   | "login"
   | "register"
   | "profile"
@@ -27,6 +29,7 @@ interface RouteState {
 function getRouteInfoFromPath(pathname: string): RouteState {
   const path = pathname.toLowerCase().replace(/\/+$/, "");
   if (path === "/scaleguess") return { route: "scaleGuess" };
+  if (path === "/notcolorblind" || path === "/games/not-color-blind") return { route: "notColorBlind" };
   if (path === "/leaderboard") return { route: "leaderboard" };
   if (path === "/login") return { route: "login" };
   if (path === "/register") return { route: "register" };
@@ -75,6 +78,8 @@ export function App() {
         ? "/"
         : route === "scaleGuess"
         ? "/scaleGuess"
+        : route === "notColorBlind"
+        ? "/notColorBlind"
         : route === "leaderboard"
         ? "/leaderboard"
         : `/${route}`;
@@ -170,7 +175,7 @@ export function App() {
               <button
                 type="button"
                 onClick={() => {
-                  if (currentRoute === "home" || currentRoute === "scaleGuess" || currentRoute === "leaderboard") {
+                  if (currentRoute === "home" || currentRoute === "scaleGuess" || currentRoute === "notColorBlind" || currentRoute === "leaderboard") {
                     openLogin();
                   } else {
                     navigateTo("login");
@@ -184,7 +189,7 @@ export function App() {
               <button
                 type="button"
                 onClick={() => {
-                  if (currentRoute === "home" || currentRoute === "scaleGuess" || currentRoute === "leaderboard") {
+                  if (currentRoute === "home" || currentRoute === "scaleGuess" || currentRoute === "notColorBlind" || currentRoute === "leaderboard") {
                     openRegister();
                   } else {
                     navigateTo("register");
@@ -226,6 +231,10 @@ export function App() {
         <ScaleGuessPage
           onBackToHome={() => navigateTo("home")}
           onNavigateLeaderboard={() => navigateTo("leaderboard")}
+        />
+      ) : currentRoute === "notColorBlind" ? (
+        <NotColorBlindPage
+          onBackToHome={() => navigateTo("home")}
         />
       ) : currentRoute === "publicProfile" ? (
         <PublicProfilePage

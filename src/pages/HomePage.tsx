@@ -16,6 +16,8 @@ export function HomePage({ onNavigate }: HomePageProps) {
   const handleCardNavigate = (href: string) => {
     if (href === "/scaleGuess" || href === "/scaleguess") {
       onNavigate("scaleGuess");
+    } else if (href === "/notColorBlind" || href === "/notcolorblind") {
+      onNavigate("notColorBlind");
     } else if (href === "/leaderboard") {
       onNavigate("leaderboard");
     } else if (href === "/login") {

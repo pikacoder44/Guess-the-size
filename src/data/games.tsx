@@ -48,6 +48,35 @@ export const GAMES: GameCardData[] = [
     ),
   },
   {
+    id: "not-color-blind",
+    title: "Not Color Blind",
+    tagline: "HSB Memory Recall",
+    description:
+      "Observe dynamic target color swatches before they decay, then reconstruct the exact hue, saturation, and brightness from visual memory.",
+    category: "Visual Memory Recall",
+    accentColor: "oklch(0.72 0.18 270)", // Cyber violet / chromatic
+    accentGlow: "oklch(0.72 0.18 270 / 0.25)",
+    badge: "Live",
+    href: "/notColorBlind",
+    available: true,
+    icon: (
+      <svg
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth={2}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        className="w-6 h-6"
+        aria-hidden="true"
+      >
+        <circle cx="12" cy="12" r="10" />
+        <path d="M12 2a10 10 0 0 1 10 10" stroke="currentColor" strokeWidth={2.5} />
+        <circle cx="12" cy="12" r="4" fill="currentColor" fillOpacity={0.2} />
+      </svg>
+    ),
+  },
+  {
     id: "sequence-mind",
     title: "SequenceMind",
     tagline: "Working Memory",

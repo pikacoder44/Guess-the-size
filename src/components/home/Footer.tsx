@@ -96,6 +96,16 @@ export function Footer({ onNavigate }: FooterProps) {
               <li>
                 <button
                   type="button"
+                  onClick={() => handleGameClick("notColorBlind")}
+                  className="hover:text-primary transition-colors flex items-center gap-1.5 cursor-pointer text-left"
+                >
+                  <span>Not Color Blind</span>
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                </button>
+              </li>
+              <li>
+                <button
+                  type="button"
                   onClick={() => handleGameClick("leaderboard")}
                   className="hover:text-primary transition-colors flex items-center gap-1.5 cursor-pointer text-left"
                 >
