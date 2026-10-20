@@ -26,15 +26,17 @@ export function VerticalSlider({
   const trackRef = useRef<HTMLDivElement>(null);
   const isDraggingRef = useRef(false);
 
+  const KNOB_DIAMETER = 32;
+  const knobRadius = KNOB_DIAMETER / 2;
+
   const updateFromPointer = useCallback(
     (clientY: number) => {
       const rect = trackRef.current?.getBoundingClientRect();
       if (!rect || rect.height <= 0) return;
 
       // Bottom is min (0%), Top is max (100%)
-      const thumbRadius = 14; // half of thumb height (28px)
-      const usableHeight = rect.height - thumbRadius * 2;
-      const offsetFromBottom = rect.bottom - clientY - thumbRadius;
+      const usableHeight = rect.height - KNOB_DIAMETER;
+      const offsetFromBottom = rect.bottom - clientY - knobRadius;
       const ratio = Math.max(0, Math.min(1, offsetFromBottom / usableHeight));
 
       const rawVal = min + ratio * (max - min);
@@ -42,7 +44,7 @@ export function VerticalSlider({
       const clamped = Math.max(min, Math.min(max, stepped));
       onChange(clamped);
     },
-    [min, max, step, onChange],
+    [min, max, step, onChange, knobRadius],
   );
 
   const handlePointerDown = (e: PointerEvent<HTMLDivElement>) => {
@@ -95,19 +97,18 @@ export function VerticalSlider({
   };
 
   const ratio = (value - min) / (max - min);
-  // Position thumb so it stays strictly within the track bounds:
-  // bottom ranges from 0px (at min) to (height - thumbHeight) px (at max)
-  const thumbHeight = 28;
-  const bottomStyle = `calc(${ratio} * (100% - ${thumbHeight}px))`;
+  // Position knob so it stays strictly within the track bounds:
+  // bottom ranges from 0px (at min) to (height - KNOB_DIAMETER) px (at max)
+  const bottomStyle = `calc(${ratio} * (100% - ${KNOB_DIAMETER}px))`;
 
   return (
     <div className="flex flex-col items-center gap-2 select-none">
       {/* Header with Label and Current Value */}
       <div className="flex flex-col items-center gap-0.5 text-center">
-        <span className="font-mono text-[11px] uppercase tracking-wider text-muted-foreground font-semibold">
+        <span className="font-mono text-[10px] sm:text-[11px] uppercase tracking-wider text-muted-foreground/80 font-semibold">
           {label}
         </span>
-        <span className="font-mono text-xs font-bold text-foreground">
+        <span className="font-mono text-xs sm:text-sm font-bold text-foreground tabular-nums">
           {value}
           {unit}
         </span>
@@ -128,21 +129,21 @@ export function VerticalSlider({
         onPointerUp={handlePointerUp}
         onPointerCancel={handlePointerUp}
         onKeyDown={handleKeyDown}
-        className="relative w-11 sm:w-12 h-60 sm:h-72 rounded-full cursor-pointer touch-none p-1 bg-card/60 border border-border/80 shadow-[inset_0_2px_8px_rgba(0,0,0,0.6)] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background group"
+        className="relative w-7 sm:w-8 h-60 sm:h-72 rounded-full cursor-pointer touch-none p-1 bg-neutral-950/50 border border-white/10 shadow-[inset_0_2px_8px_rgba(0,0,0,0.7)] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background group"
       >
         {/* Dynamic Gradient Track Fill */}
         <div
-          className="w-full h-full rounded-full transition-all duration-75 overflow-hidden"
+          className="w-full h-full rounded-full transition-all duration-75 overflow-hidden shadow-[inset_0_0_4px_rgba(0,0,0,0.3)]"
           style={{ background: gradient }}
         />
 
-        {/* Sleek Tactile Thumb */}
+        {/* Custom Circular Glassmorphic Knob */}
         <div
-          className="absolute left-1/2 -translate-x-1/2 w-14 sm:w-16 h-7 rounded-full bg-white text-neutral-950 border border-white/80 shadow-[0_4px_14px_rgba(0,0,0,0.65)] ring-2 ring-black/40 flex items-center justify-center font-mono text-[11px] font-bold tracking-tight pointer-events-none transition-transform duration-75 group-hover:scale-105 group-active:scale-95"
+          className="absolute left-1/2 -translate-x-1/2 w-8 h-8 rounded-full bg-white/85 dark:bg-white/90 backdrop-blur-md border border-white/90 shadow-[0_4px_12px_rgba(0,0,0,0.4),0_1px_3px_rgba(0,0,0,0.3),inset_0_1px_2px_rgba(255,255,255,0.9)] flex items-center justify-center pointer-events-none transition-transform duration-75 group-hover:scale-110 group-active:scale-95"
           style={{ bottom: bottomStyle }}
         >
-          {value}
-          {unit}
+          {/* Subtle tactile inner dot indicator */}
+          <div className="w-2 h-2 rounded-full bg-neutral-900/80 shadow-[inset_0_0.5px_1px_rgba(0,0,0,0.5)]" />
         </div>
       </div>
     </div>

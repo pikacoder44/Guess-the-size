@@ -68,6 +68,13 @@ export function getPerceivedLuminance(hsb: ColorHSB): number {
 }
 
 /**
+ * Check if color is light (perceived luminance > 135) to determine text contrast.
+ */
+export function isLightColor(hsb: ColorHSB): boolean {
+  return getPerceivedLuminance(hsb) > 135;
+}
+
+/**
  * Compute match score (0 - 100 scale):
  * dh = min(|h1 - h2|, 360 - |h1 - h2|) / 180
  * ds = |s1 - s2| / 100
