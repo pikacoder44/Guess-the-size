@@ -25,22 +25,40 @@ export function randomPredictionHsb(): ColorHSB {
 }
 
 /**
- * Standard HSB (HSV) to RGB conversion:
- * h: [0, 360], s: [0, 100], b: [0, 100] -> r, g, b in [0, 255].
+ * Standard HSB (HSV) to RGB conversion.
+ * Supports both object input `hsbToRgb(hsb)` -> `{ r, g, b }`
+ * and coordinate tuple input `hsbToRgb(h, s, b)` -> `[r, g, b]`.
  */
-export function hsbToRgb(hsb: ColorHSB): { r: number; g: number; b: number } {
-  const h = ((hsb.h % 360) + 360) % 360;
-  const s = Math.max(0, Math.min(100, hsb.s)) / 100;
-  const b = Math.max(0, Math.min(100, hsb.b)) / 100;
+export function hsbToRgb(hsb: ColorHSB): { r: number; g: number; b: number };
+export function hsbToRgb(h: number, s: number, b: number): [number, number, number];
+export function hsbToRgb(
+  hOrHsb: number | ColorHSB,
+  s?: number,
+  b?: number
+): { r: number; g: number; b: number } | [number, number, number] {
+  if (typeof hOrHsb === "object") {
+    const h = ((hOrHsb.h % 360) + 360) % 360;
+    const sNorm = Math.max(0, Math.min(100, hOrHsb.s)) / 100;
+    const bNorm = Math.max(0, Math.min(100, hOrHsb.b)) / 100;
+
+    const k = (n: number) => (n + h / 60) % 6;
+    const f = (n: number) => bNorm * (1 - sNorm * Math.max(0, Math.min(k(n), 4 - k(n), 1)));
+
+    return {
+      r: Math.round(f(5) * 255),
+      g: Math.round(f(3) * 255),
+      b: Math.round(f(1) * 255),
+    };
+  }
+
+  const h = ((hOrHsb % 360) + 360) % 360;
+  const sNorm = Math.max(0, Math.min(100, s ?? 0)) / 100;
+  const bNorm = Math.max(0, Math.min(100, b ?? 0)) / 100;
 
   const k = (n: number) => (n + h / 60) % 6;
-  const f = (n: number) => b * (1 - s * Math.max(0, Math.min(k(n), 4 - k(n), 1)));
+  const f = (n: number) => bNorm * (1 - sNorm * Math.max(0, Math.min(k(n), 4 - k(n), 1)));
 
-  return {
-    r: Math.round(f(5) * 255),
-    g: Math.round(f(3) * 255),
-    b: Math.round(f(1) * 255),
-  };
+  return [Math.round(255 * f(5)), Math.round(255 * f(3)), Math.round(255 * f(1))];
 }
 
 /**
@@ -75,20 +93,63 @@ export function isLightColor(hsb: ColorHSB): boolean {
 }
 
 /**
- * Compute match score (0 - 100 scale):
- * dh = min(|h1 - h2|, 360 - |h1 - h2|) / 180
- * ds = |s1 - s2| / 100
- * db = |b1 - b2| / 100
- * Score = Math.max(0, Math.round(100 * (1 - (0.5 * dh + 0.25 * ds + 0.25 * db))))
+ * Strict perceptual human color difference calculation (weighted Euclidean RGB distance):
+ * Uses human eye perception weights (red-mean weighted metric):
+ *   dr = r1 - r2, dg = g1 - g2, db = b1 - b2, rMean = (r1 + r2) / 2
+ *   distance = sqrt((2 + rMean/256) * dr^2 + 4 * dg^2 + (2 + (255 - rMean)/256) * db^2)
+ *
+ * Max distance in weighted RGB space is approx 765.
+ * An exponential penalty curve (power 2.5) ensures noticeable perceptual shifts
+ * drop scores significantly (e.g., 350° vs 315° & 79% vs 42% S drops to ~50–55 range).
  */
-export function calculateColorScore(target: ColorHSB, prediction: ColorHSB): ScoreBreakdown {
-  const absHueDiff = Math.abs(target.h - prediction.h);
+export function calculateColorScore(color1: ColorHSB, color2: ColorHSB): ScoreBreakdown {
+  const [r1, g1, b1] = hsbToRgb(color1.h, color1.s, color1.b);
+  const [r2, g2, b2] = hsbToRgb(color2.h, color2.s, color2.b);
+
+  // Weighted Euclidean RGB distance for human vision perception
+  const rMean = (r1 + r2) / 2;
+  const dr = r1 - r2;
+  const dg = g1 - g2;
+  const db = b1 - b2;
+
+  const distance = Math.sqrt(
+    (2 + rMean / 256) * dr * dr +
+    4 * dg * dg +
+    (2 + (255 - rMean) / 256) * db * db
+  );
+
+  // Max distance in weighted RGB space is approx 765
+  const maxDistance = 765;
+  const normalizedError = distance / maxDistance;
+
+  // Exponential penalty scale so noticeable visual differences drop score significantly
+  // A distance like image_08e9bb yields a score in the 40-55 range, not 80.
+  const score = Math.max(0, Math.min(100, Math.round(100 * Math.pow(1 - normalizedError, 2.5))));
+
+  // Angular Hue & component deltas for diagnostics/breakdown metrics
+  const absHueDiff = Math.abs(color1.h - color2.h);
   const dh = Math.min(absHueDiff, 360 - absHueDiff) / 180;
-  const ds = Math.abs(target.s - prediction.s) / 100;
-  const db = Math.abs(target.b - prediction.b) / 100;
+  const ds = Math.abs(color1.s - color2.s) / 100;
+  const dbComponent = Math.abs(color1.b - color2.b) / 100;
 
-  const weightedError = 0.5 * dh + 0.25 * ds + 0.25 * db;
-  const score = Math.max(0, Math.min(100, Math.round(100 * (1 - weightedError))));
+  const breakdown: ScoreBreakdown = {
+    score,
+    dh,
+    ds,
+    db: dbComponent,
+    distance,
+    normalizedError,
+  };
 
-  return { score, dh, ds, db };
+  Object.defineProperty(breakdown, "valueOf", {
+    value: () => score,
+    enumerable: false,
+  });
+
+  Object.defineProperty(breakdown, Symbol.toPrimitive, {
+    value: () => score,
+    enumerable: false,
+  });
+
+  return breakdown;
 }

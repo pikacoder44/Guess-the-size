@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { Check, RotateCcw } from "lucide-react";
+import { motion, AnimatePresence } from "motion/react";
 import type { ColorHSB, GamePhase, ScoreBreakdown } from "./types";
 import {
   randomTargetHsb,
@@ -149,19 +150,34 @@ export function NotColorBlindGame({ onPhaseChange }: NotColorBlindGameProps) {
             className="w-full h-80 sm:h-96 rounded-3xl shadow-[0_20px_60px_rgba(0,0,0,0.6)] border border-white/15 relative overflow-hidden flex flex-col justify-between p-6 sm:p-8 transition-all duration-300"
             style={{ backgroundColor: hsbToCss(targetColor) }}
           >
-            {/* Top-Right Precision Countdown: Seconds + 2-digit Milliseconds + 'seconds to remember' */}
+            {/* Top-Right Precision Countdown: Seamless 3-digit Timer (No dot, Equal Font Size) + 'seconds to remember' */}
             <div className="absolute top-6 right-6 sm:top-8 sm:right-8 flex flex-col items-end select-none">
               <div
-                className={`flex items-baseline font-mono tabular-nums tracking-tighter leading-none select-none ${
+                className={`flex items-baseline font-mono tabular-nums tracking-tight leading-none select-none text-5xl sm:text-6xl font-extrabold ${
                   targetIsLight ? "text-neutral-950" : "text-white"
                 }`}
               >
-                <span className="text-6xl sm:text-7xl font-black">{sec}</span>
-                <span className="text-3xl sm:text-4xl font-bold opacity-80">.{msStr}</span>
+                <div className="relative inline-flex items-baseline overflow-hidden">
+                  <AnimatePresence mode="popLayout">
+                    <motion.span
+                      key={sec}
+                      initial={{ y: -20, opacity: 0 }}
+                      animate={{ y: 0, opacity: 1 }}
+                      exit={{ y: 20, opacity: 0 }}
+                      transition={{ duration: 0.25, ease: "easeOut" }}
+                      className="inline-block font-mono font-extrabold tabular-nums"
+                    >
+                      {sec}
+                    </motion.span>
+                  </AnimatePresence>
+                </div>
+                <span className="font-mono font-extrabold tabular-nums">
+                  {msStr}
+                </span>
               </div>
               <span
-                className={`text-xs sm:text-sm font-medium tracking-wide mt-1.5 opacity-75 ${
-                  targetIsLight ? "text-neutral-950" : "text-white"
+                className={`text-xs sm:text-sm font-medium tracking-wide mt-1.5 ${
+                  targetIsLight ? "text-neutral-950/75" : "text-white/75"
                 }`}
               >
                 seconds to remember

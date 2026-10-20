@@ -11,4 +11,6 @@ export interface ScoreBreakdown {
   dh: number; // Angular Hue difference / 180 (0 - 1)
   ds: number; // Saturation difference / 100 (0 - 1)
   db: number; // Brightness difference / 100 (0 - 1)
+  distance?: number;
+  normalizedError?: number;
 }
