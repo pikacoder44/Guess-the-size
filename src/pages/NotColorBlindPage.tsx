@@ -1,15 +1,11 @@
-import { useState } from "react";
 import { ArrowLeft } from "lucide-react";
 import { NotColorBlindGame } from "@/games/not-color-blind/NotColorBlindGame";
-import type { GamePhase } from "@/games/not-color-blind/types";
 
 interface NotColorBlindPageProps {
   onBackToHome: () => void;
 }
 
 export function NotColorBlindPage({ onBackToHome }: NotColorBlindPageProps) {
-  const [phase, setPhase] = useState<GamePhase>("MEMORIZE");
-
   return (
     <main className="flex-1 max-w-4xl w-full mx-auto p-4 sm:p-6 flex flex-col gap-6">
       {/* Sub-navigation & Header Bar */}
@@ -28,29 +24,13 @@ export function NotColorBlindPage({ onBackToHome }: NotColorBlindPageProps) {
             <span className="font-display font-bold text-base sm:text-lg text-foreground tracking-tight shrink-0 whitespace-nowrap">
               Not Color Blind
             </span>
-            <div className="flex items-center flex-nowrap shrink-0 gap-1.5 ml-1 whitespace-nowrap">
-              <span className="text-[11px] font-mono font-bold px-2.5 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/25 whitespace-nowrap shrink-0 inline-flex items-center">
-                HSB Recall
-              </span>
-              <span className="text-[10px] sm:text-[11px] font-mono uppercase tracking-wider px-2 py-0.5 rounded-full bg-secondary text-muted-foreground border border-border hidden sm:inline-block whitespace-nowrap shrink-0">
-                {phase === "MEMORIZE"
-                  ? "Memorize"
-                  : phase === "RECALL"
-                  ? "Recall"
-                  : "Match Result"}
-              </span>
-            </div>
           </div>
-        </div>
-
-        <div className="flex items-center gap-2 text-xs font-mono text-muted-foreground/70 hidden md:flex">
-          <span>Perceptual Memory Recall</span>
         </div>
       </div>
 
       {/* Main Game Surface */}
-      <div className="flex-1 flex flex-col items-center justify-center min-h-[440px]">
-        <NotColorBlindGame onPhaseChange={setPhase} />
+      <div className="flex-1 flex flex-col items-center justify-center min-h-110">
+        <NotColorBlindGame />
       </div>
     </main>
   );

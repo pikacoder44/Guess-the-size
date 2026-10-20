@@ -1,7 +1,7 @@
 import { useRef, useCallback, type KeyboardEvent, type PointerEvent } from "react";
 
 interface VerticalSliderProps {
-  label: string;
+  label?: string;
   value: number;
   min: number;
   max: number;
@@ -18,7 +18,6 @@ export function VerticalSlider({
   min,
   max,
   step = 1,
-  unit = "",
   gradient,
   onChange,
   ariaLabel,
@@ -102,50 +101,37 @@ export function VerticalSlider({
   const bottomStyle = `calc(${ratio} * (100% - ${KNOB_DIAMETER}px))`;
 
   return (
-    <div className="flex flex-col items-center gap-2 select-none">
-      {/* Header with Label and Current Value */}
-      <div className="flex flex-col items-center gap-0.5 text-center">
-        <span className="font-mono text-[10px] sm:text-[11px] uppercase tracking-wider text-muted-foreground/80 font-semibold">
-          {label}
-        </span>
-        <span className="font-mono text-xs sm:text-sm font-bold text-foreground tabular-nums">
-          {value}
-          {unit}
-        </span>
-      </div>
-
-      {/* Vertical Slider Track Container */}
+    <div
+      ref={trackRef}
+      role="slider"
+      tabIndex={0}
+      aria-label={ariaLabel || label || "Color slider"}
+      aria-orientation="vertical"
+      aria-valuemin={min}
+      aria-valuemax={max}
+      aria-valuenow={value}
+      onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
+      onPointerUp={handlePointerUp}
+      onPointerCancel={handlePointerUp}
+      onKeyDown={handleKeyDown}
+      className="relative w-8 h-60 sm:h-72 rounded-full cursor-pointer touch-none p-1 bg-neutral-950/50 border border-white/10 shadow-[inset_0_2px_8px_rgba(0,0,0,0.7)] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background group select-none shrink-0"
+    >
+      {/* Dynamic Gradient Track Fill */}
       <div
-        ref={trackRef}
-        role="slider"
-        tabIndex={0}
-        aria-label={ariaLabel || label}
-        aria-orientation="vertical"
-        aria-valuemin={min}
-        aria-valuemax={max}
-        aria-valuenow={value}
-        onPointerDown={handlePointerDown}
-        onPointerMove={handlePointerMove}
-        onPointerUp={handlePointerUp}
-        onPointerCancel={handlePointerUp}
-        onKeyDown={handleKeyDown}
-        className="relative w-7 sm:w-8 h-60 sm:h-72 rounded-full cursor-pointer touch-none p-1 bg-neutral-950/50 border border-white/10 shadow-[inset_0_2px_8px_rgba(0,0,0,0.7)] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background group"
-      >
-        {/* Dynamic Gradient Track Fill */}
-        <div
-          className="w-full h-full rounded-full transition-all duration-75 overflow-hidden shadow-[inset_0_0_4px_rgba(0,0,0,0.3)]"
-          style={{ background: gradient }}
-        />
+        className="w-full h-full rounded-full transition-all duration-75 overflow-hidden shadow-[inset_0_0_4px_rgba(0,0,0,0.3)]"
+        style={{ background: gradient }}
+      />
 
-        {/* Custom Circular Glassmorphic Knob */}
-        <div
-          className="absolute left-1/2 -translate-x-1/2 w-8 h-8 rounded-full bg-white/85 dark:bg-white/90 backdrop-blur-md border border-white/90 shadow-[0_4px_12px_rgba(0,0,0,0.4),0_1px_3px_rgba(0,0,0,0.3),inset_0_1px_2px_rgba(255,255,255,0.9)] flex items-center justify-center pointer-events-none transition-transform duration-75 group-hover:scale-110 group-active:scale-95"
-          style={{ bottom: bottomStyle }}
-        >
-          {/* Subtle tactile inner dot indicator */}
-          <div className="w-2 h-2 rounded-full bg-neutral-900/80 shadow-[inset_0_0.5px_1px_rgba(0,0,0,0.5)]" />
-        </div>
+      {/* Custom Circular Glassmorphic Knob */}
+      <div
+        className="absolute left-1/2 -translate-x-1/2 w-8 h-8 rounded-full bg-white/85 dark:bg-white/90 backdrop-blur-md border border-white/90 shadow-[0_4px_12px_rgba(0,0,0,0.4),0_1px_3px_rgba(0,0,0,0.3),inset_0_1px_2px_rgba(255,255,255,0.9)] flex items-center justify-center pointer-events-none transition-transform duration-75 group-hover:scale-110 group-active:scale-95"
+        style={{ bottom: bottomStyle }}
+      >
+        {/* Subtle tactile inner dot indicator */}
+        <div className="w-2 h-2 rounded-full bg-neutral-900/80 shadow-[inset_0_0.5px_1px_rgba(0,0,0,0.5)]" />
       </div>
     </div>
   );
 }
+

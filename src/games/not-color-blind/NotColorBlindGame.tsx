@@ -11,8 +11,7 @@ import {
 } from "./color";
 import { VerticalSlider } from "./VerticalSlider";
 
-const MEMORIZE_START_COUNT = 450;
-const MEMORIZE_DURATION_MS = 4500; // 450 counts smoothly to 0 over 4.5 seconds
+const MEMORIZE_DURATION_MS = 5000; // 5.00 seconds precision countdown
 const RECALL_DURATION_SECONDS = 60;
 
 interface NotColorBlindGameProps {
@@ -24,7 +23,7 @@ export function NotColorBlindGame({ onPhaseChange }: NotColorBlindGameProps) {
   const [phase, setPhase] = useState<GamePhase>("MEMORIZE");
   const [targetColor, setTargetColor] = useState<ColorHSB>(() => randomTargetHsb());
   const [prediction, setPrediction] = useState<ColorHSB>(() => randomPredictionHsb());
-  const [memorizeCount, setMemorizeCount] = useState(MEMORIZE_START_COUNT);
+  const [memorizeRemainingMs, setMemorizeRemainingMs] = useState(MEMORIZE_DURATION_MS);
   const [recallSeconds, setRecallSeconds] = useState(RECALL_DURATION_SECONDS);
   const [result, setResult] = useState<ScoreBreakdown | null>(null);
 
@@ -40,7 +39,7 @@ export function NotColorBlindGame({ onPhaseChange }: NotColorBlindGameProps) {
     setPhase("RECALL");
   }, []);
 
-  // Memorization Stage 450-to-0 Countdown
+  // Memorization Stage 5.00-to-0.00 Precision Countdown
   useEffect(() => {
     if (phase !== "MEMORIZE") return;
 
@@ -49,11 +48,10 @@ export function NotColorBlindGame({ onPhaseChange }: NotColorBlindGameProps) {
 
     const tick = (now: number) => {
       const elapsed = now - startTime;
-      const progress = Math.min(1, elapsed / MEMORIZE_DURATION_MS);
-      const remaining = Math.max(0, Math.round(MEMORIZE_START_COUNT * (1 - progress)));
-      setMemorizeCount(remaining);
+      const remaining = Math.max(0, MEMORIZE_DURATION_MS - elapsed);
+      setMemorizeRemainingMs(remaining);
 
-      if (progress >= 1) {
+      if (remaining <= 0) {
         startRecallPhase();
       } else {
         animId = requestAnimationFrame(tick);
@@ -94,7 +92,7 @@ export function NotColorBlindGame({ onPhaseChange }: NotColorBlindGameProps) {
     const newTarget = randomTargetHsb();
     setTargetColor(newTarget);
     setPrediction(randomPredictionHsb());
-    setMemorizeCount(MEMORIZE_START_COUNT);
+    setMemorizeRemainingMs(MEMORIZE_DURATION_MS);
     setRecallSeconds(RECALL_DURATION_SECONDS);
     setResult(null);
     setPhase("MEMORIZE");
@@ -134,10 +132,15 @@ export function NotColorBlindGame({ onPhaseChange }: NotColorBlindGameProps) {
   const lowerIsLight = isLightColor(targetColor);
   const targetIsLight = isLightColor(targetColor);
 
+  // Precision 5.00s countdown format (seconds + 2-digit milliseconds)
+  const totalHundredths = Math.max(0, Math.floor(memorizeRemainingMs / 10));
+  const sec = Math.floor(totalHundredths / 100);
+  const msStr = (totalHundredths % 100).toString().padStart(2, "0");
+
   return (
     <div className="w-full flex flex-col items-center justify-center">
       {/* ─────────────────────────────────────────────────────────────
-          PHASE 1: MEMORIZATION STAGE (450-to-0 Counter in Top Right)
+          PHASE 1: MEMORIZATION STAGE (5.00 to 0.00 Precision Countdown)
       ───────────────────────────────────────────────────────────── */}
       {phase === "MEMORIZE" && (
         <div className="w-full max-w-xl flex flex-col items-center gap-6 py-4">
@@ -146,14 +149,22 @@ export function NotColorBlindGame({ onPhaseChange }: NotColorBlindGameProps) {
             className="w-full h-80 sm:h-96 rounded-3xl shadow-[0_20px_60px_rgba(0,0,0,0.6)] border border-white/15 relative overflow-hidden flex flex-col justify-between p-6 sm:p-8 transition-all duration-300"
             style={{ backgroundColor: hsbToCss(targetColor) }}
           >
-            {/* Smooth 450-to-0 Countdown Number in Top-Right (No 'seconds' / 's' unit) */}
-            <div className="absolute top-6 right-6 sm:top-8 sm:right-8 flex flex-col items-end">
-              <span
-                className={`font-mono text-5xl sm:text-6xl font-black tabular-nums tracking-tighter select-none ${
+            {/* Top-Right Precision Countdown: Seconds + 2-digit Milliseconds + 'seconds to remember' */}
+            <div className="absolute top-6 right-6 sm:top-8 sm:right-8 flex flex-col items-end select-none">
+              <div
+                className={`flex items-baseline font-mono tabular-nums tracking-tighter leading-none select-none ${
                   targetIsLight ? "text-neutral-950" : "text-white"
                 }`}
               >
-                {memorizeCount}
+                <span className="text-6xl sm:text-7xl font-black">{sec}</span>
+                <span className="text-3xl sm:text-4xl font-bold opacity-80">.{msStr}</span>
+              </div>
+              <span
+                className={`text-xs sm:text-sm font-medium tracking-wide mt-1.5 opacity-75 ${
+                  targetIsLight ? "text-neutral-950" : "text-white"
+                }`}
+              >
+                seconds to remember
               </span>
             </div>
           </div>
@@ -161,22 +172,12 @@ export function NotColorBlindGame({ onPhaseChange }: NotColorBlindGameProps) {
       )}
 
       {/* ─────────────────────────────────────────────────────────────
-          PHASE 2: RECALL STAGE (Sliders on Left, Prominent Urgent Timer)
+          PHASE 2: RECALL STAGE (Tight 2px Sliders on Left, Prominent Timer)
       ───────────────────────────────────────────────────────────── */}
       {phase === "RECALL" && (
         <div className="w-full max-w-2xl flex flex-col items-center gap-6 py-2">
-          {/* Top HUD Bar: Subtitle on Left, Big Urgent Timer on Right */}
-          <div className="w-full flex items-end justify-between px-1">
-            <div className="flex flex-col gap-0.5">
-              <span className="text-[11px] font-mono uppercase tracking-widest text-muted-foreground/80 font-semibold">
-                Perceptual Recall
-              </span>
-              <span className="text-xs sm:text-sm text-foreground/80 font-medium">
-                Reconstruct target color from memory
-              </span>
-            </div>
-
-            {/* Big Prominent Urgent 60-Second Countdown Timer */}
+          {/* Top HUD Bar: Prominent Urgent Timer in Upper Right (Subtitle text removed) */}
+          <div className="w-full flex items-center justify-end px-1">
             <div className="flex flex-col items-end">
               <span className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground/70 font-semibold mb-0.5">
                 Time Remaining
@@ -196,36 +197,30 @@ export function NotColorBlindGame({ onPhaseChange }: NotColorBlindGameProps) {
             </div>
           </div>
 
-          {/* Interactive Recall Stage: Sliders on the LEFT, Color Preview Card on the RIGHT */}
+          {/* Interactive Recall Stage: Tight 2px Sliders on the LEFT, Color Preview Card on the RIGHT */}
           <div className="flex flex-col sm:flex-row items-center sm:items-stretch justify-center gap-6 sm:gap-8 w-full">
-            {/* 3 Vertical Sliders on the LEFT */}
-            <div className="flex items-center justify-center gap-4 sm:gap-6 shrink-0">
+            {/* 3 Vertical Sliders with exact 2px gap (Zero labels, zero percentage text) */}
+            <div className="flex items-center justify-center gap-[2px] shrink-0">
               <VerticalSlider
-                label="Hue"
                 value={prediction.h}
                 min={0}
                 max={360}
-                unit="°"
                 gradient={hueGradient}
                 onChange={(h) => setPrediction((prev) => ({ ...prev, h }))}
                 ariaLabel="Hue Picker"
               />
               <VerticalSlider
-                label="Saturation"
                 value={prediction.s}
                 min={0}
                 max={100}
-                unit="%"
                 gradient={satGradient}
                 onChange={(s) => setPrediction((prev) => ({ ...prev, s }))}
                 ariaLabel="Saturation Slider"
               />
               <VerticalSlider
-                label="Brightness"
                 value={prediction.b}
                 min={0}
                 max={100}
-                unit="%"
                 gradient={briGradient}
                 onChange={(b) => setPrediction((prev) => ({ ...prev, b }))}
                 ariaLabel="Brightness Slider"
