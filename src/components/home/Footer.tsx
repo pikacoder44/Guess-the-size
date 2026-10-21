@@ -30,7 +30,19 @@ export function Footer({ onNavigate }: FooterProps) {
     if (onNavigate) {
       onNavigate(route);
     } else {
-      const target = route === "home" ? "/" : route === "scaleGuess" ? "/scaleGuess" : `/${route}`;
+      const canonicalRoute = route === "leaderboard" ? "scaleGuessLeaderboard" : route;
+      const target =
+        canonicalRoute === "home"
+          ? "/"
+          : canonicalRoute === "scaleGuess"
+          ? "/games/scale-guess"
+          : canonicalRoute === "scaleGuessLeaderboard"
+          ? "/games/scale-guess/leaderboard"
+          : canonicalRoute === "notColorBlind"
+          ? "/games/not-color-blind"
+          : canonicalRoute === "notColorBlindLeaderboard"
+          ? "/games/not-color-blind/leaderboard"
+          : `/${canonicalRoute}`;
       history.pushState(null, "", target);
       window.dispatchEvent(new PopStateEvent("popstate"));
     }
@@ -80,7 +92,7 @@ export function Footer({ onNavigate }: FooterProps) {
           {/* Column 2: Games */}
           <div className="flex flex-col gap-2.5">
             <span className="font-mono text-[11px] uppercase tracking-wider text-foreground font-semibold">
-              Games
+              Games & Rankings
             </span>
             <ul className="flex flex-col gap-2 text-xs">
               <li>
@@ -96,6 +108,16 @@ export function Footer({ onNavigate }: FooterProps) {
               <li>
                 <button
                   type="button"
+                  onClick={() => handleGameClick("scaleGuessLeaderboard")}
+                  className="hover:text-primary transition-colors flex items-center gap-1.5 cursor-pointer text-left pl-2.5 text-[11px] text-muted-foreground"
+                >
+                  <Trophy className="w-3 h-3 text-amber-400" />
+                  <span>ScaleGuess Hall of Fame</span>
+                </button>
+              </li>
+              <li>
+                <button
+                  type="button"
                   onClick={() => handleGameClick("notColorBlind")}
                   className="hover:text-primary transition-colors flex items-center gap-1.5 cursor-pointer text-left"
                 >
@@ -106,14 +128,11 @@ export function Footer({ onNavigate }: FooterProps) {
               <li>
                 <button
                   type="button"
-                  onClick={() => handleGameClick("leaderboard")}
-                  className="hover:text-primary transition-colors flex items-center gap-1.5 cursor-pointer text-left"
+                  onClick={() => handleGameClick("notColorBlindLeaderboard")}
+                  className="hover:text-primary transition-colors flex items-center gap-1.5 cursor-pointer text-left pl-2.5 text-[11px] text-muted-foreground"
                 >
-                  <Trophy className="w-3 h-3 text-primary" />
-                  <span>Hall of Fame</span>
-                  <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-primary/10 text-primary border border-primary/20">
-                    Top 10
-                  </span>
+                  <Trophy className="w-3 h-3 text-amber-400" />
+                  <span>Not Color Blind Rankings</span>
                 </button>
               </li>
               <li className="flex items-center gap-1.5 text-muted-foreground/60">

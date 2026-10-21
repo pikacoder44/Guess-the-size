@@ -14,12 +14,25 @@ export function HomePage({ onNavigate }: HomePageProps) {
   const [showLeaderboard, setShowLeaderboard] = useState(false);
 
   const handleCardNavigate = (href: string) => {
-    if (href === "/scaleGuess" || href === "/scaleguess") {
+    if (href === "/games/scale-guess" || href === "/scaleGuess" || href === "/scaleguess") {
       onNavigate("scaleGuess");
-    } else if (href === "/notColorBlind" || href === "/notcolorblind") {
+    } else if (
+      href === "/games/not-color-blind" ||
+      href === "/notColorBlind" ||
+      href === "/notcolorblind"
+    ) {
       onNavigate("notColorBlind");
-    } else if (href === "/leaderboard") {
-      onNavigate("leaderboard");
+    } else if (
+      href === "/games/scale-guess/leaderboard" ||
+      href === "/leaderboard" ||
+      href === "/scaleguess/leaderboard"
+    ) {
+      onNavigate("scaleGuessLeaderboard");
+    } else if (
+      href === "/games/not-color-blind/leaderboard" ||
+      href === "/notcolorblind/leaderboard"
+    ) {
+      onNavigate("notColorBlindLeaderboard");
     } else if (href === "/login") {
       onNavigate("login");
     } else if (href === "/register") {
@@ -44,7 +57,7 @@ export function HomePage({ onNavigate }: HomePageProps) {
         <button
           type="button"
           id="open-leaderboard-btn"
-          onClick={() => onNavigate("leaderboard")}
+          onClick={() => onNavigate("scaleGuessLeaderboard")}
           className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-secondary/80 hover:bg-secondary border border-border text-xs font-medium text-muted-foreground hover:text-foreground transition-colors cursor-pointer group"
         >
           <Trophy className="w-3.5 h-3.5 text-primary group-hover:scale-105 transition-transform" />

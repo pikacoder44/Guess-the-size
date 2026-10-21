@@ -25,7 +25,7 @@ export const GAMES: GameCardData[] = [
     accentColor: "oklch(0.82 0.15 75)", // Radiant amber/gold
     accentGlow: "oklch(0.82 0.15 75 / 0.25)",
     badge: "Live",
-    href: "/scaleGuess",
+    href: "/games/scale-guess",
     available: true,
     icon: (
       <svg
@@ -57,7 +57,7 @@ export const GAMES: GameCardData[] = [
     accentColor: "oklch(0.72 0.18 270)", // Cyber violet / chromatic
     accentGlow: "oklch(0.72 0.18 270 / 0.25)",
     badge: "Live",
-    href: "/notColorBlind",
+    href: "/games/not-color-blind",
     available: true,
     icon: (
       <svg

@@ -3,11 +3,11 @@ import { useAuth } from "@/context/AuthContext";
 import { AuthModal } from "@/components/auth/AuthModal";
 import { AuthPage } from "@/components/auth/AuthPage";
 import { HomePage } from "@/pages/HomePage";
-import { ScaleGuessPage } from "@/pages/ScaleGuessPage";
-import { NotColorBlindPage } from "@/pages/NotColorBlindPage";
+import { ScaleGuessPage } from "@/games/scale-guess/ScaleGuessPage";
+import { ScaleGuessLeaderboardPage } from "@/games/scale-guess/ScaleGuessLeaderboardPage";
+import { NotColorBlindPage } from "@/games/not-color-blind/NotColorBlindPage";
+import { NotColorBlindLeaderboardPage } from "@/games/not-color-blind/NotColorBlindLeaderboardPage";
 import { ProfilePage } from "@/pages/ProfilePage";
-import { LeaderboardPage } from "@/pages/LeaderboardPage";
-import { NotColorBlindLeaderboardPage } from "@/pages/NotColorBlindLeaderboardPage";
 import { Footer } from "@/components/home/Footer";
 import { PublicProfilePage } from "@/pages/PublicProfilePage";
 import { LogIn, UserPlus, LogOut, Brain, Settings, Trophy } from "lucide-react";
@@ -15,12 +15,13 @@ import { LogIn, UserPlus, LogOut, Brain, Settings, Trophy } from "lucide-react";
 export type AppRoute =
   | "home"
   | "scaleGuess"
+  | "scaleGuessLeaderboard"
   | "notColorBlind"
+  | "notColorBlindLeaderboard"
   | "login"
   | "register"
   | "profile"
   | "leaderboard"
-  | "notColorBlindLeaderboard"
   | "publicProfile";
 
 interface RouteState {
@@ -30,12 +31,25 @@ interface RouteState {
 
 function getRouteInfoFromPath(pathname: string): RouteState {
   const path = pathname.toLowerCase().replace(/\/+$/, "");
-  if (path === "/scaleguess") return { route: "scaleGuess" };
-  if (path === "/games/not-color-blind/leaderboard" || path === "/notcolorblind/leaderboard") {
+  if (
+    path === "/games/scale-guess/leaderboard" ||
+    path === "/scaleguess/leaderboard" ||
+    path === "/leaderboard"
+  ) {
+    return { route: "scaleGuessLeaderboard" };
+  }
+  if (path === "/games/scale-guess" || path === "/scaleguess") {
+    return { route: "scaleGuess" };
+  }
+  if (
+    path === "/games/not-color-blind/leaderboard" ||
+    path === "/notcolorblind/leaderboard"
+  ) {
     return { route: "notColorBlindLeaderboard" };
   }
-  if (path === "/notcolorblind" || path === "/games/not-color-blind") return { route: "notColorBlind" };
-  if (path === "/leaderboard") return { route: "leaderboard" };
+  if (path === "/games/not-color-blind" || path === "/notcolorblind") {
+    return { route: "notColorBlind" };
+  }
   if (path === "/login") return { route: "login" };
   if (path === "/register") return { route: "register" };
   if (path === "/profile") return { route: "profile" };
@@ -77,19 +91,21 @@ export function App() {
       return;
     }
 
-    setRouteState({ route });
+    const canonicalRoute = route === "leaderboard" ? "scaleGuessLeaderboard" : route;
+    setRouteState({ route: canonicalRoute });
+
     const targetPath =
-      route === "home"
+      canonicalRoute === "home"
         ? "/"
-        : route === "scaleGuess"
-        ? "/scaleGuess"
-        : route === "notColorBlind"
-        ? "/notColorBlind"
-        : route === "notColorBlindLeaderboard"
+        : canonicalRoute === "scaleGuess"
+        ? "/games/scale-guess"
+        : canonicalRoute === "scaleGuessLeaderboard"
+        ? "/games/scale-guess/leaderboard"
+        : canonicalRoute === "notColorBlind"
+        ? "/games/not-color-blind"
+        : canonicalRoute === "notColorBlindLeaderboard"
         ? "/games/not-color-blind/leaderboard"
-        : route === "leaderboard"
-        ? "/leaderboard"
-        : `/${route}`;
+        : `/${canonicalRoute}`;
 
     if (window.location.pathname !== targetPath) {
       history.pushState(null, "", targetPath);
@@ -120,9 +136,9 @@ export function App() {
           {/* Leaderboard nav link in topbar */}
           <button
             type="button"
-            onClick={() => navigateTo("leaderboard")}
+            onClick={() => navigateTo("scaleGuessLeaderboard")}
             className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
-              currentRoute === "leaderboard"
+              currentRoute === "scaleGuessLeaderboard" || currentRoute === "leaderboard"
                 ? "bg-primary/15 text-primary border border-primary/30"
                 : "text-muted-foreground hover:text-foreground hover:bg-secondary/70 border border-transparent"
             }`}
@@ -182,7 +198,14 @@ export function App() {
               <button
                 type="button"
                 onClick={() => {
-                  if (currentRoute === "home" || currentRoute === "scaleGuess" || currentRoute === "notColorBlind" || currentRoute === "leaderboard") {
+                  if (
+                    currentRoute === "home" ||
+                    currentRoute === "scaleGuess" ||
+                    currentRoute === "notColorBlind" ||
+                    currentRoute === "scaleGuessLeaderboard" ||
+                    currentRoute === "notColorBlindLeaderboard" ||
+                    currentRoute === "leaderboard"
+                  ) {
                     openLogin();
                   } else {
                     navigateTo("login");
@@ -196,7 +219,14 @@ export function App() {
               <button
                 type="button"
                 onClick={() => {
-                  if (currentRoute === "home" || currentRoute === "scaleGuess" || currentRoute === "notColorBlind" || currentRoute === "leaderboard") {
+                  if (
+                    currentRoute === "home" ||
+                    currentRoute === "scaleGuess" ||
+                    currentRoute === "notColorBlind" ||
+                    currentRoute === "scaleGuessLeaderboard" ||
+                    currentRoute === "notColorBlindLeaderboard" ||
+                    currentRoute === "leaderboard"
+                  ) {
                     openRegister();
                   } else {
                     navigateTo("register");
@@ -237,7 +267,13 @@ export function App() {
       ) : currentRoute === "scaleGuess" ? (
         <ScaleGuessPage
           onBackToHome={() => navigateTo("home")}
-          onNavigateLeaderboard={() => navigateTo("leaderboard")}
+          onNavigateLeaderboard={() => navigateTo("scaleGuessLeaderboard")}
+        />
+      ) : currentRoute === "scaleGuessLeaderboard" || currentRoute === "leaderboard" ? (
+        <ScaleGuessLeaderboardPage
+          onNavigate={navigateTo}
+          onBackToGame={() => navigateTo("scaleGuess")}
+          onOpenLogin={openLogin}
         />
       ) : currentRoute === "notColorBlind" ? (
         <NotColorBlindPage
@@ -254,14 +290,8 @@ export function App() {
         <PublicProfilePage
           key={String(publicProfileIdentifier || 1)}
           identifier={publicProfileIdentifier || 1}
-          onBackToLeaderboard={() => navigateTo("leaderboard")}
+          onBackToLeaderboard={() => navigateTo("scaleGuessLeaderboard")}
           onNavigateToSelfSettings={() => navigateTo("profile")}
-        />
-      ) : currentRoute === "leaderboard" ? (
-        <LeaderboardPage
-          onNavigate={navigateTo}
-          onBackToGame={() => navigateTo("scaleGuess")}
-          onOpenLogin={openLogin}
         />
       ) : (
         <HomePage onNavigate={navigateTo} />
