@@ -2,6 +2,7 @@ import { Pool } from 'pg';
 import dotenv from 'dotenv';
 import path from 'node:path';
 import fs from 'node:fs';
+import crypto from 'node:crypto';
 
 dotenv.config();
 dotenv.config({ path: path.resolve(__dirname, '../.env') });
@@ -870,7 +871,31 @@ export async function initDb(): Promise<void> {
     CREATE INDEX IF NOT EXISTS puzzles_puzzle_type_idx ON puzzles (puzzle_type);
   `);
 
-  // 5. Seed initial puzzle items and pairings if table is empty
+  // 5. Not Color Blind game scores
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS not_color_blind_scores (
+      id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+      user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+      player_name TEXT NOT NULL DEFAULT 'Anonymous',
+      score INT NOT NULL CHECK (score >= 0 AND score <= 100),
+      target_hsb JSONB NOT NULL,
+      predicted_hsb JSONB NOT NULL,
+      time_taken_seconds NUMERIC(5, 2) NOT NULL,
+      created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
+    );
+  `);
+
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_ncb_scores_leaderboard 
+      ON not_color_blind_scores (score DESC, time_taken_seconds ASC, created_at ASC);
+  `);
+
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_ncb_scores_user 
+      ON not_color_blind_scores (user_id);
+  `);
+
+  // 6. Seed initial puzzle items and pairings if table is empty
   try {
     const { rows: existingRows } = await pool.query('SELECT count(*)::int as count FROM puzzle_items');
     const count = Number(existingRows?.[0]?.count ?? 0);
@@ -947,6 +972,228 @@ export async function initDb(): Promise<void> {
   }
 
   console.log(`✅ Database tables & indexes verified (${isUsingMemoryStore ? 'In-Memory Mock' : 'Supabase PostgreSQL'}).`);
+}
+
+// ---------------------------------------------------------------------------
+// Not Color Blind Query Methods & In-Memory Store
+// ---------------------------------------------------------------------------
+
+export interface HsbColor {
+  h: number;
+  s: number;
+  b: number;
+}
+
+export interface NotColorBlindScoreRecord {
+  id: string;
+  user_id: string | null;
+  player_name: string;
+  score: number;
+  target_hsb: HsbColor;
+  predicted_hsb: HsbColor;
+  time_taken_seconds: number;
+  created_at: string;
+}
+
+export interface SaveNotColorBlindScoreInput {
+  userId?: string | null;
+  playerName?: string;
+  score: number;
+  targetHsb: HsbColor;
+  predictedHsb: HsbColor;
+  timeTakenSeconds: number;
+}
+
+const memoryNotColorBlindScores: NotColorBlindScoreRecord[] = [
+  {
+    id: 'a1111111-1111-4111-8111-111111111111',
+    user_id: null,
+    player_name: 'ChromaMaster',
+    score: 98,
+    target_hsb: { h: 210, s: 85, b: 90 },
+    predicted_hsb: { h: 211, s: 84, b: 89 },
+    time_taken_seconds: 3.42,
+    created_at: new Date(Date.now() - 3600000 * 2).toISOString(),
+  },
+  {
+    id: 'b2222222-2222-4222-8222-222222222222',
+    user_id: null,
+    player_name: 'SpectrumAce',
+    score: 95,
+    target_hsb: { h: 340, s: 75, b: 80 },
+    predicted_hsb: { h: 338, s: 76, b: 82 },
+    time_taken_seconds: 4.15,
+    created_at: new Date(Date.now() - 3600000 * 4).toISOString(),
+  },
+  {
+    id: 'c3333333-3333-4333-8333-333333333333',
+    user_id: null,
+    player_name: 'HueNinja',
+    score: 92,
+    target_hsb: { h: 120, s: 60, b: 70 },
+    predicted_hsb: { h: 124, s: 58, b: 72 },
+    time_taken_seconds: 5.01,
+    created_at: new Date(Date.now() - 3600000 * 8).toISOString(),
+  },
+];
+
+export async function saveNotColorBlindScore(
+  scoreData: SaveNotColorBlindScoreInput
+): Promise<NotColorBlindScoreRecord> {
+  const isUuid = Boolean(
+    scoreData.userId &&
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(scoreData.userId)
+  );
+  const userId = isUuid ? scoreData.userId! : null;
+  const playerName = scoreData.playerName?.trim() || 'Anonymous';
+  const timeTaken = Number(Number(scoreData.timeTakenSeconds).toFixed(2));
+  const score = Math.round(scoreData.score);
+
+  if (isUsingMemoryStore) {
+    const record: NotColorBlindScoreRecord = {
+      id: crypto.randomUUID(),
+      user_id: userId,
+      player_name: playerName,
+      score,
+      target_hsb: scoreData.targetHsb,
+      predicted_hsb: scoreData.predictedHsb,
+      time_taken_seconds: timeTaken,
+      created_at: new Date().toISOString(),
+    };
+    memoryNotColorBlindScores.push(record);
+    return record;
+  }
+
+  try {
+    const { rows } = await pool.query(
+      `INSERT INTO public.not_color_blind_scores (
+         user_id, player_name, score, target_hsb, predicted_hsb, time_taken_seconds
+       ) VALUES ($1, $2, $3, $4, $5, $6)
+       RETURNING id, user_id, player_name, score, target_hsb, predicted_hsb, time_taken_seconds, created_at`,
+      [
+        userId,
+        playerName,
+        score,
+        JSON.stringify(scoreData.targetHsb),
+        JSON.stringify(scoreData.predictedHsb),
+        timeTaken,
+      ]
+    );
+
+    const row = rows[0];
+    return {
+      id: row.id,
+      user_id: row.user_id,
+      player_name: row.player_name,
+      score: row.score,
+      target_hsb: typeof row.target_hsb === 'string' ? JSON.parse(row.target_hsb) : row.target_hsb,
+      predicted_hsb: typeof row.predicted_hsb === 'string' ? JSON.parse(row.predicted_hsb) : row.predicted_hsb,
+      time_taken_seconds: Number(row.time_taken_seconds),
+      created_at: row.created_at,
+    };
+  } catch (err) {
+    console.warn('PostgreSQL saveNotColorBlindScore failed, falling back to memory store:', (err as Error).message);
+    const fallbackRecord: NotColorBlindScoreRecord = {
+      id: crypto.randomUUID(),
+      user_id: userId,
+      player_name: playerName,
+      score,
+      target_hsb: scoreData.targetHsb,
+      predicted_hsb: scoreData.predictedHsb,
+      time_taken_seconds: timeTaken,
+      created_at: new Date().toISOString(),
+    };
+    memoryNotColorBlindScores.push(fallbackRecord);
+    return fallbackRecord;
+  }
+}
+
+export async function getNotColorBlindLeaderboard(
+  limit = 50
+): Promise<NotColorBlindScoreRecord[]> {
+  const safeLimit = Math.max(1, Math.min(limit, 100));
+
+  if (isUsingMemoryStore) {
+    return [...memoryNotColorBlindScores]
+      .sort((a, b) => {
+        if (b.score !== a.score) return b.score - a.score;
+        if (a.time_taken_seconds !== b.time_taken_seconds) return a.time_taken_seconds - b.time_taken_seconds;
+        return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+      })
+      .slice(0, safeLimit);
+  }
+
+  try {
+    const { rows } = await pool.query(
+      `SELECT id, user_id, player_name, score, target_hsb, predicted_hsb, time_taken_seconds, created_at
+       FROM public.not_color_blind_scores
+       ORDER BY score DESC, time_taken_seconds ASC, created_at ASC
+       LIMIT $1`,
+      [safeLimit]
+    );
+
+    return rows.map((row) => ({
+      id: row.id,
+      user_id: row.user_id,
+      player_name: row.player_name,
+      score: row.score,
+      target_hsb: typeof row.target_hsb === 'string' ? JSON.parse(row.target_hsb) : row.target_hsb,
+      predicted_hsb: typeof row.predicted_hsb === 'string' ? JSON.parse(row.predicted_hsb) : row.predicted_hsb,
+      time_taken_seconds: Number(row.time_taken_seconds),
+      created_at: row.created_at,
+    }));
+  } catch (err) {
+    console.warn('PostgreSQL getNotColorBlindLeaderboard failed, falling back to memory store:', (err as Error).message);
+    return [...memoryNotColorBlindScores]
+      .sort((a, b) => {
+        if (b.score !== a.score) return b.score - a.score;
+        if (a.time_taken_seconds !== b.time_taken_seconds) return a.time_taken_seconds - b.time_taken_seconds;
+        return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+      })
+      .slice(0, safeLimit);
+  }
+}
+
+export async function getUserNotColorBlindScores(
+  userId: string,
+  limit = 10
+): Promise<NotColorBlindScoreRecord[]> {
+  const safeLimit = Math.max(1, Math.min(limit, 100));
+
+  if (isUsingMemoryStore) {
+    return memoryNotColorBlindScores
+      .filter((s) => s.user_id === userId)
+      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+      .slice(0, safeLimit);
+  }
+
+  try {
+    const { rows } = await pool.query(
+      `SELECT id, user_id, player_name, score, target_hsb, predicted_hsb, time_taken_seconds, created_at
+       FROM public.not_color_blind_scores
+       WHERE user_id = $1
+       ORDER BY created_at DESC
+       LIMIT $2`,
+      [userId, safeLimit]
+    );
+
+    return rows.map((row) => ({
+      id: row.id,
+      user_id: row.user_id,
+      player_name: row.player_name,
+      score: row.score,
+      target_hsb: typeof row.target_hsb === 'string' ? JSON.parse(row.target_hsb) : row.target_hsb,
+      predicted_hsb: typeof row.predicted_hsb === 'string' ? JSON.parse(row.predicted_hsb) : row.predicted_hsb,
+      time_taken_seconds: Number(row.time_taken_seconds),
+      created_at: row.created_at,
+    }));
+  } catch (err) {
+    console.warn('PostgreSQL getUserNotColorBlindScores failed, falling back to memory store:', (err as Error).message);
+    return memoryNotColorBlindScores
+      .filter((s) => s.user_id === userId)
+      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+      .slice(0, safeLimit);
+  }
 }
 
 export default pool;
