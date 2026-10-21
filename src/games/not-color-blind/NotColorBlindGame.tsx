@@ -54,6 +54,7 @@ export function NotColorBlindGame({
   // Active round state
   const [phase, setPhase] = useState<GamePhase>("IDLE");
   const [targetColor, setTargetColor] = useState<ColorHSB | null>(null);
+  const activeTargetColorRef = useRef<ColorHSB | null>(null);
   const [prediction, setPrediction] = useState<ColorHSB>(() => randomPredictionHsb());
   const [memorizeRemainingMs, setMemorizeRemainingMs] = useState(MEMORIZE_DURATION_MS);
   const [recallSeconds, setRecallSeconds] = useState(RECALL_DURATION_SECONDS);
@@ -79,7 +80,8 @@ export function NotColorBlindGame({
 
   // Start Game: Closes instruction modal, generates first target, begins Phase 1 (MEMORIZE)
   const handleStartGame = useCallback(() => {
-    const firstTarget = randomTargetHsb();
+    const firstTarget = Object.freeze(randomTargetHsb());
+    activeTargetColorRef.current = firstTarget;
     setTargetColor(firstTarget);
     setPrediction(randomPredictionHsb());
     setMemorizeRemainingMs(MEMORIZE_DURATION_MS);
@@ -177,7 +179,8 @@ export function NotColorBlindGame({
 
   // Lock in guess and transition to ROUND_RESULT phase
   const handleLockIn = useCallback(() => {
-    if (phase !== "RECALL" || !targetColor) return;
+    const activeTarget = activeTargetColorRef.current ?? targetColor;
+    if (phase !== "RECALL" || !activeTarget) return;
 
     // Calculate final timeTakenSeconds used during the recall phase
     const elapsedSec =
@@ -187,12 +190,12 @@ export function NotColorBlindGame({
     const finalTime = Math.max(0.1, Number(elapsedSec.toFixed(2)));
     setTimeTakenSeconds(finalTime);
 
-    const scoreBreakdown = calculateColorScore(targetColor, prediction);
+    const scoreBreakdown = calculateColorScore(activeTarget, prediction);
     setRoundResult(scoreBreakdown);
 
     const newRoundRecord: NotColorBlindRoundRecord = {
       round: currentRound,
-      targetHsb: targetColor,
+      targetHsb: activeTarget,
       predictedHsb: prediction,
       score: scoreBreakdown.score,
       scoreBreakdown,
@@ -223,7 +226,8 @@ export function NotColorBlindGame({
   const handleNextRound = useCallback(() => {
     if (currentRound >= TOTAL_ROUNDS) return;
 
-    const nextTarget = randomTargetHsb();
+    const nextTarget = Object.freeze(randomTargetHsb());
+    activeTargetColorRef.current = nextTarget;
     setCurrentRound((prev) => prev + 1);
     setTargetColor(nextTarget);
     setPrediction(randomPredictionHsb());
@@ -246,7 +250,8 @@ export function NotColorBlindGame({
     setRoundScores([]);
     setRounds([]);
     setTotalScore(0);
-    const newTarget = randomTargetHsb();
+    const newTarget = Object.freeze(randomTargetHsb());
+    activeTargetColorRef.current = newTarget;
     setTargetColor(newTarget);
     setPrediction(randomPredictionHsb());
     setMemorizeRemainingMs(MEMORIZE_DURATION_MS);
@@ -263,6 +268,11 @@ export function NotColorBlindGame({
     setPhase("MEMORIZE");
   }, []);
 
+  const handleLockInRef = useRef(handleLockIn);
+  useEffect(() => {
+    handleLockInRef.current = handleLockIn;
+  });
+
   // 1-Minute Recall Timer (auto-locks in when expired)
   useEffect(() => {
     if (phase !== "RECALL") return;
@@ -271,7 +281,7 @@ export function NotColorBlindGame({
       setRecallSeconds((prev) => {
         if (prev <= 1) {
           clearInterval(timer);
-          handleLockIn();
+          handleLockInRef.current();
           return 0;
         }
         return prev - 1;
@@ -279,7 +289,7 @@ export function NotColorBlindGame({
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [phase, handleLockIn]);
+  }, [phase]);
 
   // Keyboard shortcuts (Enter to Start / Lock In / Advance / Play Again, Escape to Back)
   useEffect(() => {
@@ -291,7 +301,7 @@ export function NotColorBlindGame({
         } else if (phase === "RECALL") {
           e.preventDefault();
           handleLockIn();
-        } else if (phase === "ROUND_RESULT") {
+        } else if (phase === "ROUND_RESULT" || phase === "RESULT") {
           e.preventDefault();
           if (currentRound < TOTAL_ROUNDS) {
             handleNextRound();
@@ -362,7 +372,7 @@ export function NotColorBlindGame({
       {/* ─────────────────────────────────────────────────────────────
           TOP HUD: Subtle Round Indicator Pill & Match Status
       ───────────────────────────────────────────────────────────── */}
-      {(phase === "MEMORIZE" || phase === "RECALL" || phase === "ROUND_RESULT") && (
+      {(phase === "MEMORIZE" || phase === "RECALL" || phase === "ROUND_RESULT" || phase === "RESULT") && (
         <div className="w-full max-w-xl flex items-center justify-between px-2 mb-3 select-none">
           {/* Round Indicator Pill + Visual Progress Pips */}
           <div className="flex items-center gap-2 sm:gap-3">
@@ -395,7 +405,7 @@ export function NotColorBlindGame({
             </div>
 
             {/* Running Total Match Score (Shown after round 1) */}
-            {roundScores.length > 0 && phase !== "ROUND_RESULT" && (
+            {roundScores.length > 0 && phase !== "ROUND_RESULT" && phase !== "RESULT" && (
               <div className="hidden sm:inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-mono bg-primary/10 text-primary border border-primary/20">
                 <span className="text-muted-foreground text-[10px] uppercase font-semibold">Score:</span>
                 <span className="font-extrabold">{totalScore}</span>
@@ -503,6 +513,17 @@ export function NotColorBlindGame({
             className="w-full h-80 sm:h-96 rounded-3xl shadow-[0_20px_60px_rgba(0,0,0,0.6)] border border-white/15 relative overflow-hidden flex flex-col justify-between p-6 sm:p-8 transition-all duration-300"
             style={{ backgroundColor: hsbToCss(targetColor) }}
           >
+            {/* Top-Left: Hex value with dynamic contrast */}
+            <div className="flex justify-start">
+              <span
+                className={`font-mono text-sm sm:text-base font-bold tracking-wider select-none ${
+                  targetIsLight ? "text-neutral-950" : "text-white"
+                }`}
+              >
+                {hsbToHex(targetColor)}
+              </span>
+            </div>
+
             {/* Top-Right Precision Countdown: Seamless 3-digit Timer */}
             <div className="absolute top-6 right-6 sm:top-8 sm:right-8 flex flex-col items-end select-none">
               <div
@@ -535,6 +556,15 @@ export function NotColorBlindGame({
               >
                 seconds to remember
               </span>
+            </div>
+
+            {/* Bottom: HSB readout with dynamic contrast */}
+            <div
+              className={`font-mono text-xs sm:text-sm font-semibold tracking-tight select-none ${
+                targetIsLight ? "text-neutral-950/80" : "text-white/80"
+              }`}
+            >
+              H: {targetColor.h}° &nbsp; S: {targetColor.s}% &nbsp; B: {targetColor.b}%
             </div>
           </div>
         </div>
@@ -619,7 +649,7 @@ export function NotColorBlindGame({
       {/* ─────────────────────────────────────────────────────────────
           PHASE 3: ROUND RESULT CARD (Current Round Score + Next Round / Final CTA)
       ───────────────────────────────────────────────────────────── */}
-      {phase === "ROUND_RESULT" && roundResult && targetColor && (
+      {(phase === "ROUND_RESULT" || phase === "RESULT") && roundResult && targetColor && (
         <div className="w-full max-w-lg flex flex-col items-center gap-5 py-1">
           {/* Running Match Progress Pill */}
           <div className="w-full flex items-center justify-between px-1 text-xs font-mono text-muted-foreground">
