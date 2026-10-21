@@ -208,9 +208,124 @@ export async function submitNotColorBlindScore(
   }
 }
 
+export const FALLBACK_NOT_COLOR_BLIND_CHAMPIONS: NotColorBlindScoreRecord[] = [
+  {
+    id: "ncb-champ-1",
+    user_id: "901",
+    player_name: "SpectrumSage",
+    score: 98,
+    target_hsb: { h: 214, s: 78, b: 92 },
+    predicted_hsb: { h: 215, s: 76, b: 91 },
+    time_taken_seconds: 2.84,
+    created_at: new Date(Date.now() - 3600000 * 2).toISOString(),
+  },
+  {
+    id: "ncb-champ-2",
+    user_id: "902",
+    player_name: "ChromaNinja",
+    score: 96,
+    target_hsb: { h: 48, s: 82, b: 95 },
+    predicted_hsb: { h: 46, s: 80, b: 93 },
+    time_taken_seconds: 3.12,
+    created_at: new Date(Date.now() - 3600000 * 5).toISOString(),
+  },
+  {
+    id: "ncb-champ-3",
+    user_id: "903",
+    player_name: "PrismaVision",
+    score: 93,
+    target_hsb: { h: 334, s: 70, b: 88 },
+    predicted_hsb: { h: 338, s: 68, b: 85 },
+    time_taken_seconds: 3.65,
+    created_at: new Date(Date.now() - 3600000 * 9).toISOString(),
+  },
+  {
+    id: "ncb-champ-4",
+    user_id: "904",
+    player_name: "HueWhisperer",
+    score: 89,
+    target_hsb: { h: 165, s: 64, b: 82 },
+    predicted_hsb: { h: 171, s: 61, b: 80 },
+    time_taken_seconds: 4.10,
+    created_at: new Date(Date.now() - 3600000 * 14).toISOString(),
+  },
+  {
+    id: "ncb-champ-5",
+    user_id: "905",
+    player_name: "RetinalMaster",
+    score: 86,
+    target_hsb: { h: 275, s: 58, b: 76 },
+    predicted_hsb: { h: 281, s: 55, b: 77 },
+    time_taken_seconds: 4.45,
+    created_at: new Date(Date.now() - 3600000 * 20).toISOString(),
+  },
+  {
+    id: "ncb-champ-6",
+    user_id: "906",
+    player_name: "OpticAce",
+    score: 84,
+    target_hsb: { h: 92, s: 85, b: 74 },
+    predicted_hsb: { h: 99, s: 80, b: 72 },
+    time_taken_seconds: 4.90,
+    created_at: new Date(Date.now() - 3600000 * 28).toISOString(),
+  },
+  {
+    id: "ncb-champ-7",
+    user_id: "907",
+    player_name: "TintTuner",
+    score: 81,
+    target_hsb: { h: 18, s: 92, b: 85 },
+    predicted_hsb: { h: 26, s: 86, b: 82 },
+    time_taken_seconds: 5.25,
+    created_at: new Date(Date.now() - 3600000 * 36).toISOString(),
+  },
+  {
+    id: "ncb-champ-8",
+    user_id: "908",
+    player_name: "ShadeShifter",
+    score: 78,
+    target_hsb: { h: 198, s: 52, b: 96 },
+    predicted_hsb: { h: 210, s: 47, b: 91 },
+    time_taken_seconds: 5.60,
+    created_at: new Date(Date.now() - 3600000 * 44).toISOString(),
+  },
+  {
+    id: "ncb-champ-9",
+    user_id: "909",
+    player_name: "ToneTracker",
+    score: 74,
+    target_hsb: { h: 312, s: 62, b: 68 },
+    predicted_hsb: { h: 325, s: 55, b: 70 },
+    time_taken_seconds: 6.10,
+    created_at: new Date(Date.now() - 3600000 * 52).toISOString(),
+  },
+  {
+    id: "ncb-champ-10",
+    user_id: "910",
+    player_name: "ColorCraft",
+    score: 70,
+    target_hsb: { h: 122, s: 76, b: 86 },
+    predicted_hsb: { h: 138, s: 69, b: 81 },
+    time_taken_seconds: 6.80,
+    created_at: new Date(Date.now() - 3600000 * 64).toISOString(),
+  },
+];
+
+/**
+ * Sort entries by Score DESC, then Time ASC.
+ */
+export function sortNotColorBlindEntries(
+  items: NotColorBlindScoreRecord[]
+): NotColorBlindScoreRecord[] {
+  return [...items].sort((a, b) => {
+    if (b.score !== a.score) return b.score - a.score;
+    return a.time_taken_seconds - b.time_taken_seconds;
+  });
+}
+
 /**
  * Fetch top entries from GET /api/scores/not-color-blind/leaderboard.
- * Falls back to locally recorded scores if offline.
+ * Falls back to locally recorded scores and seeded champions if empty or offline.
  */
 export async function fetchNotColorBlindLeaderboard(
   limit = 50
@@ -227,25 +342,127 @@ export async function fetchNotColorBlindLeaderboard(
       ? data.leaderboard
       : [];
 
+    const local = getLocalNotColorBlindScores();
+    const seenIds = new Set<string>(serverEntries.map((e) => e.id));
+    const merged = [...serverEntries];
+
+    for (const loc of local) {
+      if (!seenIds.has(loc.id)) {
+        seenIds.add(loc.id);
+        merged.push(loc);
+      }
+    }
+
+    if (merged.length < 10) {
+      for (const champ of FALLBACK_NOT_COLOR_BLIND_CHAMPIONS) {
+        if (!seenIds.has(champ.id)) {
+          seenIds.add(champ.id);
+          merged.push(champ);
+        }
+      }
+    }
+
+    const sorted = sortNotColorBlindEntries(merged).slice(0, safeLimit);
+
     return {
       success: true,
-      leaderboard: serverEntries,
+      leaderboard: sorted,
     };
   } catch (err: unknown) {
     console.warn("Not Color Blind: Leaderboard fetch failed, using local store:", err);
 
-    // Fallback: load local scores and sort deterministically
     const local = getLocalNotColorBlindScores();
-    const sorted = [...local]
-      .sort((a, b) => {
-        if (b.score !== a.score) return b.score - a.score;
-        return a.time_taken_seconds - b.time_taken_seconds;
-      })
-      .slice(0, safeLimit);
+    const seenIds = new Set<string>(local.map((e) => e.id));
+    const merged = [...local];
+
+    for (const champ of FALLBACK_NOT_COLOR_BLIND_CHAMPIONS) {
+      if (!seenIds.has(champ.id)) {
+        seenIds.add(champ.id);
+        merged.push(champ);
+      }
+    }
+
+    const sorted = sortNotColorBlindEntries(merged).slice(0, safeLimit);
 
     return {
       success: true,
       leaderboard: sorted,
     };
   }
+}
+
+export interface UserNotColorBlindStats {
+  gamesPlayed: number;
+  bestScore: number;
+  averageAccuracy: number;
+  recentScores: NotColorBlindScoreRecord[];
+}
+
+/**
+ * Fetch scores for a specific user ID, combining remote records and local storage.
+ */
+export async function fetchUserNotColorBlindScores(
+  userId?: string | null,
+  limit = 50
+): Promise<NotColorBlindScoreRecord[]> {
+  const localScores = getLocalNotColorBlindScores();
+  let serverScores: NotColorBlindScoreRecord[] = [];
+
+  if (userId) {
+    try {
+      const res = await fetch(
+        `${API_BASE}/api/scores/not-color-blind/user/${encodeURIComponent(userId)}?limit=${limit}`
+      );
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data.scores)) {
+          serverScores = data.scores;
+        }
+      }
+    } catch {
+      // Ignore network errors, fall back to local
+    }
+  }
+
+  const seen = new Set<string>();
+  const combined: NotColorBlindScoreRecord[] = [];
+  for (const item of [...serverScores, ...localScores]) {
+    if (!seen.has(item.id)) {
+      seen.add(item.id);
+      combined.push(item);
+    }
+  }
+
+  return combined.sort(
+    (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+  );
+}
+
+/**
+ * Compute user stats for Not Color Blind (games played, high score, average recall accuracy).
+ */
+export async function getUserNotColorBlindStats(
+  userId?: string | null
+): Promise<UserNotColorBlindStats> {
+  const scores = await fetchUserNotColorBlindScores(userId, 100);
+  const storedBest = getNotColorBlindPersonalBest();
+
+  const gamesPlayed = scores.length > 0 ? scores.length : storedBest > 0 ? 1 : 0;
+  const bestScore = scores.reduce((max, s) => Math.max(max, s.score), storedBest);
+
+  const averageAccuracy =
+    scores.length > 0
+      ? Number(
+          (scores.reduce((sum, s) => sum + s.score, 0) / scores.length).toFixed(1)
+        )
+      : bestScore > 0
+      ? bestScore
+      : 0;
+
+  return {
+    gamesPlayed,
+    bestScore,
+    averageAccuracy,
+    recentScores: scores.slice(0, 10),
+  };
 }

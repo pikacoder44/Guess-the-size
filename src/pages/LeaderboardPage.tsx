@@ -9,10 +9,20 @@ import {
   LogIn,
   RotateCw,
   ChevronRight,
+  Palette,
+  Ruler,
+  Clock,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { getLeaderboard, getMyScores, type LeaderboardEntry, type UserStats } from "@/lib/scoreApi";
+import {
+  fetchNotColorBlindLeaderboard,
+  type NotColorBlindScoreRecord,
+} from "@/lib/notColorBlindApi";
+import { hsbToCss } from "@/games/not-color-blind/color";
 import type { AppRoute } from "@/App";
+
+export type LeaderboardGameTab = "scaleGuess" | "notColorBlind";
 
 interface LeaderboardPageProps {
   onNavigate: (route: AppRoute, param?: string | number) => void;
@@ -243,7 +253,9 @@ function PlayerAvatar({
 
 export function LeaderboardPage({ onNavigate, onBackToGame, onOpenLogin }: LeaderboardPageProps) {
   const { user, token, isAuthenticated } = useAuth();
+  const [selectedGame, setSelectedGame] = useState<LeaderboardGameTab>("scaleGuess");
   const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
+  const [colorEntries, setColorEntries] = useState<NotColorBlindScoreRecord[]>([]);
   const [myStats, setMyStats] = useState<UserStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -274,72 +286,60 @@ export function LeaderboardPage({ onNavigate, onBackToGame, onOpenLogin }: Leade
     };
   }, []);
 
-  const handleRefresh = useCallback(async () => {
-    setRefreshing(true);
-    try {
-      const [leaderboardRes, statsRes] = await Promise.allSettled([
-        getLeaderboard(),
-        token ? getMyScores(token) : Promise.resolve(null),
-      ]);
+  const loadData = useCallback(async () => {
+    const [leaderboardRes, statsRes, colorRes] = await Promise.allSettled([
+      getLeaderboard(),
+      token ? getMyScores(token) : Promise.resolve(null),
+      fetchNotColorBlindLeaderboard(50),
+    ]);
 
-      if (leaderboardRes.status === "fulfilled" && leaderboardRes.value.leaderboard.length > 0) {
-        setEntries(leaderboardRes.value.leaderboard);
-      } else {
-        setEntries(FALLBACK_CHAMPIONS);
-      }
-
-      if (statsRes.status === "fulfilled" && statsRes.value) {
-        setMyStats(statsRes.value.stats);
-      }
-    } catch {
+    if (leaderboardRes.status === "fulfilled" && leaderboardRes.value.leaderboard.length > 0) {
+      setEntries(leaderboardRes.value.leaderboard);
+    } else {
       setEntries(FALLBACK_CHAMPIONS);
-    } finally {
-      setRefreshing(false);
+    }
+
+    if (statsRes.status === "fulfilled" && statsRes.value) {
+      setMyStats(statsRes.value.stats);
+    }
+
+    if (colorRes.status === "fulfilled" && colorRes.value.leaderboard.length > 0) {
+      setColorEntries(colorRes.value.leaderboard);
     }
   }, [token]);
 
+  const handleRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await loadData();
+    } finally {
+      setRefreshing(false);
+    }
+  }, [loadData]);
+
   useEffect(() => {
     let ignore = false;
-
-    Promise.allSettled([
-      getLeaderboard(),
-      token ? getMyScores(token) : Promise.resolve(null),
-    ]).then(([leaderboardRes, statsRes]) => {
-      if (ignore) return;
-      if (leaderboardRes.status === "fulfilled" && leaderboardRes.value.leaderboard.length > 0) {
-        setEntries(leaderboardRes.value.leaderboard);
-      } else {
-        setEntries(FALLBACK_CHAMPIONS);
-      }
-
-      if (statsRes.status === "fulfilled" && statsRes.value) {
-        setMyStats(statsRes.value.stats);
-      }
-      setLoading(false);
+    loadData().finally(() => {
+      if (!ignore) setLoading(false);
     });
-
     return () => {
       ignore = true;
     };
-  }, [token]);
+  }, [loadData]);
 
   // Helper for numeric leaderboard sorting across 3-tier precision criteria
   const sortLeaderboardEntries = (items: LeaderboardEntry[]): LeaderboardEntry[] => {
     return [...items].sort((a, b) => {
-      // Primary: Higher total score first
       if (b.total_score !== a.total_score) {
         return Number(b.total_score) - Number(a.total_score);
       }
-      // Secondary: Lower average error first
       if (a.average_error !== b.average_error) {
         return Number(a.average_error) - Number(b.average_error);
       }
-      // Tertiary: Faster time first
       return Number(a.elapsed_ms || 999999) - Number(b.elapsed_ms || 999999);
     });
   };
 
-  // Enforce strict numerical sorting whenever merging real API entries with fallback/mock entries
   const sortedAllEntries = (() => {
     const existingUsernames = new Set(entries.map((e) => e.username.toLowerCase()));
     const fillers = FALLBACK_CHAMPIONS.filter(
@@ -350,42 +350,60 @@ export function LeaderboardPage({ onNavigate, onBackToGame, onOpenLogin }: Leade
     return sortLeaderboardEntries(allEntries);
   })();
 
-  const top10 = sortedAllEntries.slice(0, 10);
+  const top10Scale = sortedAllEntries.slice(0, 10);
 
-  // Check if the authenticated user is present in the Top 10 list
-  const userInTop10Index = user
-    ? top10.findIndex(
+  const userInScaleTop10Index = user
+    ? top10Scale.findIndex(
         (entry) =>
           entry.username.toLowerCase() === user.username.toLowerCase() ||
-          (entry.user_id && user.id && Number(entry.user_id) === Number(user.id)),
+          (entry.user_id && user.id && Number(entry.user_id) === Number(user.id))
       )
     : -1;
 
-  const isUserInTop10 = userInTop10Index !== -1;
+  const isUserInScaleTop10 = userInScaleTop10Index !== -1;
 
-  // Check if authenticated user is present in all sorted entries (including beyond top 10)
-  const userInAllIndex = user
+  const userInAllScaleIndex = user
     ? sortedAllEntries.findIndex(
         (entry) =>
           entry.username.toLowerCase() === user.username.toLowerCase() ||
-          (entry.user_id && user.id && Number(entry.user_id) === Number(user.id)),
+          (entry.user_id && user.id && Number(entry.user_id) === Number(user.id))
       )
     : -1;
 
-  // Rank determination for currently logged-in user
-  const currentUserRank: number | null =
-    userInTop10Index !== -1
-      ? userInTop10Index + 1
-      : userInAllIndex !== -1
-        ? userInAllIndex + 1
-        : myStats?.rank ?? (myStats?.bestScore ? 42 : null);
+  const currentScaleUserRank: number | null =
+    userInScaleTop10Index !== -1
+      ? userInScaleTop10Index + 1
+      : userInAllScaleIndex !== -1
+      ? userInAllScaleIndex + 1
+      : myStats?.rank ?? (myStats?.bestScore ? 42 : null);
 
-  const currentUserRankDisplay =
-    currentUserRank !== null ? `#${currentUserRank}` : "Unranked";
+  const currentScaleRankDisplay =
+    currentScaleUserRank !== null ? `#${currentScaleUserRank}` : "Unranked";
+
+  // Not Color Blind user rank
+  const userInColorIndex = user
+    ? colorEntries.findIndex(
+        (entry) =>
+          (entry.user_id && user.id && String(entry.user_id) === String(user.id)) ||
+          entry.player_name.toLowerCase() === user.username.toLowerCase() ||
+          (user.name && entry.player_name.toLowerCase() === user.name.toLowerCase())
+      )
+    : -1;
+
+  const isUserInColorTop10 = userInColorIndex !== -1 && userInColorIndex < 10;
+  const currentColorUserRank = userInColorIndex !== -1 ? userInColorIndex + 1 : null;
+  const currentColorRankDisplay =
+    currentColorUserRank !== null ? `#${currentColorUserRank}` : "Unranked";
 
   const handleRowClick = (entry: LeaderboardEntry) => {
     const identifier = entry.user_id ?? entry.username;
     onNavigate("publicProfile", identifier);
+  };
+
+  const handleColorRowClick = (entry: NotColorBlindScoreRecord) => {
+    if (entry.user_id) {
+      onNavigate("publicProfile", entry.user_id);
+    }
   };
 
   return (
@@ -452,7 +470,9 @@ export function LeaderboardPage({ onNavigate, onBackToGame, onOpenLogin }: Leade
             </h1>
 
             <p className="text-xs sm:text-sm text-muted-foreground mt-1.5 max-w-xl leading-relaxed">
-              Top 10 High Scorers Across All Games · Click any player row to view public profile
+              {selectedGame === "scaleGuess"
+                ? "Top High Scorers in Spatial Scale Estimation · Click any player row to view public profile"
+                : "Top 50 High Scorers in HSB Memory Recall · Ranked by Score & Time"}
             </p>
           </div>
 
@@ -461,252 +481,522 @@ export function LeaderboardPage({ onNavigate, onBackToGame, onOpenLogin }: Leade
               <div className="text-[11px] font-mono text-emerald-400 bg-emerald-950/60 border border-emerald-500/40 px-3 py-1.5 rounded-xl backdrop-blur-md flex items-center gap-1.5 shadow-sm shadow-emerald-950/50">
                 <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
                 <span className="text-muted-foreground">Your Rank:</span>
-                <span className="font-bold text-emerald-300">{currentUserRankDisplay}</span>
+                <span className="font-bold text-emerald-300">
+                  {selectedGame === "scaleGuess" ? currentScaleRankDisplay : currentColorRankDisplay}
+                </span>
               </div>
             )}
             <div className="text-[11px] font-mono text-muted-foreground/75 bg-neutral-900/80 px-3 py-1.5 rounded-xl border border-border/50 backdrop-blur-md hidden sm:block">
-              Click row for profile
+              {selectedGame === "scaleGuess" ? "Click row for profile" : "Live Top 50 Rankings"}
             </div>
           </div>
         </header>
 
-        {/* ── Section B: Top 10 High Scorers Table ── */}
-        <section aria-label="Hall of Fame Top 10" className="relative z-10 flex flex-col gap-3">
-          {/* Desktop Table Header: Rank + Player, Date Recorded, High Score */}
-          <div className="hidden sm:flex items-center justify-between px-4 py-2 text-[10px] font-mono uppercase tracking-wider text-muted-foreground/75 border-b border-border/30">
-            <div className="flex items-center gap-3 min-w-0 flex-1">
-              <span className="w-8 sm:w-9 text-center shrink-0">Rank</span>
-              <span>Player Info</span>
+        {/* ── Game Selector Tab Pills ── */}
+        <div className="relative z-10 flex items-center p-1 rounded-2xl bg-neutral-900/90 border border-border/60 max-w-md w-full backdrop-blur-md shadow-inner">
+          <button
+            type="button"
+            onClick={() => setSelectedGame("scaleGuess")}
+            className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl text-xs font-semibold transition-all duration-200 cursor-pointer ${
+              selectedGame === "scaleGuess"
+                ? "bg-amber-400 text-neutral-950 font-bold shadow-lg shadow-amber-400/20"
+                : "text-muted-foreground hover:text-foreground hover:bg-neutral-800/60"
+            }`}
+          >
+            <Ruler className="w-3.5 h-3.5 shrink-0" />
+            <span>ScaleGuess</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setSelectedGame("notColorBlind")}
+            className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl text-xs font-semibold transition-all duration-200 cursor-pointer ${
+              selectedGame === "notColorBlind"
+                ? "bg-amber-400 text-neutral-950 font-bold shadow-lg shadow-amber-400/20"
+                : "text-muted-foreground hover:text-foreground hover:bg-neutral-800/60"
+            }`}
+          >
+            <Palette className="w-3.5 h-3.5 shrink-0" />
+            <span>Not Color Blind</span>
+          </button>
+        </div>
+
+        {/* ── Section B: Leaderboard Table (ScaleGuess vs Not Color Blind) ── */}
+        {selectedGame === "scaleGuess" ? (
+          <section aria-label="ScaleGuess Top Scorers" className="relative z-10 flex flex-col gap-3">
+            {/* Desktop Table Header */}
+            <div className="hidden sm:flex items-center justify-between px-4 py-2 text-[10px] font-mono uppercase tracking-wider text-muted-foreground/75 border-b border-border/30">
+              <div className="flex items-center gap-3 min-w-0 flex-1">
+                <span className="w-8 sm:w-9 text-center shrink-0">Rank</span>
+                <span>Player Info</span>
+              </div>
+              <div className="w-28 text-center shrink-0">Date Recorded</div>
+              <div className="text-right shrink-0 min-w-32.5">Score · Precision</div>
             </div>
-            <div className="w-28 text-center shrink-0">Date Recorded</div>
-            <div className="text-right shrink-0 min-w-32.5">Score · Precision</div>
-          </div>
 
-          {/* ── Rows List: Top 3 Podium (Visual Flare) + 4-10 (Sleek Flat) ── */}
-          <div className="flex flex-col gap-2.5">
-            {top10.map((entry, idx) => {
-              const rank = idx + 1;
-              const isTop1 = rank === 1;
-              const isTop2 = rank === 2;
-              const isTop3 = rank === 3;
-              const isCurrentUser =
-                user &&
-                ((entry.user_id && user.id && Number(entry.user_id) === Number(user.id)) ||
-                  entry.username.toLowerCase() === user.username.toLowerCase());
+            {/* ScaleGuess Rows */}
+            <div className="flex flex-col gap-2.5">
+              {top10Scale.map((entry, idx) => {
+                const rank = idx + 1;
+                const isTop1 = rank === 1;
+                const isTop2 = rank === 2;
+                const isTop3 = rank === 3;
+                const isCurrentUser =
+                  user &&
+                  ((entry.user_id && user.id && Number(entry.user_id) === Number(user.id)) ||
+                    entry.username.toLowerCase() === user.username.toLowerCase());
 
-              // Podium vs Standard Tier styling
-              let rowStyles = "bg-neutral-900/60 border-border/40 hover:border-border/80 hover:bg-neutral-850/80";
-              let rankBadge = (
-                <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-secondary text-foreground font-mono font-bold flex items-center justify-center text-xs shrink-0 transition-all duration-300 group-hover:scale-110 group-hover:rotate-2 border border-border/60">
-                  #{rank.toString().padStart(2, "0")}
+                let rowStyles = "bg-neutral-900/60 border-border/40 hover:border-border/80 hover:bg-neutral-850/80";
+                let rankBadge = (
+                  <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-secondary text-foreground font-mono font-bold flex items-center justify-center text-xs shrink-0 transition-all duration-300 group-hover:scale-110 border border-border/60">
+                    #{rank.toString().padStart(2, "0")}
+                  </div>
+                );
+                let scoreColor = "text-amber-400";
+                let nameHoverColor = "group-hover:text-amber-300";
+
+                if (isCurrentUser) {
+                  rowStyles = "bg-emerald-950/40 border-emerald-500/50 hover:border-emerald-400";
+                  scoreColor = "text-emerald-400 drop-shadow-[0_0_10px_rgba(52,211,153,0.5)]";
+                  nameHoverColor = "group-hover:text-emerald-300";
+                } else if (isTop1) {
+                  rowStyles = "gold-champion-card bg-linear-to-r from-amber-500/15 via-neutral-900/90 to-amber-950/25 border-amber-400/40 hover:border-amber-400/70";
+                  rankBadge = (
+                    <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-amber-400 text-black font-extrabold flex items-center justify-center text-sm sm:text-base font-mono shadow-md shadow-amber-400/30 shrink-0 transition-all duration-300 group-hover:scale-110">
+                      <span role="img" aria-label="1st Place">🥇</span>
+                    </div>
+                  );
+                  scoreColor = "text-amber-400 drop-shadow-[0_0_12px_rgba(245,158,11,0.6)]";
+                  nameHoverColor = "group-hover:text-amber-300";
+                } else if (isTop2) {
+                  rowStyles = "silver-card bg-linear-to-r from-slate-400/10 via-neutral-900/90 to-slate-900/20 border-slate-300/30 hover:border-slate-300/60";
+                  rankBadge = (
+                    <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-slate-200 text-black font-extrabold flex items-center justify-center text-sm sm:text-base font-mono shadow-sm shrink-0 transition-all duration-300 group-hover:scale-110">
+                      <span role="img" aria-label="2nd Place">🥈</span>
+                    </div>
+                  );
+                  scoreColor = "text-slate-100 drop-shadow-[0_0_10px_rgba(203,213,225,0.4)]";
+                  nameHoverColor = "group-hover:text-slate-200";
+                } else if (isTop3) {
+                  rowStyles = "bronze-card bg-linear-to-r from-amber-800/15 via-neutral-900/90 to-amber-950/15 border-amber-700/30 hover:border-amber-700/60";
+                  rankBadge = (
+                    <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-amber-700 text-white font-extrabold flex items-center justify-center text-sm sm:text-base font-mono shadow-sm shrink-0 transition-all duration-300 group-hover:scale-110">
+                      <span role="img" aria-label="3rd Place">🥉</span>
+                    </div>
+                  );
+                  scoreColor = "text-amber-500 drop-shadow-[0_0_10px_rgba(217,119,6,0.4)]";
+                  nameHoverColor = "group-hover:text-amber-400";
+                }
+
+                return (
+                  <motion.div
+                    key={entry.id || `${entry.username}-${idx}`}
+                    initial={{ opacity: 0, transform: "scale(0.98) translateY(8px)" }}
+                    animate={{ opacity: 1, transform: "scale(1) translateY(0px)" }}
+                    transition={{ duration: 0.35, ease: [0.23, 1, 0.32, 1], delay: idx * 0.03 }}
+                    whileHover={{ scale: 1.01, transition: { duration: 0.15 } }}
+                    onClick={() => handleRowClick(entry)}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        handleRowClick(entry);
+                      }
+                    }}
+                    className={`group relative flex items-center justify-between px-4 py-3 min-h-16 rounded-xl border transition-all duration-200 cursor-pointer overflow-hidden backdrop-blur-xl ${rowStyles}`}
+                  >
+                    {isTop1 && !isCurrentUser && (
+                      <div className="absolute inset-0 pointer-events-none overflow-hidden" aria-hidden="true">
+                        <div className="absolute inset-0 w-1/3 bg-linear-to-r from-transparent via-amber-300/10 to-transparent animate-shimmer-pass pointer-events-none" />
+                      </div>
+                    )}
+
+                    <div className="flex items-center gap-3 min-w-0 flex-1 pr-3 relative z-10">
+                      {rankBadge}
+
+                      <PlayerAvatar
+                        avatarUrl={entry.avatar_url}
+                        username={entry.username}
+                        size="md"
+                      />
+
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className={`font-bold text-sm sm:text-base text-foreground truncate ${nameHoverColor} transition-colors`}>
+                            {entry.name || entry.username}
+                          </span>
+                          {isCurrentUser && (
+                            <span className="bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 text-[10px] font-bold px-2 py-0.5 rounded-full inline-flex items-center gap-1 font-mono shrink-0">
+                              <span>You</span>
+                              <span className="text-emerald-300 font-semibold">(#{rank})</span>
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-xs font-mono text-muted-foreground truncate">
+                          @{entry.username}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="hidden sm:flex items-center justify-center w-28 text-center shrink-0 text-xs text-muted-foreground font-mono relative z-10">
+                      <span>{formatTimeAgo(entry.completed_at)}</span>
+                    </div>
+
+                    <div className="text-right shrink-0 min-w-32.5 relative z-10">
+                      <div className="flex items-baseline justify-end gap-1 font-mono">
+                        <span className={`text-xl font-extrabold ${scoreColor}`}>{entry.total_score}</span>
+                        <span className="text-xs text-muted-foreground font-bold">/500</span>
+                      </div>
+                      <div className="text-[11px] font-mono text-muted-foreground">
+                        ±{(entry.average_error ?? 0).toFixed(1)}% Error · {Math.round((entry.elapsed_ms || 45000) / 1000)}s
+                      </div>
+                    </div>
+                  </motion.div>
+                );
+              })}
+            </div>
+
+            {/* Pinned ScaleGuess user standing if logged in and not in Top 10 */}
+            {isAuthenticated && user && !isUserInScaleTop10 && (
+              <div className="sticky bottom-4 z-20 mt-4">
+                <div className="text-[10px] font-mono uppercase tracking-wider text-emerald-400/90 mb-1.5 px-2 flex items-center gap-1.5 font-bold">
+                  <Sparkles className="w-3 h-3 text-emerald-400" />
+                  <span>Your Current Standing</span>
                 </div>
-              );
-              let scoreColor = "text-amber-400";
-              let nameHoverColor = "group-hover:text-amber-300";
-
-              if (isCurrentUser) {
-                rowStyles = "bg-emerald-950/40 border-emerald-500/50 hover:border-emerald-400";
-                scoreColor = "text-emerald-400 drop-shadow-[0_0_10px_rgba(52,211,153,0.5)]";
-                nameHoverColor = "group-hover:text-emerald-300";
-              } else if (isTop1) {
-                rowStyles = "gold-champion-card bg-linear-to-r from-amber-500/15 via-neutral-900/90 to-amber-950/25 border-amber-400/40 hover:border-amber-400/70";
-                rankBadge = (
-                  <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-amber-400 text-black font-extrabold flex items-center justify-center text-xs sm:text-sm font-mono shadow-md shadow-amber-400/30 shrink-0 transition-all duration-300 group-hover:scale-110 group-hover:rotate-2">
-                    01
-                  </div>
-                );
-                scoreColor = "text-amber-400 drop-shadow-[0_0_12px_rgba(245,158,11,0.6)]";
-                nameHoverColor = "group-hover:text-amber-300";
-              } else if (isTop2) {
-                rowStyles = "silver-card bg-linear-to-r from-slate-400/10 via-neutral-900/90 to-slate-900/20 border-slate-300/30 hover:border-slate-300/60";
-                rankBadge = (
-                  <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-slate-200 text-black font-extrabold flex items-center justify-center text-xs sm:text-sm font-mono shadow-sm shrink-0 transition-all duration-300 group-hover:scale-110 group-hover:rotate-2">
-                    02
-                  </div>
-                );
-                scoreColor = "text-slate-100 drop-shadow-[0_0_10px_rgba(203,213,225,0.4)]";
-                nameHoverColor = "group-hover:text-slate-200";
-              } else if (isTop3) {
-                rowStyles = "bronze-card bg-linear-to-r from-amber-800/15 via-neutral-900/90 to-amber-950/15 border-amber-700/30 hover:border-amber-700/60";
-                rankBadge = (
-                  <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-amber-700 text-white font-extrabold flex items-center justify-center text-xs sm:text-sm font-mono shadow-sm shrink-0 transition-all duration-300 group-hover:scale-110 group-hover:rotate-2">
-                    03
-                  </div>
-                );
-                scoreColor = "text-amber-500 drop-shadow-[0_0_10px_rgba(217,119,6,0.4)]";
-                nameHoverColor = "group-hover:text-amber-400";
-              }
-
-              return (
-                <motion.div
-                  key={entry.id || `${entry.username}-${idx}`}
-                  initial={{ opacity: 0, transform: "scale(0.98) translateY(8px)" }}
-                  animate={{ opacity: 1, transform: "scale(1) translateY(0px)" }}
-                  transition={{ duration: 0.35, ease: [0.23, 1, 0.32, 1], delay: idx * 0.03 }}
-                  whileHover={{ scale: 1.01, transition: { duration: 0.15 } }}
-                  onClick={() => handleRowClick(entry)}
+                <div
+                  onClick={() => onNavigate("publicProfile", user.id || user.username)}
                   role="button"
                   tabIndex={0}
                   onKeyDown={(e) => {
                     if (e.key === "Enter" || e.key === " ") {
                       e.preventDefault();
-                      handleRowClick(entry);
+                      onNavigate("publicProfile", user.id || user.username);
                     }
                   }}
-                  className={`group relative flex items-center justify-between px-4 py-3 min-h-16 rounded-xl border transition-all duration-200 cursor-pointer overflow-hidden backdrop-blur-xl ${rowStyles}`}
+                  className="group relative flex items-center justify-between px-4 py-3 min-h-16 rounded-xl bg-emerald-950/70 border-2 border-emerald-500/70 hover:border-emerald-400 backdrop-blur-xl shadow-2xl shadow-emerald-950/80 transition-all duration-200 cursor-pointer"
                 >
-                  {/* Subtle Top 1 shimmer sweep */}
-                  {isTop1 && !isCurrentUser && (
-                    <div className="absolute inset-0 pointer-events-none overflow-hidden" aria-hidden="true">
-                      <div className="absolute inset-0 w-1/3 bg-linear-to-r from-transparent via-amber-300/10 to-transparent animate-shimmer-pass pointer-events-none" />
+                  <div className="flex items-center gap-3 min-w-0 flex-1 pr-3">
+                    <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-emerald-500/30 text-emerald-300 font-mono font-bold flex items-center justify-center text-xs shrink-0 border border-emerald-500/50 shadow-sm transition-all duration-300 group-hover:scale-110">
+                      {currentScaleRankDisplay !== "Unranked" ? currentScaleRankDisplay : myStats?.rank ? `#${myStats.rank}` : "—"}
                     </div>
-                  )}
-
-                  {/* Left Section (Rank + Avatar + User Info) */}
-                  <div className="flex items-center gap-3 min-w-0 flex-1 pr-3 relative z-10">
-                    {rankBadge}
 
                     <PlayerAvatar
-                      avatarUrl={entry.avatar_url}
-                      username={entry.username}
+                      avatarUrl={user.avatarUrl || user.profilePicture}
+                      username={user.username}
                       size="md"
                     />
 
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
-                        <span className={`font-bold text-sm sm:text-base text-foreground truncate ${nameHoverColor} transition-colors`}>
-                          {entry.name || entry.username}
+                        <span className="font-bold text-sm sm:text-base text-foreground truncate group-hover:text-emerald-300 transition-colors">
+                          {user.name || user.username}
                         </span>
-                        {isCurrentUser && (
-                          <span className="bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 text-[10px] font-bold px-2 py-0.5 rounded-full inline-flex items-center gap-1 font-mono shrink-0">
-                            <span>You</span>
-                            <span className="text-emerald-300 font-semibold">(#{rank})</span>
-                          </span>
-                        )}
+                        <span className="bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 text-[10px] font-bold px-2 py-0.5 rounded-full inline-flex items-center gap-1 font-mono shrink-0">
+                          <span>You</span>
+                          <span className="text-emerald-300 font-semibold">({currentScaleRankDisplay})</span>
+                        </span>
                       </div>
-                      <p className="text-xs font-mono text-muted-foreground truncate">
-                        @{entry.username}
+                      <p className="text-xs font-mono text-emerald-400/80 truncate">
+                        @{user.username}
                       </p>
                     </div>
                   </div>
 
-                  {/* Center Section (Timestamp) */}
-                  <div className="hidden sm:flex items-center justify-center w-28 text-center shrink-0 text-xs text-muted-foreground font-mono relative z-10">
-                    <span>{formatTimeAgo(entry.completed_at)}</span>
+                  <div className="hidden sm:flex items-center justify-center w-28 text-center shrink-0 text-xs font-mono text-emerald-400/70">
+                    <span>{myStats?.gamesPlayed ? `${myStats.gamesPlayed} games` : "Active"}</span>
                   </div>
 
-                  {/* Right Section (Score + Tie-Breaker) */}
-                  <div className="text-right shrink-0 min-w-32.5 relative z-10">
+                  <div className="text-right shrink-0 min-w-32.5">
                     <div className="flex items-baseline justify-end gap-1 font-mono">
-                      <span className={`text-xl font-extrabold ${scoreColor}`}>{entry.total_score}</span>
+                      <span className="text-xl font-extrabold text-emerald-400 drop-shadow-[0_0_10px_rgba(52,211,153,0.5)]">
+                        {myStats?.bestScore ?? (userInAllScaleIndex !== -1 ? sortedAllEntries[userInAllScaleIndex].total_score : 0)}
+                      </span>
                       <span className="text-xs text-muted-foreground font-bold">/500</span>
                     </div>
-                    <div className="text-[11px] font-mono text-muted-foreground">
-                      ±{(entry.average_error ?? 0).toFixed(1)}% Error · {Math.round((entry.elapsed_ms || 45000) / 1000)}s
-                    </div>
-                  </div>
-                </motion.div>
-              );
-            })}
-          </div>
-
-          {/* ── Pinned/Sticky Current User Position (When Logged In & NOT in Top 10) ── */}
-          {isAuthenticated && user && !isUserInTop10 && (
-            <div className="sticky bottom-4 z-20 mt-4">
-              <div className="text-[10px] font-mono uppercase tracking-wider text-emerald-400/90 mb-1.5 px-2 flex items-center gap-1.5 font-bold">
-                <Sparkles className="w-3 h-3 text-emerald-400" />
-                <span>Your Current Standing</span>
-              </div>
-              <div
-                onClick={() => onNavigate("publicProfile", user.id || user.username)}
-                role="button"
-                tabIndex={0}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" || e.key === " ") {
-                    e.preventDefault();
-                    onNavigate("publicProfile", user.id || user.username);
-                  }
-                }}
-                className="group relative flex items-center justify-between px-4 py-3 min-h-16 rounded-xl bg-emerald-950/70 border-2 border-emerald-500/70 hover:border-emerald-400 backdrop-blur-xl shadow-2xl shadow-emerald-950/80 transition-all duration-200 cursor-pointer"
-              >
-                {/* Left Section (Rank + Avatar + User Info) */}
-                <div className="flex items-center gap-3 min-w-0 flex-1 pr-3">
-                  <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-emerald-500/30 text-emerald-300 font-mono font-bold flex items-center justify-center text-xs shrink-0 border border-emerald-500/50 shadow-sm transition-all duration-300 group-hover:scale-110 group-hover:rotate-2">
-                    {currentUserRankDisplay !== "Unranked" ? currentUserRankDisplay : myStats?.rank ? `#${myStats.rank}` : "—"}
-                  </div>
-
-                  <PlayerAvatar
-                    avatarUrl={user.avatarUrl || user.profilePicture}
-                    username={user.username}
-                    size="md"
-                  />
-
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
-                      <span className="font-bold text-sm sm:text-base text-foreground truncate group-hover:text-emerald-300 transition-colors">
-                        {user.name || user.username}
-                      </span>
-                      <span className="bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 text-[10px] font-bold px-2 py-0.5 rounded-full inline-flex items-center gap-1 font-mono shrink-0">
-                        <span>You</span>
-                        <span className="text-emerald-300 font-semibold">({currentUserRankDisplay})</span>
-                      </span>
-                    </div>
-                    <p className="text-xs font-mono text-emerald-400/80 truncate">
-                      @{user.username}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Center Section */}
-                <div className="hidden sm:flex items-center justify-center w-28 text-center shrink-0 text-xs font-mono text-emerald-400/70">
-                  <span>{myStats?.gamesPlayed ? `${myStats.gamesPlayed} games` : "Active"}</span>
-                </div>
-
-                {/* Right Section */}
-                <div className="text-right shrink-0 min-w-32.5">
-                  <div className="flex items-baseline justify-end gap-1 font-mono">
-                    <span className="text-xl font-extrabold text-emerald-400 drop-shadow-[0_0_10px_rgba(52,211,153,0.5)]">
-                      {myStats?.bestScore ?? (userInAllIndex !== -1 ? sortedAllEntries[userInAllIndex].total_score : 0)}
-                    </span>
-                    <span className="text-xs text-muted-foreground font-bold">/500</span>
-                  </div>
-                  <div className="text-[11px] font-mono text-emerald-400/70">
-                    {myStats?.bestAverageError !== undefined
-                      ? `±${myStats.bestAverageError.toFixed(1)}% Error`
-                      : userInAllIndex !== -1
-                        ? `±${(sortedAllEntries[userInAllIndex].average_error ?? 0).toFixed(1)}% Error`
+                    <div className="text-[11px] font-mono text-emerald-400/70">
+                      {myStats?.bestAverageError !== undefined
+                        ? `±${myStats.bestAverageError.toFixed(1)}% Error`
+                        : userInAllScaleIndex !== -1
+                        ? `±${(sortedAllEntries[userInAllScaleIndex].average_error ?? 0).toFixed(1)}% Error`
                         : "Your High Score"}
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
-          )}
-
-          {/* ── Guest Session Prompt (When Unauthenticated) ── */}
-          {!isAuthenticated && (
-            <div className="mt-2 p-4 rounded-xl bg-neutral-900/60 border border-border/40 backdrop-blur-md flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
-              <div className="flex items-center gap-2.5 text-muted-foreground">
-                <UserIcon className="w-4 h-4 text-primary shrink-0" />
-                <span>Browsing as guest. Sign in to record your scores on the Global Hall of Fame.</span>
+            )}
+          </section>
+        ) : (
+          /* ── Not Color Blind Leaderboard ── */
+          <section aria-label="Not Color Blind Top 50 Scorers" className="relative z-10 flex flex-col gap-3">
+            {/* Desktop Table Header */}
+            <div className="hidden sm:flex items-center justify-between px-4 py-2 text-[10px] font-mono uppercase tracking-wider text-muted-foreground/75 border-b border-border/30">
+              <div className="flex items-center gap-3 min-w-0 flex-1">
+                <span className="w-8 sm:w-9 text-center shrink-0">Rank</span>
+                <span>Player</span>
               </div>
-              <button
-                type="button"
-                onClick={onOpenLogin}
-                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-primary text-primary-foreground text-xs font-semibold hover:brightness-105 transition-all cursor-pointer shrink-0"
-              >
-                <LogIn className="w-3.5 h-3.5" />
-                <span>Sign In</span>
-              </button>
+              <div className="w-44 text-center shrink-0">Predicted vs Target</div>
+              <div className="text-right shrink-0 min-w-32.5">Score · Recall Time</div>
             </div>
-          )}
-        </section>
+
+            {/* Not Color Blind Rows */}
+            <div className="flex flex-col gap-2.5">
+              {colorEntries.length === 0 ? (
+                <div className="py-16 text-center text-muted-foreground font-mono text-xs bg-neutral-900/40 rounded-xl border border-border/40">
+                  No scores recorded yet. Be the first to conquer Not Color Blind!
+                </div>
+              ) : (
+                colorEntries.map((entry, idx) => {
+                  const rank = idx + 1;
+                  const isTop1 = rank === 1;
+                  const isTop2 = rank === 2;
+                  const isTop3 = rank === 3;
+                  const isCurrentUser =
+                    user &&
+                    ((entry.user_id && user.id && String(entry.user_id) === String(user.id)) ||
+                      entry.player_name.toLowerCase() === user.username.toLowerCase() ||
+                      (user.name && entry.player_name.toLowerCase() === user.name.toLowerCase()));
+
+                  let rowStyles = "bg-neutral-900/60 border-border/40 hover:border-border/80 hover:bg-neutral-850/80";
+                  let rankBadge = (
+                    <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-secondary text-foreground font-mono font-bold flex items-center justify-center text-xs shrink-0 transition-all duration-300 group-hover:scale-110 border border-border/60">
+                      #{rank.toString().padStart(2, "0")}
+                    </div>
+                  );
+                  let scoreColor = "text-amber-400";
+                  let nameHoverColor = "group-hover:text-amber-300";
+
+                  if (isCurrentUser) {
+                    rowStyles = "bg-emerald-950/40 border-emerald-500/50 hover:border-emerald-400";
+                    scoreColor = "text-emerald-400 drop-shadow-[0_0_10px_rgba(52,211,153,0.5)]";
+                    nameHoverColor = "group-hover:text-emerald-300";
+                  } else if (isTop1) {
+                    rowStyles = "gold-champion-card bg-linear-to-r from-amber-500/15 via-neutral-900/90 to-amber-950/25 border-amber-400/40 hover:border-amber-400/70";
+                    rankBadge = (
+                      <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-amber-400 text-black font-extrabold flex items-center justify-center text-sm sm:text-base font-mono shadow-md shadow-amber-400/30 shrink-0 transition-all duration-300 group-hover:scale-110">
+                        <span role="img" aria-label="1st Place">🥇</span>
+                      </div>
+                    );
+                    scoreColor = "text-amber-400 drop-shadow-[0_0_12px_rgba(245,158,11,0.6)]";
+                    nameHoverColor = "group-hover:text-amber-300";
+                  } else if (isTop2) {
+                    rowStyles = "silver-card bg-linear-to-r from-slate-400/10 via-neutral-900/90 to-slate-900/20 border-slate-300/30 hover:border-slate-300/60";
+                    rankBadge = (
+                      <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-slate-200 text-black font-extrabold flex items-center justify-center text-sm sm:text-base font-mono shadow-sm shrink-0 transition-all duration-300 group-hover:scale-110">
+                        <span role="img" aria-label="2nd Place">🥈</span>
+                      </div>
+                    );
+                    scoreColor = "text-slate-100 drop-shadow-[0_0_10px_rgba(203,213,225,0.4)]";
+                    nameHoverColor = "group-hover:text-slate-200";
+                  } else if (isTop3) {
+                    rowStyles = "bronze-card bg-linear-to-r from-amber-800/15 via-neutral-900/90 to-amber-950/15 border-amber-700/30 hover:border-amber-700/60";
+                    rankBadge = (
+                      <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-amber-700 text-white font-extrabold flex items-center justify-center text-sm sm:text-base font-mono shadow-sm shrink-0 transition-all duration-300 group-hover:scale-110">
+                        <span role="img" aria-label="3rd Place">🥉</span>
+                      </div>
+                    );
+                    scoreColor = "text-amber-500 drop-shadow-[0_0_10px_rgba(217,119,6,0.4)]";
+                    nameHoverColor = "group-hover:text-amber-400";
+                  }
+
+                  const predCss = hsbToCss(entry.predicted_hsb);
+                  const targetCss = hsbToCss(entry.target_hsb);
+
+                  return (
+                    <motion.div
+                      key={entry.id}
+                      initial={{ opacity: 0, transform: "scale(0.98) translateY(8px)" }}
+                      animate={{ opacity: 1, transform: "scale(1) translateY(0px)" }}
+                      transition={{ duration: 0.35, ease: [0.23, 1, 0.32, 1], delay: Math.min(idx * 0.02, 0.3) }}
+                      whileHover={{ scale: 1.01, transition: { duration: 0.15 } }}
+                      onClick={() => handleColorRowClick(entry)}
+                      role="button"
+                      tabIndex={0}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          handleColorRowClick(entry);
+                        }
+                      }}
+                      className={`group relative flex items-center justify-between px-4 py-3 min-h-16 rounded-xl border transition-all duration-200 cursor-pointer overflow-hidden backdrop-blur-xl ${rowStyles}`}
+                    >
+                      {isTop1 && !isCurrentUser && (
+                        <div className="absolute inset-0 pointer-events-none overflow-hidden" aria-hidden="true">
+                          <div className="absolute inset-0 w-1/3 bg-linear-to-r from-transparent via-amber-300/10 to-transparent animate-shimmer-pass pointer-events-none" />
+                        </div>
+                      )}
+
+                      {/* Left Section: Rank + Avatar + Player Name */}
+                      <div className="flex items-center gap-3 min-w-0 flex-1 pr-3 relative z-10">
+                        {rankBadge}
+
+                        <PlayerAvatar
+                          username={entry.player_name}
+                          size="md"
+                        />
+
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2">
+                            <span className={`font-bold text-sm sm:text-base text-foreground truncate ${nameHoverColor} transition-colors`}>
+                              {entry.player_name}
+                            </span>
+                            {isCurrentUser && (
+                              <span className="bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 text-[10px] font-bold px-2 py-0.5 rounded-full inline-flex items-center gap-1 font-mono shrink-0">
+                                <span>You</span>
+                                <span className="text-emerald-300 font-semibold">(#{rank})</span>
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-2 text-xs font-mono text-muted-foreground truncate">
+                            <span className="flex items-center gap-1">
+                              <Clock className="w-3 h-3 opacity-70" />
+                              <span>{entry.time_taken_seconds.toFixed(2)}s recall</span>
+                            </span>
+                            <span>·</span>
+                            <span>{formatTimeAgo(entry.created_at)}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Middle Section: Dual Swatch Preview */}
+                      <div className="flex items-center gap-2.5 px-3 py-1.5 rounded-xl bg-neutral-950/60 border border-border/60 shrink-0 relative z-10 shadow-inner">
+                        <div
+                          className="w-8 h-8 rounded-lg overflow-hidden border border-border/80 shrink-0 flex flex-col shadow-xs"
+                          title={`Predicted: ${predCss} (top) vs Original Target: ${targetCss} (bottom)`}
+                        >
+                          <div
+                            className="flex-1 w-full"
+                            style={{ backgroundColor: predCss }}
+                          />
+                          <div
+                            className="flex-1 w-full border-t border-black/30"
+                            style={{ backgroundColor: targetCss }}
+                          />
+                        </div>
+                        <div className="hidden md:flex flex-col text-[10px] font-mono leading-tight">
+                          <span className="text-foreground/90 font-semibold">Pred vs Target</span>
+                          <span className="text-muted-foreground/80">{entry.predicted_hsb.h}° vs {entry.target_hsb.h}° Hue</span>
+                        </div>
+                      </div>
+
+                      {/* Right Section: Score & Recall */}
+                      <div className="text-right shrink-0 min-w-28 sm:min-w-32.5 relative z-10">
+                        <div className="flex items-baseline justify-end gap-1 font-mono">
+                          <span className={`text-xl font-extrabold ${scoreColor}`}>
+                            {entry.score}
+                          </span>
+                          <span className="text-xs text-muted-foreground font-bold">/100</span>
+                        </div>
+                        <div className="text-[11px] font-mono text-muted-foreground">
+                          {entry.time_taken_seconds.toFixed(2)}s recall
+                        </div>
+                      </div>
+                    </motion.div>
+                  );
+                })
+              )}
+            </div>
+
+            {/* Pinned Not Color Blind user standing if logged in and not in Top 10 */}
+            {isAuthenticated && user && !isUserInColorTop10 && userInColorIndex !== -1 && (
+              <div className="sticky bottom-4 z-20 mt-4">
+                <div className="text-[10px] font-mono uppercase tracking-wider text-emerald-400/90 mb-1.5 px-2 flex items-center gap-1.5 font-bold">
+                  <Sparkles className="w-3 h-3 text-emerald-400" />
+                  <span>Your Current Standing</span>
+                </div>
+                <div className="group relative flex items-center justify-between px-4 py-3 min-h-16 rounded-xl bg-emerald-950/70 border-2 border-emerald-500/70 backdrop-blur-xl shadow-2xl shadow-emerald-950/80 transition-all duration-200">
+                  <div className="flex items-center gap-3 min-w-0 flex-1 pr-3">
+                    <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-emerald-500/30 text-emerald-300 font-mono font-bold flex items-center justify-center text-xs shrink-0 border border-emerald-500/50 shadow-sm">
+                      {currentColorRankDisplay}
+                    </div>
+
+                    <PlayerAvatar
+                      avatarUrl={user.avatarUrl || user.profilePicture}
+                      username={user.username}
+                      size="md"
+                    />
+
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-sm sm:text-base text-foreground truncate">
+                          {user.name || user.username}
+                        </span>
+                        <span className="bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 text-[10px] font-bold px-2 py-0.5 rounded-full inline-flex items-center gap-1 font-mono shrink-0">
+                          <span>You</span>
+                          <span className="text-emerald-300 font-semibold">({currentColorRankDisplay})</span>
+                        </span>
+                      </div>
+                      <p className="text-xs font-mono text-emerald-400/80 truncate">
+                        @{user.username}
+                      </p>
+                    </div>
+                  </div>
+
+                  {colorEntries[userInColorIndex] && (
+                    <div className="hidden sm:flex items-center gap-2.5 px-3 py-1.5 rounded-xl bg-neutral-950/60 border border-emerald-500/30 shrink-0">
+                      <div className="w-8 h-8 rounded-lg overflow-hidden border border-border/80 shrink-0 flex flex-col shadow-xs">
+                        <div
+                          className="flex-1 w-full"
+                          style={{ backgroundColor: hsbToCss(colorEntries[userInColorIndex].predicted_hsb) }}
+                        />
+                        <div
+                          className="flex-1 w-full border-t border-black/30"
+                          style={{ backgroundColor: hsbToCss(colorEntries[userInColorIndex].target_hsb) }}
+                        />
+                      </div>
+                      <div className="flex flex-col text-[10px] font-mono leading-tight">
+                        <span className="text-emerald-300 font-semibold">Your Swatch</span>
+                        <span className="text-emerald-400/70">{colorEntries[userInColorIndex].time_taken_seconds.toFixed(2)}s</span>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="text-right shrink-0 min-w-28 sm:min-w-32.5">
+                    <div className="flex items-baseline justify-end gap-1 font-mono">
+                      <span className="text-xl font-extrabold text-emerald-400 drop-shadow-[0_0_10px_rgba(52,211,153,0.5)]">
+                        {colorEntries[userInColorIndex]?.score ?? 0}
+                      </span>
+                      <span className="text-xs text-muted-foreground font-bold">/100</span>
+                    </div>
+                    <div className="text-[11px] font-mono text-emerald-400/70">
+                      {colorEntries[userInColorIndex]?.time_taken_seconds.toFixed(2)}s recall
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </section>
+        )}
+
+        {/* ── Guest Session Prompt (When Unauthenticated) ── */}
+        {!isAuthenticated && (
+          <div className="mt-2 p-4 rounded-xl bg-neutral-900/60 border border-border/40 backdrop-blur-md flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
+            <div className="flex items-center gap-2.5 text-muted-foreground">
+              <UserIcon className="w-4 h-4 text-primary shrink-0" />
+              <span>Browsing as guest. Sign in to record your scores on the Global Hall of Fame.</span>
+            </div>
+            <button
+              type="button"
+              onClick={onOpenLogin}
+              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-primary text-primary-foreground text-xs font-semibold hover:brightness-105 transition-all cursor-pointer shrink-0"
+            >
+              <LogIn className="w-3.5 h-3.5" />
+              <span>Sign In</span>
+            </button>
+          </div>
+        )}
 
         {/* ── Section C: Bottom Actions ── */}
         <footer className="relative z-10 pt-4 pb-4 border-t border-border/40 flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="text-xs text-muted-foreground text-center sm:text-left">
-            <p className="font-medium text-foreground">Ready to prove your spatial judgment?</p>
+            <p className="font-medium text-foreground">
+              {selectedGame === "scaleGuess"
+                ? "Ready to prove your spatial judgment?"
+                : "Ready to test your color memory recall?"}
+            </p>
             <p className="text-[11px] text-muted-foreground mt-0.5">
-              Compete on identical silhouettes and test your accuracy against the global benchmark.
+              {selectedGame === "scaleGuess"
+                ? "Compete on identical silhouettes and test your accuracy against the global benchmark."
+                : "Reconstruct calibrated target HSB swatches from pure visual memory."}
             </p>
           </div>
 
@@ -719,15 +1009,27 @@ export function LeaderboardPage({ onNavigate, onBackToGame, onOpenLogin }: Leade
               All Games
             </button>
 
-            <button
-              type="button"
-              onClick={onBackToGame}
-              className="flex-1 sm:flex-initial lock-btn flex items-center justify-center gap-2 shadow-xl shadow-amber-500/20 hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer text-xs sm:text-sm font-bold bg-linear-to-r from-amber-400 to-amber-500 text-slate-950 hover:brightness-105"
-            >
-              <Gamepad2 className="w-4 h-4" />
-              <span>Play ScaleGuess Now</span>
-              <ChevronRight className="w-4 h-4" />
-            </button>
+            {selectedGame === "scaleGuess" ? (
+              <button
+                type="button"
+                onClick={onBackToGame}
+                className="flex-1 sm:flex-initial lock-btn flex items-center justify-center gap-2 shadow-xl shadow-amber-500/20 hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer text-xs sm:text-sm font-bold bg-linear-to-r from-amber-400 to-amber-500 text-slate-950 hover:brightness-105"
+              >
+                <Gamepad2 className="w-4 h-4" />
+                <span>Play ScaleGuess Now</span>
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => onNavigate("notColorBlind")}
+                className="flex-1 sm:flex-initial lock-btn flex items-center justify-center gap-2 shadow-xl shadow-amber-500/20 hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer text-xs sm:text-sm font-bold bg-linear-to-r from-amber-400 to-amber-500 text-slate-950 hover:brightness-105"
+              >
+                <Gamepad2 className="w-4 h-4" />
+                <span>Play Not Color Blind Now</span>
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            )}
           </div>
         </footer>
       </main>

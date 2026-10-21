@@ -13,6 +13,12 @@ import {
   Trophy,
 } from "lucide-react";
 import { getMyScores, type GameResult, type UserStats } from "../../lib/scoreApi";
+import {
+  getUserNotColorBlindStats,
+  type UserNotColorBlindStats,
+  type NotColorBlindScoreRecord,
+} from "../../lib/notColorBlindApi";
+import { hsbToCss } from "../../games/not-color-blind/color";
 import { useAuth } from "../../context/AuthContext";
 import { createClient } from "@supabase/supabase-js";
 
@@ -83,14 +89,24 @@ const PRESET_AVATARS = [
   "https://api.dicebear.com/7.x/identicon/svg?seed=Pixel&backgroundColor=ffdfbf",
 ];
 
-export const ProfileSettingsModal: React.FC = () => {
-  const { user, isProfileOpen } = useAuth();
-  if (!isProfileOpen || !user) return null;
-  return <ProfileSettingsModalContent />;
+export interface ProfileSettingsModalProps {
+  isOpen?: boolean;
+  onClose?: () => void;
+}
+
+export const ProfileSettingsModal: React.FC<ProfileSettingsModalProps> = ({
+  isOpen,
+  onClose,
+}) => {
+  const { user, isProfileOpen, closeProfile } = useAuth();
+  const show = isOpen !== undefined ? isOpen : isProfileOpen;
+  const handleClose = onClose || closeProfile;
+  if (!show || !user) return null;
+  return <ProfileSettingsModalContent onClose={handleClose} />;
 };
 
-const ProfileSettingsModalContent: React.FC = () => {
-  const { user, token, closeProfile, updateProfile, isSubmitting } = useAuth();
+const ProfileSettingsModalContent: React.FC<{ onClose: () => void }> = ({ onClose }) => {
+  const { user, token, updateProfile, isSubmitting } = useAuth();
 
   const [displayName, setDisplayName] = useState(user?.name || "");
   const [avatarUrl, setAvatarUrl] = useState<string | null>(
@@ -103,6 +119,9 @@ const ProfileSettingsModalContent: React.FC = () => {
   const [showUrlInput, setShowUrlInput] = useState(false);
   const [recentGames, setRecentGames] = useState<GameResult[]>([]);
   const [stats, setStats] = useState<UserStats | null>(null);
+  const [colorStats, setColorStats] = useState<UserNotColorBlindStats | null>(null);
+  const [recentColorGames, setRecentColorGames] = useState<NotColorBlindScoreRecord[]>([]);
+  const [historyTab, setHistoryTab] = useState<"scaleGuess" | "notColorBlind">("scaleGuess");
   const [statusMessage, setStatusMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [isUploading, setIsUploading] = useState(false);
 
@@ -126,11 +145,22 @@ const ProfileSettingsModalContent: React.FC = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (!token) return;
-    getMyScores(token)
-      .then((d) => { setRecentGames(d.recentGames); setStats(d.stats); })
+    if (!token && !user) return;
+    if (token) {
+      getMyScores(token)
+        .then((d) => {
+          setRecentGames(d.recentGames);
+          setStats(d.stats);
+        })
+        .catch(() => { /* non-fatal */ });
+    }
+    getUserNotColorBlindStats(user?.id ? String(user.id) : user?.username)
+      .then((c) => {
+        setColorStats(c);
+        setRecentColorGames(c.recentScores);
+      })
       .catch(() => { /* non-fatal */ });
-  }, [token]);
+  }, [token, user]);
 
   if (!user) return null;
 
@@ -224,7 +254,7 @@ const ProfileSettingsModalContent: React.FC = () => {
   if (ok) {
     setStatusMessage({ type: "success", text: "Profile updated successfully!" });
     setTimeout(() => {
-      closeProfile();
+      onClose();
     }, 700);
   } else {
     setStatusMessage({ type: "error", text: "Failed to update profile. Please try again." });
@@ -242,7 +272,7 @@ const ProfileSettingsModalContent: React.FC = () => {
       className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-md animate-in fade-in duration-200"
     >
       {/* Background click to dismiss */}
-      <div className="absolute inset-0" onClick={closeProfile} aria-hidden="true" />
+      <div className="absolute inset-0" onClick={onClose} aria-hidden="true" />
 
       {/* Modal Card */}
       <div className="relative w-full max-w-lg bg-card/95 border border-border/80 rounded-2xl shadow-2xl p-6 sm:p-7 overflow-hidden z-10 font-sans">
@@ -267,7 +297,7 @@ const ProfileSettingsModalContent: React.FC = () => {
           </div>
           <button
             type="button"
-            onClick={closeProfile}
+            onClick={onClose}
             aria-label="Close profile settings"
             className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors cursor-pointer"
           >
@@ -496,45 +526,149 @@ const ProfileSettingsModalContent: React.FC = () => {
             </div>
           </div>
 
-          {/* 4. Score History */}
-          {stats && (
-            <div className="space-y-2">
-              <div className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
-                <BarChart3 className="w-3.5 h-3.5 text-primary" />
-                <span>Your Stats</span>
-              </div>
-
-              {/* Stat pills */}
-              <div className="grid grid-cols-3 gap-2">
-                {([
-                  { label: "Games", value: stats.gamesPlayed },
-                  { label: "Best", value: stats.bestScore },
-                  { label: "Avg", value: stats.averageScore },
-                ] as { label: string; value: number }[]).map((s) => (
-                  <div key={s.label} className="flex flex-col items-center p-2 rounded-lg bg-secondary/30 border border-border/40">
-                    <span className="font-mono text-base font-bold text-primary">{s.value}</span>
-                    <span className="text-[10px] text-muted-foreground">{s.label}</span>
-                  </div>
-                ))}
-              </div>
-
-              {/* Recent games list */}
-              {recentGames.length > 0 && (
-                <div className="max-h-32 overflow-y-auto space-y-1 pr-0.5">
-                  {recentGames.slice(0, 10).map((g) => (
-                    <div key={g.id} className="flex items-center justify-between px-2.5 py-1.5 rounded-lg bg-secondary/20 border border-border/30 text-xs">
-                      <div className="flex items-center gap-1.5">
-                        <Trophy className="w-3 h-3 text-muted-foreground" />
-                        <span className="font-mono font-bold text-primary">{g.total_score}</span>
-                        <span className="text-muted-foreground font-mono">/ 500</span>
-                      </div>
-                      <span className="text-muted-foreground">
-                        {new Date(g.completed_at).toLocaleDateString()}
-                      </span>
-                    </div>
-                  ))}
+          {/* 4. Unified Score History across Synapse games */}
+          {(stats || colorStats) && (
+            <div className="space-y-3 pt-1">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
+                  <BarChart3 className="w-3.5 h-3.5 text-primary" />
+                  <span>Cognitive Performance Metrics</span>
                 </div>
-              )}
+                <span className="text-[10px] font-mono text-muted-foreground">Unified Synapse Stats</span>
+              </div>
+
+              {/* Aggregated Stat Cards (4 grid) */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                {/* Total Games Played across games */}
+                <div className="flex flex-col items-center p-2.5 rounded-xl bg-secondary/40 border border-border/50 text-center">
+                  <span className="font-mono text-lg font-bold text-primary">
+                    {(stats?.gamesPlayed || 0) + (colorStats?.gamesPlayed || 0)}
+                  </span>
+                  <span className="text-[10px] text-muted-foreground font-medium mt-0.5">Total Games</span>
+                </div>
+
+                {/* ScaleGuess Best */}
+                <div className="flex flex-col items-center p-2.5 rounded-xl bg-secondary/40 border border-border/50 text-center">
+                  <span className="font-mono text-lg font-bold text-amber-400">
+                    {stats?.bestScore ?? 0}
+                    <span className="text-[10px] text-muted-foreground font-normal ml-0.5">/500</span>
+                  </span>
+                  <span className="text-[10px] text-muted-foreground font-medium mt-0.5">ScaleGuess Best</span>
+                </div>
+
+                {/* Not Color Blind High Score */}
+                <div className="flex flex-col items-center p-2.5 rounded-xl bg-secondary/40 border border-border/50 text-center">
+                  <span className="font-mono text-lg font-bold text-emerald-400">
+                    {colorStats && colorStats.bestScore > 0 ? (
+                      <>
+                        {colorStats.bestScore}
+                        <span className="text-[10px] text-muted-foreground font-normal ml-0.5">/100</span>
+                      </>
+                    ) : (
+                      "—"
+                    )}
+                  </span>
+                  <span className="text-[10px] text-muted-foreground font-medium mt-0.5">Color Best</span>
+                </div>
+
+                {/* Average Recall Accuracy */}
+                <div className="flex flex-col items-center p-2.5 rounded-xl bg-secondary/40 border border-border/50 text-center">
+                  <span className="font-mono text-lg font-bold text-cyan-400">
+                    {colorStats && colorStats.averageAccuracy > 0 ? `${colorStats.averageAccuracy}%` : "—"}
+                  </span>
+                  <span className="text-[10px] text-muted-foreground font-medium mt-0.5">Avg Recall</span>
+                </div>
+              </div>
+
+              {/* Match History Tabs */}
+              <div className="space-y-1.5 pt-1">
+                <div className="flex items-center justify-between text-[11px]">
+                  <span className="text-muted-foreground font-medium">Recent Match History</span>
+                  <div className="flex items-center gap-1 p-0.5 rounded-lg bg-secondary/50 border border-border/40">
+                    <button
+                      type="button"
+                      onClick={() => setHistoryTab("scaleGuess")}
+                      className={`px-2 py-0.5 rounded-md text-[10px] font-medium transition-colors cursor-pointer ${
+                        historyTab === "scaleGuess"
+                          ? "bg-primary text-primary-foreground font-semibold"
+                          : "text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      ScaleGuess
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setHistoryTab("notColorBlind")}
+                      className={`px-2 py-0.5 rounded-md text-[10px] font-medium transition-colors cursor-pointer ${
+                        historyTab === "notColorBlind"
+                          ? "bg-primary text-primary-foreground font-semibold"
+                          : "text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      Not Color Blind
+                    </button>
+                  </div>
+                </div>
+
+                {/* History Content */}
+                {historyTab === "scaleGuess" ? (
+                  recentGames.length > 0 ? (
+                    <div className="max-h-28 overflow-y-auto space-y-1 pr-0.5">
+                      {recentGames.slice(0, 8).map((g) => (
+                        <div key={g.id} className="flex items-center justify-between px-2.5 py-1.5 rounded-lg bg-secondary/20 border border-border/30 text-xs">
+                          <div className="flex items-center gap-1.5 font-mono">
+                            <Trophy className="w-3 h-3 text-amber-400" />
+                            <span className="font-bold text-primary">{g.total_score}</span>
+                            <span className="text-muted-foreground text-[10px]">/ 500</span>
+                            {typeof g.average_error === "number" && (
+                              <span className="text-muted-foreground/70 text-[10px]">
+                                (±{g.average_error.toFixed(1)}%)
+                              </span>
+                            )}
+                          </div>
+                          <span className="text-[11px] text-muted-foreground font-mono">
+                            {new Date(g.completed_at).toLocaleDateString()}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="py-3 text-center text-xs text-muted-foreground font-mono bg-secondary/10 rounded-lg border border-border/20">
+                      No ScaleGuess matches recorded yet.
+                    </div>
+                  )
+                ) : recentColorGames.length > 0 ? (
+                  <div className="max-h-28 overflow-y-auto space-y-1 pr-0.5">
+                    {recentColorGames.slice(0, 8).map((cg) => (
+                      <div key={cg.id} className="flex items-center justify-between px-2.5 py-1.5 rounded-lg bg-secondary/20 border border-border/30 text-xs">
+                        <div className="flex items-center gap-2">
+                          <div
+                            className="w-5 h-5 rounded-md overflow-hidden border border-border/60 shrink-0 flex flex-col shadow-2xs"
+                            title={`Predicted vs Target`}
+                          >
+                            <div className="flex-1 w-full" style={{ backgroundColor: hsbToCss(cg.predicted_hsb) }} />
+                            <div className="flex-1 w-full border-t border-black/30" style={{ backgroundColor: hsbToCss(cg.target_hsb) }} />
+                          </div>
+                          <div className="flex items-baseline gap-1 font-mono">
+                            <span className="font-bold text-emerald-400">{cg.score}</span>
+                            <span className="text-[10px] text-muted-foreground">/ 100</span>
+                            <span className="text-[10px] text-muted-foreground/70 ml-1">
+                              ({cg.time_taken_seconds.toFixed(2)}s)
+                            </span>
+                          </div>
+                        </div>
+                        <span className="text-[11px] text-muted-foreground font-mono">
+                          {new Date(cg.created_at).toLocaleDateString()}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="py-3 text-center text-xs text-muted-foreground font-mono bg-secondary/10 rounded-lg border border-border/20">
+                    No Not Color Blind recalls recorded yet.
+                  </div>
+                )}
+              </div>
             </div>
           )}
 
@@ -542,7 +676,7 @@ const ProfileSettingsModalContent: React.FC = () => {
           <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-border/50">
             <button
               type="button"
-              onClick={closeProfile}
+              onClick={onClose}
               disabled={isSubmitting || isUploading}
               className="px-4 py-2 rounded-xl text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors cursor-pointer"
             >
