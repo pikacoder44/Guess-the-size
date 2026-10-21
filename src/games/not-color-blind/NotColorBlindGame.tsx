@@ -578,7 +578,7 @@ export function NotColorBlindGame({
           {/* Interactive Recall Stage: Tight 2px Sliders on the LEFT, Color Preview Card on the RIGHT */}
           <div className="flex flex-col sm:flex-row items-center sm:items-stretch justify-center gap-6 sm:gap-8 w-full">
             {/* 3 Vertical Sliders with exact 2px gap (Zero labels, zero percentage text) */}
-            <div className="flex items-center justify-center gap-[2px] shrink-0">
+            <div className="flex items-center justify-center gap-0.5 shrink-0">
               <VerticalSlider
                 value={prediction.h}
                 min={0}
@@ -607,7 +607,7 @@ export function NotColorBlindGame({
 
             {/* Interactive Color Preview Card on the RIGHT */}
             <div
-              className="flex-1 w-full min-h-[260px] sm:min-h-[300px] rounded-3xl border border-white/15 shadow-2xl relative overflow-hidden flex flex-col justify-between p-6 sm:p-7 transition-colors duration-75"
+              className="flex-1 w-full min-h-65 sm:min-h-75 rounded-3xl border border-white/15 shadow-2xl relative overflow-hidden flex flex-col justify-between p-6 sm:p-7 transition-colors duration-75"
               style={{ backgroundColor: hsbToCss(prediction) }}
             >
               {/* Top-Right: Hex value with dynamic contrast */}
@@ -665,7 +665,7 @@ export function NotColorBlindGame({
           <div className="w-full rounded-3xl overflow-hidden border border-border/60 shadow-2xl bg-card">
             {/* Upper Section ("Your Prediction") */}
             <div
-              className="relative p-6 sm:p-8 flex flex-col justify-between min-h-[180px] sm:min-h-[200px] transition-colors"
+              className="relative p-6 sm:p-8 flex flex-col justify-between min-h-45 sm:min-h-50 transition-colors"
               style={{ backgroundColor: hsbToCss(prediction) }}
             >
               <div className="flex items-start justify-between gap-4">
@@ -734,7 +734,7 @@ export function NotColorBlindGame({
 
             {/* Lower Section ("Original") */}
             <div
-              className="relative p-6 sm:p-8 flex flex-col justify-between min-h-[180px] sm:min-h-[200px] transition-colors"
+              className="relative p-6 sm:p-8 flex flex-col justify-between min-h-45 sm:min-h-50 transition-colors"
               style={{ backgroundColor: hsbToCss(targetColor) }}
             >
               <div className="flex items-start justify-between gap-4">
