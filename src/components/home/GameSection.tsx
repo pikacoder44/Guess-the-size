@@ -20,6 +20,7 @@ interface ArcadeGameItem {
   stats: string;
   tags: string[];
   rating: string;
+  coverImage: string;
   categories: FilterTag[];
 }
 
@@ -34,6 +35,7 @@ const ARCADE_GAMES: ArcadeGameItem[] = [
     stats: "5 Rounds • Avg 3.4s",
     tags: ["Spatial", "Silhouettes", "Meters"],
     rating: "4.9",
+    coverImage: "/assets/banners/scaleguess-cover.jpg",
     categories: ["all", "spatial"],
   },
   {
@@ -46,6 +48,7 @@ const ARCADE_GAMES: ArcadeGameItem[] = [
     stats: "5s Memory • HSB Space",
     tags: ["Perceptual", "HSB", "Delta-E"],
     rating: "4.8",
+    coverImage: "/assets/banners/not-color-blind-cover.jpg",
     categories: ["all", "perceptual"],
   },
   {
@@ -58,6 +61,7 @@ const ARCADE_GAMES: ArcadeGameItem[] = [
     stats: "Ranked • Resets 00:00 UTC",
     tags: ["Daily", "Ranked", "Spatial"],
     rating: "5.0",
+    coverImage: "/assets/banners/daily-challenge-cover.jpg",
     categories: ["all", "daily", "spatial"],
   },
 ];
@@ -108,7 +112,7 @@ export function GameSection({ onNavigate, searchQuery = "" }: GameSectionProps) 
 
         {/* Filter Tags */}
         <div className="flex items-center gap-1.5 flex-wrap">
-          <div className="flex items-center gap-1 bg-neutral-950/80 p-1 rounded-xl border border-neutral-800/80">
+          <div className="flex items-center gap-1 bg-neutral-950/40 backdrop-blur-md p-1 rounded-xl border border-neutral-800/80">
             {filterTabs.map((tab) => {
               const isActive = activeFilter === tab.id;
               return (
@@ -160,6 +164,7 @@ export function GameSection({ onNavigate, searchQuery = "" }: GameSectionProps) 
               stats={game.stats}
               tags={game.tags}
               rating={game.rating}
+              coverImage={game.coverImage}
               onNavigate={onNavigate}
             />
           ))}

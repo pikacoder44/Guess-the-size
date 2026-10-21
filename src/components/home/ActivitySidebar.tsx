@@ -160,59 +160,71 @@ export function ActivitySidebar({ onNavigate }: ActivitySidebarProps) {
 
   return (
     <aside className="w-full flex flex-col gap-5">
-      {/* ── 1. Daily Challenge Quick Launcher Card (Steam style) ── */}
-      <div className="rounded-2xl bg-neutral-900/80 border border-neutral-800/80 p-5 shadow-xl relative overflow-hidden backdrop-blur-xl group">
-        <div className="absolute top-0 right-0 w-36 h-36 bg-amber-500/10 rounded-full blur-2xl pointer-events-none" />
+      {/* ── 1. Daily Challenge Quick Launcher Card (Steam style with Gold Glowing Highlights) ── */}
+      <div className="rounded-2xl bg-neutral-950/40 border border-amber-500/30 hover:border-amber-500/50 shadow-[0_0_20px_rgba(245,158,11,0.12)] hover:shadow-[0_0_30px_rgba(245,158,11,0.22)] relative overflow-hidden backdrop-blur-xl group transition-all duration-300">
+        {/* Header background banner image */}
+        <div className="relative h-28 w-full overflow-hidden border-b border-amber-500/20">
+          <img
+            src="/assets/banners/daily-challenge-cover.jpg"
+            alt="Daily Challenge Tournament"
+            className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-neutral-900 via-neutral-900/60 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-r from-amber-500/10 via-transparent to-transparent pointer-events-none" />
 
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400">
-              <Trophy className="w-4 h-4" />
+          {/* Header Overlay Content */}
+          <div className="absolute inset-0 p-4 flex items-start justify-between z-10">
+            <div className="flex items-center gap-2">
+              <div className="w-7 h-7 rounded-lg bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400 backdrop-blur-md shadow-sm">
+                <Trophy className="w-4 h-4" />
+              </div>
+              <span className="text-xs font-mono uppercase tracking-wider font-bold text-white drop-shadow-sm">
+                Daily Challenge
+              </span>
             </div>
-            <span className="text-xs font-mono uppercase tracking-wider font-bold text-neutral-200">
-              Daily Challenge
+
+            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-amber-500/25 border border-amber-400/40 text-[10px] font-mono text-amber-300 font-semibold backdrop-blur-md shadow-sm">
+              <Flame className="w-3 h-3 fill-current text-amber-400" />
+              TODAY
+            </span>
+          </div>
+        </div>
+
+        <div className="p-5">
+          <div>
+            <div className="text-sm font-bold text-neutral-100 font-sans">
+              5 Calibrated Spatial Rounds
+            </div>
+            <p className="text-xs text-neutral-400 mt-1 leading-relaxed">
+              Synchronized seed for all global players. Evaluated on real-world metric scales.
+            </p>
+          </div>
+
+          {/* Live Reset Countdown */}
+          <div className="mt-4 p-2.5 rounded-xl bg-neutral-950/40 border border-neutral-800 flex items-center justify-between text-xs font-mono backdrop-blur-sm">
+            <div className="flex items-center gap-1.5 text-neutral-400">
+              <Clock className="w-3.5 h-3.5 text-amber-400" />
+              <span className="text-[11px]">Resets in</span>
+            </div>
+            <span className="font-bold text-amber-300 text-xs">
+              {timeRemaining}
             </span>
           </div>
 
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-[10px] font-mono text-emerald-400 font-semibold">
-            <Flame className="w-3 h-3 fill-current" />
-            TODAY
-          </span>
+          {/* Quick Launch CTA */}
+          <button
+            type="button"
+            onClick={() => onNavigate("/games/scale-guess")}
+            className="mt-4 w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 active:scale-[0.98] text-neutral-950 font-bold text-xs tracking-tight shadow-[0_0_15px_rgba(245,158,11,0.3)] transition-all flex items-center justify-center gap-2 cursor-pointer"
+          >
+            <span>LAUNCH TODAY'S DAILY</span>
+            <ArrowRight className="w-3.5 h-3.5" />
+          </button>
         </div>
-
-        <div className="mt-3.5">
-          <div className="text-sm font-bold text-neutral-100 font-sans">
-            5 Calibrated Spatial Rounds
-          </div>
-          <p className="text-xs text-neutral-400 mt-1 leading-relaxed">
-            Synchronized seed for all global players. Evaluated on real-world metric scales.
-          </p>
-        </div>
-
-        {/* Live Reset Countdown */}
-        <div className="mt-4 p-2.5 rounded-xl bg-neutral-950/70 border border-neutral-800 flex items-center justify-between text-xs font-mono">
-          <div className="flex items-center gap-1.5 text-neutral-400">
-            <Clock className="w-3.5 h-3.5 text-amber-400" />
-            <span className="text-[11px]">Resets in</span>
-          </div>
-          <span className="font-bold text-neutral-200 text-xs">
-            {timeRemaining}
-          </span>
-        </div>
-
-        {/* Quick Launch CTA */}
-        <button
-          type="button"
-          onClick={() => onNavigate("/games/scale-guess")}
-          className="mt-4 w-full py-2.5 px-4 rounded-xl bg-amber-400 hover:bg-amber-300 active:scale-[0.98] text-neutral-950 font-bold text-xs tracking-tight shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer"
-        >
-          <span>LAUNCH TODAY'S DAILY</span>
-          <ArrowRight className="w-3.5 h-3.5" />
-        </button>
       </div>
 
       {/* ── 2. Personal Performance Compact Widget ── */}
-      <div className="rounded-2xl bg-neutral-900/80 border border-neutral-800/80 p-5 shadow-xl backdrop-blur-xl">
+      <div className="rounded-2xl bg-neutral-950/40 border border-neutral-800/80 p-5 shadow-xl backdrop-blur-xl">
         <div className="flex items-center justify-between pb-3 border-b border-neutral-800/80">
           <div className="flex items-center gap-2">
             <div className="w-7 h-7 rounded-lg bg-neutral-800 border border-neutral-700 flex items-center justify-center text-neutral-300">
@@ -232,7 +244,7 @@ export function ActivitySidebar({ onNavigate }: ActivitySidebarProps) {
 
         {/* Stats Grid */}
         <div className="mt-4 grid grid-cols-3 gap-2 text-center">
-          <div className="p-2.5 rounded-xl bg-neutral-950/60 border border-neutral-800/80">
+          <div className="p-2.5 rounded-xl bg-neutral-950/40 border border-neutral-800/80 backdrop-blur-sm">
             <div className="text-[10px] font-mono uppercase tracking-wider text-neutral-400">
               Total Runs
             </div>
@@ -241,7 +253,7 @@ export function ActivitySidebar({ onNavigate }: ActivitySidebarProps) {
             </div>
           </div>
 
-          <div className="p-2.5 rounded-xl bg-neutral-950/60 border border-neutral-800/80">
+          <div className="p-2.5 rounded-xl bg-neutral-950/40 border border-neutral-800/80 backdrop-blur-sm">
             <div className="text-[10px] font-mono uppercase tracking-wider text-neutral-400">
               Scale Best
             </div>
@@ -250,7 +262,7 @@ export function ActivitySidebar({ onNavigate }: ActivitySidebarProps) {
             </div>
           </div>
 
-          <div className="p-2.5 rounded-xl bg-neutral-950/60 border border-neutral-800/80">
+          <div className="p-2.5 rounded-xl bg-neutral-950/40 border border-neutral-800/80 backdrop-blur-sm">
             <div className="text-[10px] font-mono uppercase tracking-wider text-neutral-400">
               Color Best
             </div>
@@ -271,7 +283,7 @@ export function ActivitySidebar({ onNavigate }: ActivitySidebarProps) {
       </div>
 
       {/* ── 3. Recent Champions / Leaderboard Feed ── */}
-      <div className="rounded-2xl bg-neutral-900/80 border border-neutral-800/80 p-5 shadow-xl backdrop-blur-xl">
+      <div className="rounded-2xl bg-neutral-950/40 border border-neutral-800/80 p-5 shadow-xl backdrop-blur-xl">
         <div className="flex items-center justify-between pb-3 border-b border-neutral-800/80">
           <div className="flex items-center gap-2">
             <div className="w-7 h-7 rounded-lg bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400">
@@ -391,7 +403,7 @@ export function ActivitySidebar({ onNavigate }: ActivitySidebarProps) {
         <button
           type="button"
           onClick={() => onNavigate("/games/scale-guess/leaderboard")}
-          className="mt-3 w-full py-2 px-3 rounded-lg bg-neutral-950 hover:bg-neutral-850 border border-neutral-800 text-xs font-mono text-neutral-400 hover:text-neutral-200 active:scale-95 transition-all duration-100 will-change-transform transform-gpu flex items-center justify-center gap-1.5 cursor-pointer"
+          className="mt-3 w-full py-2 px-3 rounded-lg bg-neutral-950/40 hover:bg-neutral-900/60 border border-neutral-800 text-xs font-mono text-neutral-400 hover:text-neutral-200 active:scale-95 transition-all duration-100 will-change-transform transform-gpu flex items-center justify-center gap-1.5 cursor-pointer backdrop-blur-sm"
         >
           <span>View Global Hall of Fame</span>
           <ArrowRight className="w-3 h-3" />

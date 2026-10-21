@@ -12,6 +12,7 @@ export interface GameCardProps {
   stats: string;
   tags: string[];
   rating: string;
+  coverImage?: string;
   onNavigate: (route: string) => void;
 }
 
@@ -25,11 +26,20 @@ export function GameCard({
   stats,
   tags,
   rating,
+  coverImage,
   onNavigate,
 }: GameCardProps) {
   const isScaleGuess = id === "scale-guess" || route.includes("scale-guess");
   const isColorBlind = id === "not-color-blind" || route.includes("not-color-blind");
   const [isHovered, setIsHovered] = useState(false);
+
+  const resolvedCoverImage =
+    coverImage ||
+    (isScaleGuess
+      ? "/assets/banners/scaleguess-cover.jpg"
+      : isColorBlind
+      ? "/assets/banners/not-color-blind-cover.jpg"
+      : "/assets/banners/daily-challenge-cover.jpg");
 
   return (
     <motion.div
@@ -55,7 +65,7 @@ export function GameCard({
           onNavigate(route);
         }
       }}
-      className="group relative flex flex-col rounded-2xl bg-neutral-900/80 hover:bg-neutral-900 border border-neutral-800/80 hover:border-neutral-700/90 shadow-xl hover:shadow-2xl cursor-pointer select-none overflow-hidden text-left transform-gpu will-change-[transform,opacity]"
+      className="group relative flex flex-col rounded-2xl bg-neutral-900/60 hover:bg-neutral-900/80 backdrop-blur-md border border-neutral-800/80 hover:border-neutral-700/90 shadow-xl hover:shadow-2xl cursor-pointer select-none overflow-hidden text-left transform-gpu will-change-[transform,opacity]"
     >
       {/* Subtle Steam Ambient Backlight on Hover */}
       <div
@@ -64,123 +74,36 @@ export function GameCard({
         }`}
       />
 
-      {/* ── Top Area: 16:9 Cover Art / Dynamic Visual Preview Banner ── */}
-      <div className="relative aspect-[16/9] w-full bg-neutral-950 overflow-hidden border-b border-neutral-800/80 flex items-center justify-center">
-        {/* Dynamic Art Canvas */}
-        {isScaleGuess ? (
-          <div className="relative w-full h-full bg-gradient-to-b from-neutral-900 via-neutral-950 to-neutral-950 p-4 flex flex-col justify-between overflow-hidden">
-            {/* Background Grid Pattern */}
-            <div className="absolute inset-0 bg-[linear-gradient(to_right,#262626_1px,transparent_1px),linear-gradient(to_bottom,#262626_1px,transparent_1px)] bg-[size:1.5rem_1.5rem] opacity-35" />
+      {/* ── Top Area: 16:9 Cover Art Banner Container (Steam / Epic Games style) ── */}
+      <div className="relative aspect-video w-full overflow-hidden rounded-t-2xl bg-neutral-950 border-b border-neutral-800/80">
+        <img 
+          src={resolvedCoverImage} 
+          alt={title}
+          className="h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-105" 
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-neutral-950 via-transparent to-transparent" />
 
-            {/* Top Bar with Mode Tag */}
-            <div className="relative z-10 flex items-center justify-between">
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-amber-500/15 border border-amber-500/30 text-[10px] font-mono font-semibold text-amber-300">
-                <Ruler className="w-3 h-3" />
-                METRIC SCALE
-              </span>
-              <span className="text-[10px] font-mono text-neutral-400 bg-neutral-900/80 px-2 py-0.5 rounded border border-neutral-800">
-                1:1 Calibrated
-              </span>
-            </div>
-
-            {/* Visual Vector Silhouettes in Scale Comparison */}
-            <div className="relative z-10 flex items-end justify-center gap-6 my-auto pt-2">
-              {/* Human silhouette */}
-              <div className="flex flex-col items-center">
-                <span className="text-[9px] font-mono text-neutral-400 mb-0.5">1.75m</span>
-                <img
-                  src="/silhouettes/human.svg"
-                  alt="Human reference"
-                  className="h-10 w-auto filter invert opacity-75"
-                />
-              </div>
-
-              {/* Blue Whale silhouette */}
-              <div className="flex flex-col items-center">
-                <span className="text-[9px] font-mono text-amber-400 font-bold mb-0.5">33.5m</span>
-                <img
-                  src="/silhouettes/blue_whale.svg"
-                  alt="Blue Whale target"
-                  className="h-20 w-auto filter invert opacity-90 drop-shadow-[0_0_10px_rgba(245,158,11,0.35)]"
-                />
-              </div>
-
-              {/* Saturn V Rocket silhouette */}
-              <div className="flex flex-col items-center">
-                <span className="text-[9px] font-mono text-neutral-300 mb-0.5">110.6m</span>
-                <img
-                  src="/silhouettes/saturn_v.svg"
-                  alt="Saturn V target"
-                  className="h-28 w-auto filter invert opacity-95 drop-shadow-[0_0_12px_rgba(255,255,255,0.2)]"
-                />
-              </div>
-            </div>
-
-            {/* Laser Caliper Ruler Line */}
-            <div className="relative z-10 w-full pt-1 border-t border-dashed border-amber-500/40 flex items-center justify-between text-[9px] font-mono text-amber-400/80">
-              <span>0.00m</span>
-              <span className="text-[10px] font-bold text-amber-300 tracking-wider">LOGARITHMIC CALIBRATION</span>
-              <span>150.0m</span>
-            </div>
-          </div>
-        ) : isColorBlind ? (
-          <div className="relative w-full h-full bg-gradient-to-b from-neutral-900 via-neutral-950 to-neutral-950 p-4 flex flex-col justify-between overflow-hidden">
-            {/* Background Spectrum Flare */}
-            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-violet-600/30 via-neutral-950 to-neutral-950 opacity-60" />
-
-            {/* Top Bar with Mode Tag */}
-            <div className="relative z-10 flex items-center justify-between">
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-violet-500/15 border border-violet-500/30 text-[10px] font-mono font-semibold text-violet-300">
-                <Eye className="w-3 h-3" />
-                HSB COLOR SPACE
-              </span>
-              <span className="text-[10px] font-mono text-neutral-400 bg-neutral-900/80 px-2 py-0.5 rounded border border-neutral-800">
-                Delta-E Precision
-              </span>
-            </div>
-
-            {/* Vibrant Chromatic Swatches & Color Dial Visual */}
-            <div className="relative z-10 flex items-center justify-center gap-3 my-auto">
-              <div className="w-10 h-10 rounded-xl bg-[#ff3b30] shadow-[0_0_14px_rgba(255,59,48,0.5)] transform -rotate-6" />
-              <div className="w-12 h-12 rounded-xl bg-[#007aff] shadow-[0_0_18px_rgba(0,122,255,0.6)] transform scale-110 z-10" />
-              <div className="w-10 h-10 rounded-xl bg-[#34c759] shadow-[0_0_14px_rgba(52,199,89,0.5)] transform rotate-6" />
-              <div className="w-10 h-10 rounded-xl bg-[#af52de] shadow-[0_0_14px_rgba(175,82,222,0.5)] transform rotate-12" />
-            </div>
-
-            {/* Hue Gradient Spectrum Bar */}
-            <div className="relative z-10 w-full">
-              <div className="h-2 rounded-full w-full bg-[linear-gradient(to_right,#ff0000,#ffff00,#00ff00,#00ffff,#0000ff,#ff00ff,#ff0000)] opacity-85 shadow-sm" />
-              <div className="flex items-center justify-between text-[9px] font-mono text-neutral-400 mt-1">
-                <span>Hue: 0°</span>
-                <span className="text-[10px] font-bold text-violet-300 tracking-wider">HUE • SAT • BRIGHTNESS</span>
-                <span>Hue: 360°</span>
-              </div>
-            </div>
-          </div>
-        ) : (
-          <div className="relative w-full h-full bg-gradient-to-b from-neutral-900 via-neutral-950 to-neutral-950 p-4 flex flex-col justify-between overflow-hidden">
-            <div className="relative z-10 flex items-center justify-between">
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-amber-500/15 border border-amber-500/30 text-[10px] font-mono font-semibold text-amber-300">
-                <Trophy className="w-3 h-3" />
-                DAILY CHALLENGE
-              </span>
-            </div>
-            <div className="relative z-10 flex items-center justify-center my-auto">
-              <Trophy className="w-14 h-14 text-amber-400 drop-shadow-[0_0_16px_rgba(245,158,11,0.5)]" />
-            </div>
-            <div className="relative z-10 text-center text-[10px] font-mono text-amber-300">
-              Today's Deterministic Puzzle Run
-            </div>
-          </div>
-        )}
+        {/* Category / Mode Tag Overlay */}
+        <div className="absolute top-3 left-3 z-10">
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-neutral-950/85 border border-neutral-700/80 backdrop-blur-md text-[10px] font-mono font-semibold text-neutral-200 shadow-sm">
+            {isScaleGuess ? (
+              <Ruler className="w-3 h-3 text-amber-400" />
+            ) : isColorBlind ? (
+              <Eye className="w-3 h-3 text-violet-400" />
+            ) : (
+              <Trophy className="w-3 h-3 text-amber-400" />
+            )}
+            {categoryTag}
+          </span>
+        </div>
 
         {/* ── Prominent Hover Overlay with Play Button (Steam / Epic Games style) ── */}
         <div
-          className={`absolute inset-0 bg-neutral-950/65 backdrop-blur-[2px] flex flex-col items-center justify-center transition-all duration-300 z-20 ${
+          className={`absolute inset-0 bg-neutral-950/60 backdrop-blur-[2px] flex flex-col items-center justify-center transition-all duration-300 z-20 ${
             isHovered ? "opacity-100" : "opacity-0 pointer-events-none"
           }`}
         >
-          <div className="w-13 h-13 rounded-full bg-white text-neutral-950 flex items-center justify-center shadow-2xl transform scale-90 group-hover:scale-100 transition-transform duration-300">
+          <div className="w-12 h-12 rounded-full bg-white text-neutral-950 flex items-center justify-center shadow-2xl transform scale-90 group-hover:scale-100 transition-transform duration-300">
             <Play className="w-5 h-5 fill-current ml-0.5" />
           </div>
           <span className="mt-2 text-xs font-extrabold uppercase tracking-wider text-white">
