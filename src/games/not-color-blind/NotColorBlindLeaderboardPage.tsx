@@ -238,7 +238,21 @@ export function NotColorBlindLeaderboardPage({
           </div>
 
           {/* Not Color Blind Rows */}
-          <div className="flex flex-col gap-2.5">
+          <motion.div
+            variants={{
+              hidden: { opacity: 0 },
+              visible: {
+                opacity: 1,
+                transition: {
+                  staggerChildren: 0.06,
+                  delayChildren: 0.03,
+                },
+              },
+            }}
+            initial="hidden"
+            animate="visible"
+            className="flex flex-col gap-2.5 transform-gpu"
+          >
             {entries.length === 0 ? (
               <div className="py-16 text-center text-muted-foreground font-mono text-xs bg-neutral-900/40 rounded-xl border border-border/40">
                 {loading ? "Loading champions..." : "No scores recorded yet. Be the first to conquer Not Color Blind!"}
@@ -303,10 +317,18 @@ export function NotColorBlindLeaderboardPage({
                 return (
                   <motion.div
                     key={entry.id}
-                    initial={{ opacity: 0, transform: "scale(0.98) translateY(8px)" }}
-                    animate={{ opacity: 1, transform: "scale(1) translateY(0px)" }}
-                    transition={{ duration: 0.35, ease: [0.23, 1, 0.32, 1], delay: Math.min(idx * 0.02, 0.3) }}
-                    whileHover={{ scale: 1.01, transition: { duration: 0.15 } }}
+                    variants={{
+                      hidden: { opacity: 0, y: 12, scale: 0.98 },
+                      visible: {
+                        opacity: 1,
+                        y: 0,
+                        scale: 1,
+                        transition: { type: "spring", stiffness: 350, damping: 25 },
+                      },
+                    }}
+                    whileHover={{ scale: 1.01, y: -2 }}
+                    whileTap={{ scale: 0.98 }}
+                    transition={{ type: "spring", stiffness: 350, damping: 25 }}
                     onClick={() => handleRowClick(entry)}
                     role="button"
                     tabIndex={0}
@@ -316,7 +338,7 @@ export function NotColorBlindLeaderboardPage({
                         handleRowClick(entry);
                       }
                     }}
-                    className={`group relative flex items-center justify-between px-4 py-3 min-h-16 rounded-xl border transition-all duration-200 cursor-pointer overflow-hidden backdrop-blur-xl ${rowStyles}`}
+                    className={`group relative flex items-center justify-between px-4 py-3 min-h-16 rounded-xl border transition-colors duration-200 cursor-pointer overflow-hidden backdrop-blur-xl transform-gpu will-change-[transform,opacity] ${rowStyles}`}
                   >
                     {isTop1 && !isCurrentUser && (
                       <div className="absolute inset-0 pointer-events-none overflow-hidden" aria-hidden="true">
@@ -393,7 +415,7 @@ export function NotColorBlindLeaderboardPage({
                 );
               })
             )}
-          </div>
+          </motion.div>
 
           {/* Pinned user standing if logged in and not in Top 10 */}
           {isAuthenticated && user && !isUserInTop10 && userIndex !== -1 && entries[userIndex] && (

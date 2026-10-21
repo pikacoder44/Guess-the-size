@@ -21,7 +21,7 @@ export function ScaleGuessPage({ onBackToHome, onNavigateLeaderboard }: ScaleGue
           <button
             type="button"
             onClick={onBackToHome}
-            className="inline-flex items-center gap-1.5 text-xs font-mono px-2.5 sm:px-3 py-1.5 rounded-lg bg-secondary/80 hover:bg-secondary text-muted-foreground hover:text-foreground border border-border transition-colors cursor-pointer shrink-0 whitespace-nowrap"
+            className="inline-flex items-center gap-1.5 text-xs font-mono px-2.5 sm:px-3 py-1.5 rounded-lg bg-secondary/80 hover:bg-secondary text-muted-foreground hover:text-foreground border border-border active:scale-95 transition-all duration-100 will-change-transform transform-gpu cursor-pointer shrink-0 whitespace-nowrap"
           >
             <ArrowLeft className="w-3.5 h-3.5 shrink-0" />
             <span className="hidden xs:inline">All Games</span>
@@ -116,7 +116,7 @@ export function ScaleGuessPage({ onBackToHome, onNavigateLeaderboard }: ScaleGue
             </div>
             <button
               type="button"
-              className="lock-btn w-full sm:w-auto shadow-md shadow-primary/20 cursor-pointer"
+              className="lock-btn w-full sm:w-auto shadow-md shadow-primary/20 active:scale-[0.96] transition-all duration-100 will-change-transform transform-gpu cursor-pointer"
               onClick={(e) => {
                 e.preventDefault();
                 game.lockIn();
@@ -146,7 +146,7 @@ export function ScaleGuessPage({ onBackToHome, onNavigateLeaderboard }: ScaleGue
             type="button"
             id="game-leaderboard-cta"
             onClick={onNavigateLeaderboard}
-            className="group relative inline-flex items-center gap-2.5 px-4 py-2 rounded-xl bg-card/35 hover:bg-card/75 border border-border/60 hover:border-amber-400/70 hover:shadow-[0_0_20px_rgba(245,158,11,0.22)] backdrop-blur-md text-xs font-medium text-muted-foreground hover:text-amber-300 transition-all duration-300 hover:scale-[1.03] active:scale-[0.98] cursor-pointer ml-auto sm:ml-0 overflow-hidden"
+            className="group relative inline-flex items-center gap-2.5 px-4 py-2 rounded-xl bg-card/35 hover:bg-card/75 border border-border/60 hover:border-amber-400/70 hover:shadow-[0_0_20px_rgba(245,158,11,0.22)] backdrop-blur-md text-xs font-medium text-muted-foreground hover:text-amber-300 active:scale-[0.96] transition-all duration-100 will-change-transform transform-gpu cursor-pointer ml-auto sm:ml-0 overflow-hidden"
             aria-label="View Global Leaderboard"
           >
             {/* Shimmer sweep effect on button hover */}

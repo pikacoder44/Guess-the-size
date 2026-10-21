@@ -221,7 +221,7 @@
     font-weight: 600; letter-spacing: 0.01em; transition: filter 150ms, transform 100ms;
   }
   .lock-btn:hover:not(:disabled) { filter: brightness(1.08); }
-  .lock-btn:active:not(:disabled) { transform: scale(0.98); }
+  .lock-btn:active:not(:disabled) { transform: scale(0.96); }
   .result-panel {
     display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem;
     padding: 1.25rem 1.5rem; border-radius: var(--radius-2xl);
@@ -351,6 +351,19 @@ html.lenis, html.lenis body {
 
 .lenis.lenis-smooth iframe {
   pointer-events: none;
+}
+
+/* ── Hardware Acceleration & Motion Optimizations ── */
+.transform-gpu {
+  transform: translateZ(0);
+}
+
+.will-change-transform {
+  will-change: transform;
+}
+
+.will-change-transform-opacity {
+  will-change: transform, opacity;
 }
 
 

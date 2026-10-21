@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { motion } from "motion/react";
 import { Play, ArrowUpRight, Ruler, Eye, Trophy, Star, Sparkles } from "lucide-react";
 
 export interface GameCardProps {
@@ -31,7 +32,18 @@ export function GameCard({
   const [isHovered, setIsHovered] = useState(false);
 
   return (
-    <div
+    <motion.div
+      variants={{
+        hidden: { opacity: 0, y: 16 },
+        visible: {
+          opacity: 1,
+          y: 0,
+          transition: { type: "spring", stiffness: 350, damping: 25 },
+        },
+      }}
+      whileHover={{ y: -6, scale: 1.01 }}
+      whileTap={{ scale: 0.98 }}
+      transition={{ type: "spring", stiffness: 350, damping: 25 }}
       role="button"
       tabIndex={0}
       onClick={() => onNavigate(route)}
@@ -43,7 +55,7 @@ export function GameCard({
           onNavigate(route);
         }
       }}
-      className="group relative flex flex-col rounded-2xl bg-neutral-900/80 hover:bg-neutral-900 border border-neutral-800/80 hover:border-neutral-700/90 shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-1.5 cursor-pointer select-none overflow-hidden text-left"
+      className="group relative flex flex-col rounded-2xl bg-neutral-900/80 hover:bg-neutral-900 border border-neutral-800/80 hover:border-neutral-700/90 shadow-xl hover:shadow-2xl cursor-pointer select-none overflow-hidden text-left transform-gpu will-change-[transform,opacity]"
     >
       {/* Subtle Steam Ambient Backlight on Hover */}
       <div
@@ -229,7 +241,7 @@ export function GameCard({
           </div>
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 }
 

@@ -222,7 +222,7 @@ export function HeroSpotlight({ onNavigate }: HeroSpotlightProps) {
             <button
               type="button"
               onClick={() => onNavigate(activeSlide.playRoute)}
-              className="inline-flex items-center gap-2 px-5 sm:px-6 py-2.5 sm:py-3 rounded-xl bg-white hover:bg-neutral-100 text-neutral-950 font-bold text-xs sm:text-sm tracking-tight shadow-xl hover:shadow-2xl active:scale-[0.98] transition-all cursor-pointer group/btn"
+              className="inline-flex items-center gap-2 px-5 sm:px-6 py-2.5 sm:py-3 rounded-xl bg-white hover:bg-neutral-100 text-neutral-950 font-bold text-xs sm:text-sm tracking-tight shadow-xl hover:shadow-2xl active:scale-[0.96] transition-all duration-100 will-change-transform transform-gpu cursor-pointer group/btn"
             >
               <Play className="w-4 h-4 fill-current transition-transform group-hover/btn:scale-110" />
               <span>{activeSlide.ctaText}</span>
@@ -231,7 +231,7 @@ export function HeroSpotlight({ onNavigate }: HeroSpotlightProps) {
             <button
               type="button"
               onClick={() => onNavigate(activeSlide.leaderboardRoute)}
-              className="inline-flex items-center gap-2 px-4 sm:px-5 py-2.5 sm:py-3 rounded-xl bg-neutral-900/80 hover:bg-neutral-800 border border-neutral-700/80 hover:border-neutral-600 text-neutral-200 hover:text-white font-semibold text-xs sm:text-sm tracking-tight backdrop-blur-md active:scale-[0.98] transition-all cursor-pointer"
+              className="inline-flex items-center gap-2 px-4 sm:px-5 py-2.5 sm:py-3 rounded-xl bg-neutral-900/80 hover:bg-neutral-800 border border-neutral-700/80 hover:border-neutral-600 text-neutral-200 hover:text-white font-semibold text-xs sm:text-sm tracking-tight backdrop-blur-md active:scale-[0.96] transition-all duration-100 will-change-transform transform-gpu cursor-pointer"
             >
               <Trophy className="w-4 h-4 text-amber-400" />
               <span>VIEW LEADERBOARD</span>

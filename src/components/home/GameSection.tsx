@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { motion } from "motion/react";
 import { GameCard } from "./GameCard";
 import { Gamepad2, Search, SlidersHorizontal } from "lucide-react";
 
@@ -115,7 +116,7 @@ export function GameSection({ onNavigate, searchQuery = "" }: GameSectionProps) 
                   key={tab.id}
                   type="button"
                   onClick={() => setActiveFilter(tab.id)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-mono font-medium transition-all cursor-pointer ${
+                  className={`px-3 py-1.5 rounded-lg text-xs font-mono font-medium active:scale-95 transition-all duration-100 will-change-transform transform-gpu cursor-pointer ${
                     isActive
                       ? "bg-neutral-800 text-neutral-100 font-semibold shadow-sm"
                       : "text-neutral-400 hover:text-neutral-200 hover:bg-neutral-900/60"
@@ -131,7 +132,22 @@ export function GameSection({ onNavigate, searchQuery = "" }: GameSectionProps) 
 
       {/* ── Game Store Cards Grid ── */}
       {filteredGames.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5 sm:gap-6">
+        <motion.div
+          key={activeFilter}
+          variants={{
+            hidden: { opacity: 0 },
+            visible: {
+              opacity: 1,
+              transition: {
+                staggerChildren: 0.06,
+                delayChildren: 0.04,
+              },
+            },
+          }}
+          initial="hidden"
+          animate="visible"
+          className="grid grid-cols-1 md:grid-cols-2 gap-5 sm:gap-6 transform-gpu will-change-[transform,opacity]"
+        >
           {filteredGames.map((game) => (
             <GameCard
               key={game.id}
@@ -147,7 +163,7 @@ export function GameSection({ onNavigate, searchQuery = "" }: GameSectionProps) 
               onNavigate={onNavigate}
             />
           ))}
-        </div>
+        </motion.div>
       ) : (
         <div className="p-12 text-center rounded-2xl bg-neutral-900/40 border border-dashed border-neutral-800 flex flex-col items-center justify-center">
           <Search className="w-8 h-8 text-neutral-500 mb-3" />

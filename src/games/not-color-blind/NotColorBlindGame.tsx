@@ -494,7 +494,7 @@ export function NotColorBlindGame({
                 type="button"
                 onClick={handleStartGame}
                 autoFocus
-                className="w-full py-3.5 rounded-xl font-medium bg-neutral-100 hover:bg-white text-neutral-950 transition-all text-sm tracking-wide active:scale-[0.98] cursor-pointer"
+                className="w-full py-3.5 rounded-xl font-medium bg-neutral-100 hover:bg-white text-neutral-950 active:scale-[0.96] transition-all duration-100 will-change-transform transform-gpu text-sm tracking-wide cursor-pointer"
               >
                 Play Now
               </button>
@@ -637,7 +637,7 @@ export function NotColorBlindGame({
             <button
               type="button"
               onClick={handleLockIn}
-              className="inline-flex items-center justify-center gap-2 px-8 py-3 rounded-xl bg-primary text-primary-foreground font-semibold text-sm hover:brightness-110 active:scale-[0.98] transition-all cursor-pointer shadow-lg shadow-primary/25"
+              className="inline-flex items-center justify-center gap-2 px-8 py-3 rounded-xl bg-primary text-primary-foreground font-semibold text-sm hover:brightness-110 active:scale-[0.96] transition-all duration-100 will-change-transform transform-gpu cursor-pointer shadow-lg shadow-primary/25"
             >
               <Check className="w-4 h-4" />
               <span>Lock In Color</span>
@@ -773,7 +773,7 @@ export function NotColorBlindGame({
               <button
                 type="button"
                 onClick={handleNextRound}
-                className="inline-flex items-center justify-center gap-2 px-8 py-3 rounded-xl bg-primary text-primary-foreground font-semibold text-sm hover:brightness-110 active:scale-[0.98] transition-all cursor-pointer shadow-lg shadow-primary/20"
+                className="inline-flex items-center justify-center gap-2 px-8 py-3 rounded-xl bg-primary text-primary-foreground font-semibold text-sm hover:brightness-110 active:scale-[0.96] transition-all duration-100 will-change-transform transform-gpu cursor-pointer shadow-lg shadow-primary/20"
               >
                 <span>Next Round ({currentRound + 1}/{TOTAL_ROUNDS})</span>
                 <ArrowRight className="w-4 h-4" />
@@ -782,7 +782,7 @@ export function NotColorBlindGame({
               <button
                 type="button"
                 onClick={handleViewFinalResults}
-                className="inline-flex items-center justify-center gap-2 px-8 py-3 rounded-xl bg-primary text-primary-foreground font-semibold text-sm hover:brightness-110 active:scale-[0.98] transition-all cursor-pointer shadow-lg shadow-primary/25"
+                className="inline-flex items-center justify-center gap-2 px-8 py-3 rounded-xl bg-primary text-primary-foreground font-semibold text-sm hover:brightness-110 active:scale-[0.96] transition-all duration-100 will-change-transform transform-gpu cursor-pointer shadow-lg shadow-primary/25"
               >
                 <Trophy className="w-4 h-4 text-amber-300" />
                 <span>View Final Results</span>
@@ -979,7 +979,7 @@ export function NotColorBlindGame({
             <button
               type="button"
               onClick={handlePlayAgain}
-              className="inline-flex items-center justify-center gap-2 px-8 py-3 rounded-xl bg-primary text-primary-foreground font-semibold text-sm hover:brightness-110 active:scale-[0.98] transition-all cursor-pointer shadow-lg shadow-primary/20"
+              className="inline-flex items-center justify-center gap-2 px-8 py-3 rounded-xl bg-primary text-primary-foreground font-semibold text-sm hover:brightness-110 active:scale-[0.96] transition-all duration-100 will-change-transform transform-gpu cursor-pointer shadow-lg shadow-primary/20"
             >
               <RotateCcw className="w-4 h-4" />
               <span>Play Again</span>
@@ -989,7 +989,7 @@ export function NotColorBlindGame({
               <button
                 type="button"
                 onClick={onOpenLeaderboard}
-                className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-secondary/80 hover:bg-secondary text-foreground font-semibold text-sm border border-border transition-all cursor-pointer"
+                className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-secondary/80 hover:bg-secondary text-foreground font-semibold text-sm border border-border active:scale-[0.96] transition-all duration-100 will-change-transform transform-gpu cursor-pointer"
               >
                 <Trophy className="w-4 h-4 text-amber-400" />
                 <span>Leaderboard</span>

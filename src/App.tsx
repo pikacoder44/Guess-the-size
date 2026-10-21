@@ -11,6 +11,8 @@ import { ProfilePage } from "@/pages/ProfilePage";
 import { Footer } from "@/components/home/Footer";
 import { PublicProfilePage } from "@/pages/PublicProfilePage";
 import { SmoothScrollProvider } from "@/components/providers/SmoothScrollProvider";
+import { AnimatePresence } from "motion/react";
+import { PageWrapper } from "@/components/layout/PageWrapper";
 import {
   LogIn,
   UserPlus,
@@ -137,7 +139,7 @@ export function App() {
           <button
             type="button"
             onClick={() => navigateTo("home")}
-            className="flex items-center gap-2.5 hover:opacity-95 transition-opacity cursor-pointer group"
+            className="flex items-center gap-2.5 hover:opacity-95 active:scale-95 transition-all duration-100 will-change-transform transform-gpu cursor-pointer group"
             aria-label="Synapse Arcade Store"
           >
             <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-neutral-900 to-neutral-800 border border-neutral-700/80 flex items-center justify-center text-amber-400 group-hover:text-amber-300 transition-colors shadow-sm">
@@ -158,7 +160,7 @@ export function App() {
             <button
               type="button"
               onClick={() => navigateTo("home")}
-              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-mono font-medium transition-all cursor-pointer ${
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-mono font-medium active:scale-95 transition-all duration-100 will-change-transform transform-gpu cursor-pointer ${
                 currentRoute === "home"
                   ? "bg-neutral-850 text-white font-semibold shadow-inner border border-neutral-700/80"
                   : "text-neutral-400 hover:text-neutral-200 hover:bg-neutral-900"
@@ -172,7 +174,7 @@ export function App() {
               type="button"
               id="open-leaderboard-btn"
               onClick={() => navigateTo("scaleGuessLeaderboard")}
-              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-mono font-medium transition-all cursor-pointer ${
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-mono font-medium active:scale-95 transition-all duration-100 will-change-transform transform-gpu cursor-pointer ${
                 currentRoute === "scaleGuessLeaderboard" ||
                 currentRoute === "notColorBlindLeaderboard" ||
                 currentRoute === "leaderboard"
@@ -193,7 +195,7 @@ export function App() {
                   openLogin();
                 }
               }}
-              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-mono font-medium transition-all cursor-pointer ${
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-mono font-medium active:scale-95 transition-all duration-100 will-change-transform transform-gpu cursor-pointer ${
                 currentRoute === "profile"
                   ? "bg-neutral-850 text-white font-semibold shadow-inner border border-neutral-700/80"
                   : "text-neutral-400 hover:text-neutral-200 hover:bg-neutral-900"
@@ -293,7 +295,7 @@ export function App() {
                     navigateTo("login");
                   }
                 }}
-                className="inline-flex items-center gap-1.5 text-xs font-mono font-medium px-2.5 sm:px-3 py-1.5 rounded-lg bg-neutral-900/80 hover:bg-neutral-850 border border-neutral-800 hover:border-neutral-700 text-neutral-300 hover:text-white transition-all cursor-pointer"
+                className="inline-flex items-center gap-1.5 text-xs font-mono font-medium px-2.5 sm:px-3 py-1.5 rounded-lg bg-neutral-900/80 hover:bg-neutral-850 border border-neutral-800 hover:border-neutral-700 text-neutral-300 hover:text-white active:scale-95 transition-all duration-100 will-change-transform transform-gpu cursor-pointer"
               >
                 <LogIn className="w-3.5 h-3.5" />
                 <span>Sign In</span>
@@ -314,7 +316,7 @@ export function App() {
                     navigateTo("register");
                   }
                 }}
-                className="inline-flex items-center gap-1.5 text-xs font-mono font-bold px-2.5 sm:px-3 py-1.5 rounded-lg bg-white text-neutral-950 hover:bg-neutral-100 active:scale-[0.98] transition-all cursor-pointer shadow-sm"
+                className="inline-flex items-center gap-1.5 text-xs font-mono font-bold px-2.5 sm:px-3 py-1.5 rounded-lg bg-white text-neutral-950 hover:bg-neutral-100 active:scale-95 transition-all duration-100 will-change-transform transform-gpu cursor-pointer shadow-sm"
               >
                 <UserPlus className="w-3.5 h-3.5" />
                 <span>Register</span>
@@ -325,59 +327,72 @@ export function App() {
       </header>
 
       {/* ── Main View Router ── */}
-      {currentRoute === "login" ? (
-        <main className="flex-1 max-w-4xl w-full mx-auto p-4 sm:p-6 flex items-center justify-center">
-          <AuthPage
-            initialMode="login"
-            onSuccess={() => navigateTo("home")}
-            onClose={() => navigateTo("home")}
-          />
-        </main>
-      ) : currentRoute === "register" ? (
-        <main className="flex-1 max-w-4xl w-full mx-auto p-4 sm:p-6 flex items-center justify-center">
-          <AuthPage
-            initialMode="register"
-            onSuccess={() => navigateTo("home")}
-            onClose={() => navigateTo("home")}
-          />
-        </main>
-      ) : currentRoute === "profile" ? (
-        <ProfilePage
-          onBack={() => navigateTo("home")}
-          onOpenLogin={() => { openLogin(); navigateTo("home"); }}
-        />
-      ) : currentRoute === "scaleGuess" ? (
-        <ScaleGuessPage
-          onBackToHome={() => navigateTo("home")}
-          onNavigateLeaderboard={() => navigateTo("scaleGuessLeaderboard")}
-        />
-      ) : currentRoute === "scaleGuessLeaderboard" || currentRoute === "leaderboard" ? (
-        <ScaleGuessLeaderboardPage
-          onNavigate={navigateTo}
-          onBackToGame={() => navigateTo("scaleGuess")}
-          onOpenLogin={openLogin}
-        />
-      ) : currentRoute === "notColorBlind" ? (
-        <NotColorBlindPage
-          onBackToHome={() => navigateTo("home")}
-          onNavigateLeaderboard={() => navigateTo("notColorBlindLeaderboard")}
-        />
-      ) : currentRoute === "notColorBlindLeaderboard" ? (
-        <NotColorBlindLeaderboardPage
-          onNavigate={navigateTo}
-          onBackToGame={() => navigateTo("notColorBlind")}
-          onOpenLogin={openLogin}
-        />
-      ) : currentRoute === "publicProfile" ? (
-        <PublicProfilePage
-          key={String(publicProfileIdentifier || 1)}
-          identifier={publicProfileIdentifier || 1}
-          onBackToLeaderboard={() => navigateTo("scaleGuessLeaderboard")}
-          onNavigateToSelfSettings={() => navigateTo("profile")}
-        />
-      ) : (
-        <HomePage onNavigate={navigateTo} searchQuery={searchQuery} />
-      )}
+      <AnimatePresence mode="wait">
+        <PageWrapper
+          key={
+            currentRoute === "publicProfile"
+              ? `publicProfile-${publicProfileIdentifier || 1}`
+              : currentRoute
+          }
+        >
+          {currentRoute === "login" ? (
+            <main className="flex-1 max-w-4xl w-full mx-auto p-4 sm:p-6 flex items-center justify-center">
+              <AuthPage
+                initialMode="login"
+                onSuccess={() => navigateTo("home")}
+                onClose={() => navigateTo("home")}
+              />
+            </main>
+          ) : currentRoute === "register" ? (
+            <main className="flex-1 max-w-4xl w-full mx-auto p-4 sm:p-6 flex items-center justify-center">
+              <AuthPage
+                initialMode="register"
+                onSuccess={() => navigateTo("home")}
+                onClose={() => navigateTo("home")}
+              />
+            </main>
+          ) : currentRoute === "profile" ? (
+            <ProfilePage
+              onBack={() => navigateTo("home")}
+              onOpenLogin={() => {
+                openLogin();
+                navigateTo("home");
+              }}
+            />
+          ) : currentRoute === "scaleGuess" ? (
+            <ScaleGuessPage
+              onBackToHome={() => navigateTo("home")}
+              onNavigateLeaderboard={() => navigateTo("scaleGuessLeaderboard")}
+            />
+          ) : currentRoute === "scaleGuessLeaderboard" || currentRoute === "leaderboard" ? (
+            <ScaleGuessLeaderboardPage
+              onNavigate={navigateTo}
+              onBackToGame={() => navigateTo("scaleGuess")}
+              onOpenLogin={openLogin}
+            />
+          ) : currentRoute === "notColorBlind" ? (
+            <NotColorBlindPage
+              onBackToHome={() => navigateTo("home")}
+              onNavigateLeaderboard={() => navigateTo("notColorBlindLeaderboard")}
+            />
+          ) : currentRoute === "notColorBlindLeaderboard" ? (
+            <NotColorBlindLeaderboardPage
+              onNavigate={navigateTo}
+              onBackToGame={() => navigateTo("notColorBlind")}
+              onOpenLogin={openLogin}
+            />
+          ) : currentRoute === "publicProfile" ? (
+            <PublicProfilePage
+              key={String(publicProfileIdentifier || 1)}
+              identifier={publicProfileIdentifier || 1}
+              onBackToLeaderboard={() => navigateTo("scaleGuessLeaderboard")}
+              onNavigateToSelfSettings={() => navigateTo("profile")}
+            />
+          ) : (
+            <HomePage onNavigate={navigateTo} searchQuery={searchQuery} />
+          )}
+        </PageWrapper>
+      </AnimatePresence>
 
       {/* ── Footer ── */}
       <Footer onNavigate={navigateTo} />

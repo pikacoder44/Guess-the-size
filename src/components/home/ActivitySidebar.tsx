@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { motion } from "motion/react";
 import {
   Trophy,
   Flame,
@@ -262,7 +263,7 @@ export function ActivitySidebar({ onNavigate }: ActivitySidebarProps) {
         <button
           type="button"
           onClick={() => onNavigate("/profile")}
-          className="mt-3.5 w-full py-2 px-3 rounded-lg bg-neutral-850 hover:bg-neutral-800 border border-neutral-700/60 text-xs font-mono text-neutral-300 hover:text-neutral-100 transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+          className="mt-3.5 w-full py-2 px-3 rounded-lg bg-neutral-850 hover:bg-neutral-800 border border-neutral-700/60 text-xs font-mono text-neutral-300 hover:text-neutral-100 active:scale-95 transition-all duration-100 will-change-transform transform-gpu flex items-center justify-center gap-1.5 cursor-pointer"
         >
           <User className="w-3.5 h-3.5 text-neutral-400" />
           <span>View Profile & Match History</span>
@@ -290,7 +291,21 @@ export function ActivitySidebar({ onNavigate }: ActivitySidebarProps) {
           </button>
         </div>
 
-        <div className="mt-3.5 divide-y divide-neutral-800/60">
+        <motion.div
+          variants={{
+            hidden: { opacity: 0 },
+            visible: {
+              opacity: 1,
+              transition: {
+                staggerChildren: 0.06,
+                delayChildren: 0.05,
+              },
+            },
+          }}
+          initial="hidden"
+          animate="visible"
+          className="mt-3.5 divide-y divide-neutral-800/60 transform-gpu"
+        >
           {champions.map((entry, index) => {
             const rank = index + 1;
             const isTop1 = rank === 1;
@@ -298,9 +313,20 @@ export function ActivitySidebar({ onNavigate }: ActivitySidebarProps) {
             const isTop3 = rank === 3;
 
             return (
-              <div
+              <motion.div
                 key={`${entry.username}-${rank}`}
-                className="py-2.5 flex items-center justify-between gap-3 group/row hover:bg-neutral-850/40 px-1 rounded-lg transition-colors"
+                variants={{
+                  hidden: { opacity: 0, y: 10 },
+                  visible: {
+                    opacity: 1,
+                    y: 0,
+                    transition: { type: "spring", stiffness: 350, damping: 25 },
+                  },
+                }}
+                whileHover={{ x: 3 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => onNavigate("/games/scale-guess/leaderboard")}
+                className="py-2.5 flex items-center justify-between gap-3 group/row hover:bg-neutral-850/40 px-1 rounded-lg transition-colors cursor-pointer transform-gpu will-change-[transform,opacity]"
               >
                 <div className="flex items-center gap-2.5 min-w-0">
                   {/* Rank Badge */}
@@ -357,15 +383,15 @@ export function ActivitySidebar({ onNavigate }: ActivitySidebarProps) {
                     {entry.average_error ? `${entry.average_error.toFixed(1)}% err` : "Top tier"}
                   </div>
                 </div>
-              </div>
+              </motion.div>
             );
           })}
-        </div>
+        </motion.div>
 
         <button
           type="button"
           onClick={() => onNavigate("/games/scale-guess/leaderboard")}
-          className="mt-3 w-full py-2 px-3 rounded-lg bg-neutral-950 hover:bg-neutral-850 border border-neutral-800 text-xs font-mono text-neutral-400 hover:text-neutral-200 transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+          className="mt-3 w-full py-2 px-3 rounded-lg bg-neutral-950 hover:bg-neutral-850 border border-neutral-800 text-xs font-mono text-neutral-400 hover:text-neutral-200 active:scale-95 transition-all duration-100 will-change-transform transform-gpu flex items-center justify-center gap-1.5 cursor-pointer"
         >
           <span>View Global Hall of Fame</span>
           <ArrowRight className="w-3 h-3" />
