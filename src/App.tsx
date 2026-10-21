@@ -132,8 +132,9 @@ export function App() {
   return (
     <SmoothScrollProvider>
       <div className="min-h-screen bg-neutral-950 text-neutral-100 flex flex-col selection:bg-neutral-800">
-      {/* ── Steam / Epic Games Style Store Header ── */}
-      <header className="border-b border-neutral-800/80 bg-neutral-950/90 backdrop-blur-xl px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between sticky top-0 z-30 gap-4">
+      {/* ── Top Header (shown on subpages; hidden on homepage for cinematic 1:1 launcher layout) ── */}
+      {currentRoute !== "home" && (
+        <header className="border-b border-neutral-800/80 bg-neutral-950/90 backdrop-blur-xl px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between sticky top-0 z-30 gap-4">
         {/* Left: Synapse Logo + Nav Items ("Store / Arcade", "Leaderboards", "My Stats") */}
         <div className="flex items-center gap-4 sm:gap-6 shrink-0">
           <button
@@ -160,11 +161,7 @@ export function App() {
             <button
               type="button"
               onClick={() => navigateTo("home")}
-              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-mono font-medium active:scale-95 transition-all duration-100 will-change-transform transform-gpu cursor-pointer ${
-                currentRoute === "home"
-                  ? "bg-neutral-850 text-white font-semibold shadow-inner border border-neutral-700/80"
-                  : "text-neutral-400 hover:text-neutral-200 hover:bg-neutral-900"
-              }`}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-mono font-medium text-neutral-400 hover:text-neutral-200 hover:bg-neutral-900 active:scale-95 transition-all duration-100 will-change-transform transform-gpu cursor-pointer"
             >
               <Gamepad2 className="w-3.5 h-3.5" />
               <span>Store / Arcade</span>
@@ -218,7 +215,7 @@ export function App() {
               value={searchQuery}
               onChange={(e) => {
                 setSearchQuery(e.target.value);
-                if (currentRoute !== "home") navigateTo("home");
+                navigateTo("home");
               }}
               className="w-28 xs:w-36 sm:w-48 lg:w-56 pl-8 pr-7 py-1.5 rounded-lg bg-neutral-900/90 border border-neutral-800 hover:border-neutral-700 focus:border-neutral-500 focus:outline-none text-xs text-neutral-100 placeholder:text-neutral-500 transition-all font-mono"
             />
@@ -283,7 +280,6 @@ export function App() {
                 type="button"
                 onClick={() => {
                   if (
-                    currentRoute === "home" ||
                     currentRoute === "scaleGuess" ||
                     currentRoute === "notColorBlind" ||
                     currentRoute === "scaleGuessLeaderboard" ||
@@ -304,7 +300,6 @@ export function App() {
                 type="button"
                 onClick={() => {
                   if (
-                    currentRoute === "home" ||
                     currentRoute === "scaleGuess" ||
                     currentRoute === "notColorBlind" ||
                     currentRoute === "scaleGuessLeaderboard" ||
@@ -325,6 +320,7 @@ export function App() {
           )}
         </div>
       </header>
+      )}
 
       {/* ── Main View Router ── */}
       <AnimatePresence mode="wait">
@@ -394,8 +390,8 @@ export function App() {
         </PageWrapper>
       </AnimatePresence>
 
-      {/* ── Footer ── */}
-      <Footer onNavigate={navigateTo} />
+      {/* ── Footer (shown on subpages; HomePage renders custom launcher footer) ── */}
+      {currentRoute !== "home" && <Footer onNavigate={navigateTo} />}
 
       {/* ── In-App Auth Modal ── */}
       <AuthModal />
