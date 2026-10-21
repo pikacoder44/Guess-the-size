@@ -1,42 +1,40 @@
 import { useState } from "react";
-import { Trophy } from "lucide-react";
-import { HeroSection } from "@/components/home/HeroSection";
-import { PlayerStats } from "@/components/home/PlayerStats";
+import { HeroSpotlight } from "@/components/home/HeroSpotlight";
 import { GameSection } from "@/components/home/GameSection";
-import { LeaderboardModal } from "@/components/leaderboard/LeaderboardModal";
+import { ActivitySidebar } from "@/components/home/ActivitySidebar";
 import type { AppRoute } from "@/App";
 
 interface HomePageProps {
   onNavigate: (route: AppRoute) => void;
+  searchQuery?: string;
 }
 
-export function HomePage({ onNavigate }: HomePageProps) {
-  const [showLeaderboard, setShowLeaderboard] = useState(false);
+export function HomePage({ onNavigate, searchQuery: externalSearchQuery }: HomePageProps) {
+  const [localSearchQuery] = useState("");
+  const activeSearchQuery = externalSearchQuery !== undefined ? externalSearchQuery : localSearchQuery;
 
   const handleCardNavigate = (href: string) => {
-    if (href === "/games/scale-guess" || href === "/scaleGuess" || href === "/scaleguess") {
+    const cleanHref = href.toLowerCase().replace(/\/+$/, "");
+    if (cleanHref === "/games/scale-guess" || cleanHref === "/scaleguess") {
       onNavigate("scaleGuess");
     } else if (
-      href === "/games/not-color-blind" ||
-      href === "/notColorBlind" ||
-      href === "/notcolorblind"
+      cleanHref === "/games/not-color-blind" ||
+      cleanHref === "/notcolorblind"
     ) {
       onNavigate("notColorBlind");
     } else if (
-      href === "/games/scale-guess/leaderboard" ||
-      href === "/leaderboard" ||
-      href === "/scaleguess/leaderboard"
+      cleanHref === "/games/scale-guess/leaderboard" ||
+      cleanHref === "/scaleguess/leaderboard" ||
+      cleanHref === "/leaderboard"
     ) {
       onNavigate("scaleGuessLeaderboard");
     } else if (
-      href === "/games/not-color-blind/leaderboard" ||
-      href === "/notcolorblind/leaderboard"
+      cleanHref === "/games/not-color-blind/leaderboard" ||
+      cleanHref === "/notcolorblind/leaderboard"
     ) {
       onNavigate("notColorBlindLeaderboard");
-    } else if (href === "/login") {
-      onNavigate("login");
-    } else if (href === "/register") {
-      onNavigate("register");
+    } else if (cleanHref === "/profile") {
+      onNavigate("profile");
     } else {
       history.pushState(null, "", href);
       window.dispatchEvent(new PopStateEvent("popstate"));
@@ -44,29 +42,25 @@ export function HomePage({ onNavigate }: HomePageProps) {
   };
 
   return (
-    <div className="flex-1 max-w-5xl w-full mx-auto px-4 sm:px-6 py-4 flex flex-col">
-      {/* 1. Hero Section */}
-      <HeroSection />
+    <div className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 flex flex-col gap-8">
+      {/* ── 1. Hero Spotlight Carousel / Banner (Top Section) ── */}
+      <HeroSpotlight onNavigate={handleCardNavigate} />
 
-      {/* 2. Player Stats */}
-      <PlayerStats />
+      {/* ── 2. Store Showcase & Quick Dashboard Split Layout (Steam Style) ── */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        {/* Main Column (8 cols): Game Library Grid */}
+        <div className="lg:col-span-8 w-full">
+          <GameSection
+            onNavigate={handleCardNavigate}
+            searchQuery={activeSearchQuery}
+          />
+        </div>
 
-      {/* 3. Game Cards + Leaderboard trigger */}
-      <div className="flex items-center justify-between mb-3">
-        <span className="text-xs font-mono uppercase tracking-widest text-muted-foreground">Games</span>
-        <button
-          type="button"
-          id="open-leaderboard-btn"
-          onClick={() => onNavigate("scaleGuessLeaderboard")}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-secondary/80 hover:bg-secondary border border-border text-xs font-medium text-muted-foreground hover:text-foreground transition-colors cursor-pointer group"
-        >
-          <Trophy className="w-3.5 h-3.5 text-primary group-hover:scale-105 transition-transform" />
-          <span>Global Leaderboard</span>
-        </button>
+        {/* Sidebar Column (4 cols): Player Activity & Quick Stats */}
+        <div className="lg:col-span-4 w-full">
+          <ActivitySidebar onNavigate={handleCardNavigate} />
+        </div>
       </div>
-      <GameSection onNavigate={handleCardNavigate} />
-
-      {showLeaderboard && <LeaderboardModal onClose={() => setShowLeaderboard(false)} />}
     </div>
   );
 }
