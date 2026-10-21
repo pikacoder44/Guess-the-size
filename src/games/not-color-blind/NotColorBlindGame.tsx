@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
-import { Check, RotateCcw, Sparkles, ArrowRight, Trophy, Clock } from "lucide-react";
+import { Check, RotateCcw, Sparkles, ArrowRight, Trophy, Clock, X } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import type { ColorHSB, GamePhase, ScoreBreakdown, NotColorBlindRoundRecord } from "./types";
 import {
@@ -33,12 +33,14 @@ interface NotColorBlindGameProps {
   onPhaseChange?: (phase: GamePhase) => void;
   onScoreSubmitted?: (record: NotColorBlindScoreRecord, isPersonalBest: boolean) => void;
   onOpenLeaderboard?: () => void;
+  onBackToHome?: () => void;
 }
 
 export function NotColorBlindGame({
   onPhaseChange,
   onScoreSubmitted,
   onOpenLeaderboard,
+  onBackToHome,
 }: NotColorBlindGameProps) {
   // Auth context for identity and token
   const { user, token } = useAuth();
@@ -50,8 +52,8 @@ export function NotColorBlindGame({
   const [totalScore, setTotalScore] = useState<number>(0);
 
   // Active round state
-  const [phase, setPhase] = useState<GamePhase>("MEMORIZE");
-  const [targetColor, setTargetColor] = useState<ColorHSB>(() => randomTargetHsb());
+  const [phase, setPhase] = useState<GamePhase>("IDLE");
+  const [targetColor, setTargetColor] = useState<ColorHSB | null>(null);
   const [prediction, setPrediction] = useState<ColorHSB>(() => randomPredictionHsb());
   const [memorizeRemainingMs, setMemorizeRemainingMs] = useState(MEMORIZE_DURATION_MS);
   const [recallSeconds, setRecallSeconds] = useState(RECALL_DURATION_SECONDS);
@@ -75,6 +77,18 @@ export function NotColorBlindGame({
     onPhaseChange?.(phase);
   }, [phase, onPhaseChange]);
 
+  // Start Game: Closes instruction modal, generates first target, begins Phase 1 (MEMORIZE)
+  const handleStartGame = useCallback(() => {
+    const firstTarget = randomTargetHsb();
+    setTargetColor(firstTarget);
+    setPrediction(randomPredictionHsb());
+    setMemorizeRemainingMs(MEMORIZE_DURATION_MS);
+    setRecallSeconds(RECALL_DURATION_SECONDS);
+    setRoundResult(null);
+    setTimeTakenSeconds(0);
+    setPhase("MEMORIZE");
+  }, []);
+
   // Transition to RECALL phase
   const startRecallPhase = useCallback(() => {
     setPrediction(randomPredictionHsb());
@@ -85,7 +99,7 @@ export function NotColorBlindGame({
 
   // Memorization Stage 5.00-to-0.00 Precision Countdown
   useEffect(() => {
-    if (phase !== "MEMORIZE") return;
+    if (phase !== "MEMORIZE" || !targetColor) return;
 
     let animId: number;
     const startTime = performance.now();
@@ -104,7 +118,7 @@ export function NotColorBlindGame({
 
     animId = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(animId);
-  }, [phase, startRecallPhase]);
+  }, [phase, targetColor, startRecallPhase]);
 
   // Submit final cumulative match score to API
   const submitFinalMatchScore = useCallback(
@@ -163,7 +177,7 @@ export function NotColorBlindGame({
 
   // Lock in guess and transition to ROUND_RESULT phase
   const handleLockIn = useCallback(() => {
-    if (phase !== "RECALL") return;
+    if (phase !== "RECALL" || !targetColor) return;
 
     // Calculate final timeTakenSeconds used during the recall phase
     const elapsedSec =
@@ -267,11 +281,14 @@ export function NotColorBlindGame({
     return () => clearInterval(timer);
   }, [phase, handleLockIn]);
 
-  // Keyboard shortcuts (Enter to Lock In / Advance / Play Again)
+  // Keyboard shortcuts (Enter to Start / Lock In / Advance / Play Again, Escape to Back)
   useEffect(() => {
     const onKeyDown = (e: globalThis.KeyboardEvent) => {
       if (e.key === "Enter" && !e.repeat) {
-        if (phase === "RECALL") {
+        if (phase === "IDLE") {
+          e.preventDefault();
+          handleStartGame();
+        } else if (phase === "RECALL") {
           e.preventDefault();
           handleLockIn();
         } else if (phase === "ROUND_RESULT") {
@@ -285,6 +302,9 @@ export function NotColorBlindGame({
           e.preventDefault();
           handlePlayAgain();
         }
+      } else if (e.key === "Escape" && phase === "IDLE" && onBackToHome) {
+        e.preventDefault();
+        onBackToHome();
       }
     };
 
@@ -293,10 +313,12 @@ export function NotColorBlindGame({
   }, [
     phase,
     currentRound,
+    handleStartGame,
     handleLockIn,
     handleNextRound,
     handleViewFinalResults,
     handlePlayAgain,
+    onBackToHome,
   ]);
 
   // Dynamic gradients for the 3 sliders
@@ -315,8 +337,8 @@ export function NotColorBlindGame({
 
   // Adaptive contrast text styling
   const upperIsLight = isLightColor(prediction);
-  const lowerIsLight = isLightColor(targetColor);
-  const targetIsLight = isLightColor(targetColor);
+  const lowerIsLight = targetColor ? isLightColor(targetColor) : false;
+  const targetIsLight = targetColor ? isLightColor(targetColor) : false;
 
   // Precision 5.00s countdown format (seconds + 2-digit milliseconds)
   const totalHundredths = Math.max(0, Math.floor(memorizeRemainingMs / 10));
@@ -405,9 +427,76 @@ export function NotColorBlindGame({
       )}
 
       {/* ─────────────────────────────────────────────────────────────
+          PRE-GAME IDLE STATE (Placeholder Canvas)
+      ───────────────────────────────────────────────────────────── */}
+      {phase === "IDLE" && (
+        <div className="w-full max-w-xl flex flex-col items-center gap-6 py-2 select-none">
+          <div className="w-full h-80 sm:h-96 rounded-3xl border border-neutral-800/30 bg-neutral-900/10 backdrop-blur-xs flex flex-col items-center justify-center p-6 sm:p-8" />
+        </div>
+      )}
+
+      {/* ─────────────────────────────────────────────────────────────
+          PRE-GAME INSTRUCTION MODAL (Ultra-Minimalist)
+      ───────────────────────────────────────────────────────────── */}
+      <AnimatePresence>
+        {phase === "IDLE" && (
+          <motion.div
+            key="not-color-blind-instruction-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="not-color-blind-modal-title"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.18, ease: "easeOut" }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-neutral-950/90 backdrop-blur-sm"
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.96, y: 8 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.96, y: 8 }}
+              transition={{ duration: 0.18, ease: "easeOut" }}
+              className="relative w-full max-w-sm rounded-2xl bg-neutral-900/90 border border-white/5 p-8 md:p-10 text-center shadow-2xl"
+            >
+              {onBackToHome && (
+                <button
+                  type="button"
+                  onClick={onBackToHome}
+                  aria-label="Back to Games"
+                  className="absolute top-4 right-4 w-7 h-7 rounded-lg flex items-center justify-center text-neutral-500 hover:text-neutral-200 transition-colors cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              )}
+
+              <h2
+                id="not-color-blind-modal-title"
+                className="text-2xl font-bold tracking-tight text-neutral-100 mb-3"
+              >
+                Not Color Blind
+              </h2>
+
+              <p className="text-sm text-neutral-400 leading-relaxed mb-8">
+                Memorize the color in 5 seconds, then recreate it using the Hue, Saturation, and Brightness sliders.
+              </p>
+
+              <button
+                type="button"
+                onClick={handleStartGame}
+                autoFocus
+                className="w-full py-3.5 rounded-xl font-medium bg-neutral-100 hover:bg-white text-neutral-950 transition-all text-sm tracking-wide active:scale-[0.98] cursor-pointer"
+              >
+                Play Now
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ─────────────────────────────────────────────────────────────
           PHASE 1: MEMORIZATION STAGE (5.00 to 0.00 Precision Countdown)
       ───────────────────────────────────────────────────────────── */}
-      {phase === "MEMORIZE" && (
+      {phase === "MEMORIZE" && targetColor && (
         <div className="w-full max-w-xl flex flex-col items-center gap-6 py-2">
           {/* Glassmorphic Color Preview Card */}
           <div
@@ -530,7 +619,7 @@ export function NotColorBlindGame({
       {/* ─────────────────────────────────────────────────────────────
           PHASE 3: ROUND RESULT CARD (Current Round Score + Next Round / Final CTA)
       ───────────────────────────────────────────────────────────── */}
-      {phase === "ROUND_RESULT" && roundResult && (
+      {phase === "ROUND_RESULT" && roundResult && targetColor && (
         <div className="w-full max-w-lg flex flex-col items-center gap-5 py-1">
           {/* Running Match Progress Pill */}
           <div className="w-full flex items-center justify-between px-1 text-xs font-mono text-muted-foreground">

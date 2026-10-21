@@ -75,6 +75,7 @@ export function NotColorBlindPage({ onBackToHome, onNavigateLeaderboard }: NotCo
         <NotColorBlindGame
           onScoreSubmitted={handleScoreSubmitted}
           onOpenLeaderboard={handleOpenLeaderboard}
+          onBackToHome={onBackToHome}
         />
       </div>
 

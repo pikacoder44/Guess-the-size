@@ -4,7 +4,7 @@ export interface ColorHSB {
   b: number; // 0 - 100 percentage
 }
 
-export type GamePhase = "MEMORIZE" | "RECALL" | "RESULT" | "ROUND_RESULT" | "MATCH_SUMMARY";
+export type GamePhase = "IDLE" | "MEMORIZE" | "RECALL" | "RESULT" | "ROUND_RESULT" | "MATCH_SUMMARY";
 
 export interface ScoreBreakdown {
   score: number; // 0 - 100
