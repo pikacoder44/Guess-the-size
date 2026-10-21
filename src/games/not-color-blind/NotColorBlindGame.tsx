@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback } from "react";
-import { Check, RotateCcw } from "lucide-react";
+import { useState, useEffect, useCallback, useRef } from "react";
+import { Check, RotateCcw, Sparkles } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import type { ColorHSB, GamePhase, ScoreBreakdown } from "./types";
 import {
@@ -11,15 +11,32 @@ import {
   isLightColor,
 } from "./color";
 import { VerticalSlider } from "./VerticalSlider";
+import { useAuth } from "@/context/AuthContext";
+import {
+  submitNotColorBlindScore,
+  type NotColorBlindScoreRecord,
+} from "@/lib/notColorBlindApi";
 
 const MEMORIZE_DURATION_MS = 5000; // 5.00 seconds precision countdown
 const RECALL_DURATION_SECONDS = 60;
 
-interface NotColorBlindGameProps {
-  onPhaseChange?: (phase: GamePhase) => void;
+export interface ScoreSubmissionState {
+  isSubmitting: boolean;
+  isSubmitted: boolean;
+  isPersonalBest: boolean;
+  isOffline: boolean;
+  error: string | null;
 }
 
-export function NotColorBlindGame({ onPhaseChange }: NotColorBlindGameProps) {
+interface NotColorBlindGameProps {
+  onPhaseChange?: (phase: GamePhase) => void;
+  onScoreSubmitted?: (record: NotColorBlindScoreRecord, isPersonalBest: boolean) => void;
+}
+
+export function NotColorBlindGame({ onPhaseChange, onScoreSubmitted }: NotColorBlindGameProps) {
+  // Auth context for identity and token
+  const { user, token } = useAuth();
+
   // Game state
   const [phase, setPhase] = useState<GamePhase>("MEMORIZE");
   const [targetColor, setTargetColor] = useState<ColorHSB>(() => randomTargetHsb());
@@ -27,6 +44,17 @@ export function NotColorBlindGame({ onPhaseChange }: NotColorBlindGameProps) {
   const [memorizeRemainingMs, setMemorizeRemainingMs] = useState(MEMORIZE_DURATION_MS);
   const [recallSeconds, setRecallSeconds] = useState(RECALL_DURATION_SECONDS);
   const [result, setResult] = useState<ScoreBreakdown | null>(null);
+
+  // Time & score submission tracking
+  const recallStartTimeRef = useRef<number>(0);
+  const [timeTakenSeconds, setTimeTakenSeconds] = useState<number>(0);
+  const [submissionState, setSubmissionState] = useState<ScoreSubmissionState>({
+    isSubmitting: false,
+    isSubmitted: false,
+    isPersonalBest: false,
+    isOffline: false,
+    error: null,
+  });
 
   // Notify parent of phase change
   useEffect(() => {
@@ -37,6 +65,7 @@ export function NotColorBlindGame({ onPhaseChange }: NotColorBlindGameProps) {
   const startRecallPhase = useCallback(() => {
     setPrediction(randomPredictionHsb());
     setRecallSeconds(RECALL_DURATION_SECONDS);
+    recallStartTimeRef.current = performance.now();
     setPhase("RECALL");
   }, []);
 
@@ -63,12 +92,66 @@ export function NotColorBlindGame({ onPhaseChange }: NotColorBlindGameProps) {
     return () => cancelAnimationFrame(animId);
   }, [phase, startRecallPhase]);
 
-  // Lock in guess and transition to RESULT phase
-  const handleLockIn = useCallback(() => {
+  // Lock in guess and transition to RESULT phase + auto-submit score
+  const handleLockIn = useCallback(async () => {
+    if (phase !== "RECALL") return;
+
+    // Calculate final timeTakenSeconds used during the recall phase
+    const elapsedSec =
+      recallStartTimeRef.current > 0
+        ? (performance.now() - recallStartTimeRef.current) / 1000
+        : Math.max(0.1, RECALL_DURATION_SECONDS - recallSeconds);
+    const finalTime = Math.max(0.1, Number(elapsedSec.toFixed(2)));
+    setTimeTakenSeconds(finalTime);
+
     const scoreBreakdown = calculateColorScore(targetColor, prediction);
     setResult(scoreBreakdown);
     setPhase("RESULT");
-  }, [targetColor, prediction]);
+
+    // Automatically trigger submitNotColorBlindScore()
+    setSubmissionState({
+      isSubmitting: true,
+      isSubmitted: false,
+      isPersonalBest: false,
+      isOffline: false,
+      error: null,
+    });
+
+    try {
+      const playerName = user?.name || user?.username || "Anonymous";
+      const userId = user?.id ? String(user.id) : null;
+
+      const res = await submitNotColorBlindScore(
+        {
+          userId,
+          playerName,
+          score: scoreBreakdown.score,
+          targetHsb: targetColor,
+          predictedHsb: prediction,
+          timeTakenSeconds: finalTime,
+        },
+        token
+      );
+
+      setSubmissionState({
+        isSubmitting: false,
+        isSubmitted: true,
+        isPersonalBest: Boolean(res.isPersonalBest),
+        isOffline: Boolean(res.offlineFallback),
+        error: null,
+      });
+
+      onScoreSubmitted?.(res.scoreRecord, Boolean(res.isPersonalBest));
+    } catch (err: unknown) {
+      setSubmissionState({
+        isSubmitting: false,
+        isSubmitted: false,
+        isPersonalBest: false,
+        isOffline: false,
+        error: err instanceof Error ? err.message : "Failed to record score",
+      });
+    }
+  }, [phase, recallSeconds, targetColor, prediction, user, token, onScoreSubmitted]);
 
   // 1-Minute Recall Timer (auto-submits when expired)
   useEffect(() => {
@@ -96,6 +179,14 @@ export function NotColorBlindGame({ onPhaseChange }: NotColorBlindGameProps) {
     setMemorizeRemainingMs(MEMORIZE_DURATION_MS);
     setRecallSeconds(RECALL_DURATION_SECONDS);
     setResult(null);
+    setTimeTakenSeconds(0);
+    setSubmissionState({
+      isSubmitting: false,
+      isSubmitted: false,
+      isPersonalBest: false,
+      isOffline: false,
+      error: null,
+    });
     setPhase("MEMORIZE");
   };
 
@@ -315,31 +406,96 @@ export function NotColorBlindGame({ onPhaseChange }: NotColorBlindGameProps) {
                 </div>
 
                 {/* Big bold score cleanly in the upper right with adaptive contrast */}
-                <div
-                  className={`text-right flex items-baseline gap-1 select-none ${
-                    upperIsLight ? "text-neutral-950" : "text-white"
-                  }`}
-                >
-                  <span className="text-5xl sm:text-6xl font-mono font-black tracking-tighter leading-none">
-                    {result.score}
-                  </span>
-                  <span
-                    className={`text-sm sm:text-base font-mono font-bold ${
-                      upperIsLight ? "text-neutral-950/70" : "text-white/70"
+                <div className="flex flex-col items-end select-none">
+                  <div
+                    className={`flex items-baseline gap-1 ${
+                      upperIsLight ? "text-neutral-950" : "text-white"
                     }`}
                   >
-                    / 100
-                  </span>
+                    <span className="text-5xl sm:text-6xl font-mono font-black tracking-tighter leading-none">
+                      {result.score}
+                    </span>
+                    <span
+                      className={`text-sm sm:text-base font-mono font-bold ${
+                        upperIsLight ? "text-neutral-950/70" : "text-white/70"
+                      }`}
+                    >
+                      / 100
+                    </span>
+                  </div>
+
+                  {/* Sleek subtle status badge */}
+                  <div className="mt-2 flex items-center">
+                    {submissionState.isSubmitting && (
+                      <span
+                        className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-mono uppercase tracking-wider select-none ${
+                          upperIsLight
+                            ? "bg-neutral-950/10 text-neutral-950/80 border border-neutral-950/20"
+                            : "bg-white/10 text-white/80 border border-white/20"
+                        }`}
+                      >
+                        <span className="w-1.5 h-1.5 rounded-full bg-current animate-ping" />
+                        Saving...
+                      </span>
+                    )}
+
+                    {!submissionState.isSubmitting && submissionState.isSubmitted && submissionState.isPersonalBest && (
+                      <motion.span
+                        initial={{ opacity: 0, scale: 0.92 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold uppercase tracking-wider select-none ${
+                          upperIsLight
+                            ? "bg-emerald-950/15 text-emerald-950 border border-emerald-900/30"
+                            : "bg-emerald-400/20 text-emerald-300 border border-emerald-400/30"
+                        }`}
+                      >
+                        <Sparkles className="w-3 h-3" />
+                        Personal Best!
+                      </motion.span>
+                    )}
+
+                    {!submissionState.isSubmitting && submissionState.isSubmitted && !submissionState.isPersonalBest && (
+                      <motion.span
+                        initial={{ opacity: 0, scale: 0.92 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-mono font-medium uppercase tracking-wider select-none ${
+                          upperIsLight
+                            ? "bg-neutral-950/10 text-neutral-950/80 border border-neutral-950/20"
+                            : "bg-white/10 text-white/85 border border-white/20"
+                        }`}
+                      >
+                        <Check className="w-3 h-3" />
+                        {submissionState.isOffline ? "Saved Locally" : "Score Saved"}
+                      </motion.span>
+                    )}
+
+                    {submissionState.error && (
+                      <span
+                        className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-mono uppercase tracking-wider select-none ${
+                          upperIsLight
+                            ? "bg-amber-950/15 text-amber-950 border border-amber-900/30"
+                            : "bg-amber-400/20 text-amber-300 border border-amber-400/30"
+                        }`}
+                      >
+                        Saved Locally
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
 
-              {/* Bottom: HSB readout with dynamic contrast (no pill/shadow) */}
+              {/* Bottom: HSB readout with dynamic contrast and recall time */}
               <div
-                className={`mt-auto pt-4 font-mono text-xs sm:text-sm font-semibold tracking-tight select-none ${
+                className={`mt-auto pt-4 flex items-center justify-between font-mono text-xs sm:text-sm font-semibold tracking-tight select-none ${
                   upperIsLight ? "text-neutral-950/80" : "text-white/80"
                 }`}
               >
-                H: {prediction.h}° &nbsp; S: {prediction.s}% &nbsp; B: {prediction.b}%
+                <span>
+                  H: {prediction.h}° &nbsp; S: {prediction.s}% &nbsp; B: {prediction.b}%
+                </span>
+                <span className="text-[11px] opacity-75 font-mono">
+                  {timeTakenSeconds}s recall
+                </span>
               </div>
             </div>
 
