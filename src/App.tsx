@@ -142,7 +142,7 @@ export function App() {
             className="flex items-center gap-2.5 hover:opacity-95 active:scale-95 transition-all duration-100 will-change-transform transform-gpu cursor-pointer group"
             aria-label="Synapse Arcade Store"
           >
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-neutral-900 to-neutral-800 border border-neutral-700/80 flex items-center justify-center text-amber-400 group-hover:text-amber-300 transition-colors shadow-sm">
+            <div className="w-8 h-8 rounded-xl bg-linear-to-tr from-neutral-900 to-neutral-800 border border-neutral-700/80 flex items-center justify-center text-amber-400 group-hover:text-amber-300 transition-colors shadow-sm">
               <Brain className="w-4 h-4" />
             </div>
             <div className="flex flex-col text-left">

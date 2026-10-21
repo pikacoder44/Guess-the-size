@@ -106,8 +106,8 @@ export function HeroSpotlight({ onNavigate }: HeroSpotlightProps) {
                 className="w-full h-full object-cover object-center"
               />
               {/* Subtle dark gradient overlay so text remains crisp and highly legible */}
-              <div className="absolute inset-0 bg-gradient-to-t from-neutral-950 via-neutral-950/60 to-transparent" />
-              <div className="absolute inset-0 bg-gradient-to-r from-neutral-950 via-neutral-950/85 to-transparent" />
+              <div className="absolute inset-0 bg-linear-to-t from-neutral-950 via-neutral-950/60 to-transparent" />
+              <div className="absolute inset-0 bg-linear-to-r from-neutral-950 via-neutral-950/85 to-transparent" />
             </div>
           );
         })}
@@ -123,7 +123,7 @@ export function HeroSpotlight({ onNavigate }: HeroSpotlightProps) {
           }`}
         />
         <div
-          className={`absolute -bottom-32 -right-32 w-[32rem] h-[32rem] rounded-full blur-3xl opacity-25 transition-all duration-700 ${
+          className={`absolute -bottom-32 -right-32 w-lg h-128 rounded-full blur-3xl opacity-25 transition-all duration-700 ${
             activeSlide.theme === "amber"
               ? "bg-orange-600/30"
               : activeSlide.theme === "violet"
@@ -134,7 +134,7 @@ export function HeroSpotlight({ onNavigate }: HeroSpotlightProps) {
       </div>
 
       {/* Main Spotlight Content Grid */}
-      <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 min-h-[22rem] lg:min-h-[25rem]">
+      <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 min-h-88 lg:min-h-100">
         {/* Left Column: Hero Content & CTAs */}
         <div className="lg:col-span-8 p-6 sm:p-8 lg:p-10 flex flex-col justify-between">
           <div>
