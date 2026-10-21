@@ -7,6 +7,7 @@ import { ScaleGuessPage } from "@/pages/ScaleGuessPage";
 import { NotColorBlindPage } from "@/pages/NotColorBlindPage";
 import { ProfilePage } from "@/pages/ProfilePage";
 import { LeaderboardPage } from "@/pages/LeaderboardPage";
+import { NotColorBlindLeaderboardPage } from "@/pages/NotColorBlindLeaderboardPage";
 import { Footer } from "@/components/home/Footer";
 import { PublicProfilePage } from "@/pages/PublicProfilePage";
 import { LogIn, UserPlus, LogOut, Brain, Settings, Trophy } from "lucide-react";
@@ -19,6 +20,7 @@ export type AppRoute =
   | "register"
   | "profile"
   | "leaderboard"
+  | "notColorBlindLeaderboard"
   | "publicProfile";
 
 interface RouteState {
@@ -29,6 +31,9 @@ interface RouteState {
 function getRouteInfoFromPath(pathname: string): RouteState {
   const path = pathname.toLowerCase().replace(/\/+$/, "");
   if (path === "/scaleguess") return { route: "scaleGuess" };
+  if (path === "/games/not-color-blind/leaderboard" || path === "/notcolorblind/leaderboard") {
+    return { route: "notColorBlindLeaderboard" };
+  }
   if (path === "/notcolorblind" || path === "/games/not-color-blind") return { route: "notColorBlind" };
   if (path === "/leaderboard") return { route: "leaderboard" };
   if (path === "/login") return { route: "login" };
@@ -80,6 +85,8 @@ export function App() {
         ? "/scaleGuess"
         : route === "notColorBlind"
         ? "/notColorBlind"
+        : route === "notColorBlindLeaderboard"
+        ? "/games/not-color-blind/leaderboard"
         : route === "leaderboard"
         ? "/leaderboard"
         : `/${route}`;
@@ -235,6 +242,13 @@ export function App() {
       ) : currentRoute === "notColorBlind" ? (
         <NotColorBlindPage
           onBackToHome={() => navigateTo("home")}
+          onNavigateLeaderboard={() => navigateTo("notColorBlindLeaderboard")}
+        />
+      ) : currentRoute === "notColorBlindLeaderboard" ? (
+        <NotColorBlindLeaderboardPage
+          onNavigate={navigateTo}
+          onBackToGame={() => navigateTo("notColorBlind")}
+          onOpenLogin={openLogin}
         />
       ) : currentRoute === "publicProfile" ? (
         <PublicProfilePage

@@ -281,7 +281,7 @@ export function LeaderboardModal({ onClose, initialGame = "scaleGuess" }: Leader
                           {entry.score}
                         </span>
                         <span className="text-[10px] text-muted-foreground font-mono ml-1">
-                          / 100
+                          / 500
                         </span>
                       </div>
                     </div>
@@ -297,7 +297,7 @@ export function LeaderboardModal({ onClose, initialGame = "scaleGuess" }: Leader
           <span>
             {activeTab === "scaleGuess"
               ? "Ranked by highest 5-round score (max 500)"
-              : "Ranked by Score (max 100) & Recall Time"}
+              : "Ranked by 5-round score (max 500) & Recall Time"}
           </span>
           <span className="font-mono">Top 50</span>
         </div>

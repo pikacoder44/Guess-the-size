@@ -1,7 +1,7 @@
-import { useState, useEffect, useCallback, useRef } from "react";
-import { Check, RotateCcw, Sparkles } from "lucide-react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
+import { Check, RotateCcw, Sparkles, ArrowRight, Trophy, Clock } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
-import type { ColorHSB, GamePhase, ScoreBreakdown } from "./types";
+import type { ColorHSB, GamePhase, ScoreBreakdown, NotColorBlindRoundRecord } from "./types";
 import {
   randomTargetHsb,
   randomPredictionHsb,
@@ -17,6 +17,7 @@ import {
   type NotColorBlindScoreRecord,
 } from "@/lib/notColorBlindApi";
 
+const TOTAL_ROUNDS = 5;
 const MEMORIZE_DURATION_MS = 5000; // 5.00 seconds precision countdown
 const RECALL_DURATION_SECONDS = 60;
 
@@ -31,23 +32,36 @@ export interface ScoreSubmissionState {
 interface NotColorBlindGameProps {
   onPhaseChange?: (phase: GamePhase) => void;
   onScoreSubmitted?: (record: NotColorBlindScoreRecord, isPersonalBest: boolean) => void;
+  onOpenLeaderboard?: () => void;
 }
 
-export function NotColorBlindGame({ onPhaseChange, onScoreSubmitted }: NotColorBlindGameProps) {
+export function NotColorBlindGame({
+  onPhaseChange,
+  onScoreSubmitted,
+  onOpenLeaderboard,
+}: NotColorBlindGameProps) {
   // Auth context for identity and token
   const { user, token } = useAuth();
 
-  // Game state
+  // Multi-Round Match State
+  const [currentRound, setCurrentRound] = useState<number>(1);
+  const [roundScores, setRoundScores] = useState<number[]>([]);
+  const [rounds, setRounds] = useState<NotColorBlindRoundRecord[]>([]);
+  const [totalScore, setTotalScore] = useState<number>(0);
+
+  // Active round state
   const [phase, setPhase] = useState<GamePhase>("MEMORIZE");
   const [targetColor, setTargetColor] = useState<ColorHSB>(() => randomTargetHsb());
   const [prediction, setPrediction] = useState<ColorHSB>(() => randomPredictionHsb());
   const [memorizeRemainingMs, setMemorizeRemainingMs] = useState(MEMORIZE_DURATION_MS);
   const [recallSeconds, setRecallSeconds] = useState(RECALL_DURATION_SECONDS);
-  const [result, setResult] = useState<ScoreBreakdown | null>(null);
+  const [roundResult, setRoundResult] = useState<ScoreBreakdown | null>(null);
 
-  // Time & score submission tracking
+  // Time tracking
   const recallStartTimeRef = useRef<number>(0);
   const [timeTakenSeconds, setTimeTakenSeconds] = useState<number>(0);
+
+  // Submission state for final match
   const [submissionState, setSubmissionState] = useState<ScoreSubmissionState>({
     isSubmitting: false,
     isSubmitted: false,
@@ -92,8 +106,63 @@ export function NotColorBlindGame({ onPhaseChange, onScoreSubmitted }: NotColorB
     return () => cancelAnimationFrame(animId);
   }, [phase, startRecallPhase]);
 
-  // Lock in guess and transition to RESULT phase + auto-submit score
-  const handleLockIn = useCallback(async () => {
+  // Submit final cumulative match score to API
+  const submitFinalMatchScore = useCallback(
+    async (completedRounds: NotColorBlindRoundRecord[], matchScore: number) => {
+      if (completedRounds.length === 0) return;
+
+      setSubmissionState({
+        isSubmitting: true,
+        isSubmitted: false,
+        isPersonalBest: false,
+        isOffline: false,
+        error: null,
+      });
+
+      const totalTime = completedRounds.reduce((acc, r) => acc + r.timeTakenSeconds, 0);
+      const avgRecallTime = Number((totalTime / completedRounds.length).toFixed(2));
+      const lastRound = completedRounds[completedRounds.length - 1];
+
+      try {
+        const playerName = user?.name || user?.username || "Anonymous";
+        const userId = user?.id ? String(user.id) : null;
+
+        const res = await submitNotColorBlindScore(
+          {
+            userId,
+            playerName,
+            score: matchScore,
+            targetHsb: lastRound.targetHsb,
+            predictedHsb: lastRound.predictedHsb,
+            timeTakenSeconds: avgRecallTime,
+          },
+          token
+        );
+
+        setSubmissionState({
+          isSubmitting: false,
+          isSubmitted: true,
+          isPersonalBest: Boolean(res.isPersonalBest),
+          isOffline: Boolean(res.offlineFallback),
+          error: null,
+        });
+
+        onScoreSubmitted?.(res.scoreRecord, Boolean(res.isPersonalBest));
+      } catch (err: unknown) {
+        setSubmissionState({
+          isSubmitting: false,
+          isSubmitted: false,
+          isPersonalBest: false,
+          isOffline: false,
+          error: err instanceof Error ? err.message : "Failed to record match score",
+        });
+      }
+    },
+    [user, token, onScoreSubmitted]
+  );
+
+  // Lock in guess and transition to ROUND_RESULT phase
+  const handleLockIn = useCallback(() => {
     if (phase !== "RECALL") return;
 
     // Calculate final timeTakenSeconds used during the recall phase
@@ -105,55 +174,82 @@ export function NotColorBlindGame({ onPhaseChange, onScoreSubmitted }: NotColorB
     setTimeTakenSeconds(finalTime);
 
     const scoreBreakdown = calculateColorScore(targetColor, prediction);
-    setResult(scoreBreakdown);
-    setPhase("RESULT");
+    setRoundResult(scoreBreakdown);
 
-    // Automatically trigger submitNotColorBlindScore()
+    const newRoundRecord: NotColorBlindRoundRecord = {
+      round: currentRound,
+      targetHsb: targetColor,
+      predictedHsb: prediction,
+      score: scoreBreakdown.score,
+      scoreBreakdown,
+      timeTakenSeconds: finalTime,
+    };
+
+    const nextRounds = [...rounds, newRoundRecord];
+    const nextScores = [...roundScores, scoreBreakdown.score];
+    const nextTotal = totalScore + scoreBreakdown.score;
+
+    setRounds(nextRounds);
+    setRoundScores(nextScores);
+    setTotalScore(nextTotal);
+
+    setPhase("ROUND_RESULT");
+  }, [
+    phase,
+    recallSeconds,
+    targetColor,
+    prediction,
+    currentRound,
+    rounds,
+    roundScores,
+    totalScore,
+  ]);
+
+  // Advance to next round (Rounds 1 -> 4)
+  const handleNextRound = useCallback(() => {
+    if (currentRound >= TOTAL_ROUNDS) return;
+
+    const nextTarget = randomTargetHsb();
+    setCurrentRound((prev) => prev + 1);
+    setTargetColor(nextTarget);
+    setPrediction(randomPredictionHsb());
+    setMemorizeRemainingMs(MEMORIZE_DURATION_MS);
+    setRecallSeconds(RECALL_DURATION_SECONDS);
+    setRoundResult(null);
+    setTimeTakenSeconds(0);
+    setPhase("MEMORIZE");
+  }, [currentRound]);
+
+  // Transition from Round 5 result to MATCH_SUMMARY & auto-submit
+  const handleViewFinalResults = useCallback(() => {
+    setPhase("MATCH_SUMMARY");
+    submitFinalMatchScore(rounds, totalScore);
+  }, [rounds, totalScore, submitFinalMatchScore]);
+
+  // Reset to a brand new 5-round game match
+  const handlePlayAgain = useCallback(() => {
+    setCurrentRound(1);
+    setRoundScores([]);
+    setRounds([]);
+    setTotalScore(0);
+    const newTarget = randomTargetHsb();
+    setTargetColor(newTarget);
+    setPrediction(randomPredictionHsb());
+    setMemorizeRemainingMs(MEMORIZE_DURATION_MS);
+    setRecallSeconds(RECALL_DURATION_SECONDS);
+    setRoundResult(null);
+    setTimeTakenSeconds(0);
     setSubmissionState({
-      isSubmitting: true,
+      isSubmitting: false,
       isSubmitted: false,
       isPersonalBest: false,
       isOffline: false,
       error: null,
     });
+    setPhase("MEMORIZE");
+  }, []);
 
-    try {
-      const playerName = user?.name || user?.username || "Anonymous";
-      const userId = user?.id ? String(user.id) : null;
-
-      const res = await submitNotColorBlindScore(
-        {
-          userId,
-          playerName,
-          score: scoreBreakdown.score,
-          targetHsb: targetColor,
-          predictedHsb: prediction,
-          timeTakenSeconds: finalTime,
-        },
-        token
-      );
-
-      setSubmissionState({
-        isSubmitting: false,
-        isSubmitted: true,
-        isPersonalBest: Boolean(res.isPersonalBest),
-        isOffline: Boolean(res.offlineFallback),
-        error: null,
-      });
-
-      onScoreSubmitted?.(res.scoreRecord, Boolean(res.isPersonalBest));
-    } catch (err: unknown) {
-      setSubmissionState({
-        isSubmitting: false,
-        isSubmitted: false,
-        isPersonalBest: false,
-        isOffline: false,
-        error: err instanceof Error ? err.message : "Failed to record score",
-      });
-    }
-  }, [phase, recallSeconds, targetColor, prediction, user, token, onScoreSubmitted]);
-
-  // 1-Minute Recall Timer (auto-submits when expired)
+  // 1-Minute Recall Timer (auto-locks in when expired)
   useEffect(() => {
     if (phase !== "RECALL") return;
 
@@ -171,39 +267,37 @@ export function NotColorBlindGame({ onPhaseChange, onScoreSubmitted }: NotColorB
     return () => clearInterval(timer);
   }, [phase, handleLockIn]);
 
-  // Reset to a new game round
-  const handlePlayAgain = () => {
-    const newTarget = randomTargetHsb();
-    setTargetColor(newTarget);
-    setPrediction(randomPredictionHsb());
-    setMemorizeRemainingMs(MEMORIZE_DURATION_MS);
-    setRecallSeconds(RECALL_DURATION_SECONDS);
-    setResult(null);
-    setTimeTakenSeconds(0);
-    setSubmissionState({
-      isSubmitting: false,
-      isSubmitted: false,
-      isPersonalBest: false,
-      isOffline: false,
-      error: null,
-    });
-    setPhase("MEMORIZE");
-  };
-
-  // Keyboard shortcut to Lock In with Enter when in RECALL
+  // Keyboard shortcuts (Enter to Lock In / Advance / Play Again)
   useEffect(() => {
-    if (phase !== "RECALL") return;
-
     const onKeyDown = (e: globalThis.KeyboardEvent) => {
       if (e.key === "Enter" && !e.repeat) {
-        e.preventDefault();
-        handleLockIn();
+        if (phase === "RECALL") {
+          e.preventDefault();
+          handleLockIn();
+        } else if (phase === "ROUND_RESULT") {
+          e.preventDefault();
+          if (currentRound < TOTAL_ROUNDS) {
+            handleNextRound();
+          } else {
+            handleViewFinalResults();
+          }
+        } else if (phase === "MATCH_SUMMARY") {
+          e.preventDefault();
+          handlePlayAgain();
+        }
       }
     };
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [phase, handleLockIn]);
+  }, [
+    phase,
+    currentRound,
+    handleLockIn,
+    handleNextRound,
+    handleViewFinalResults,
+    handlePlayAgain,
+  ]);
 
   // Dynamic gradients for the 3 sliders
   const hueGradient =
@@ -229,19 +323,98 @@ export function NotColorBlindGame({ onPhaseChange, onScoreSubmitted }: NotColorB
   const sec = Math.floor(totalHundredths / 100);
   const msStr = (totalHundredths % 100).toString().padStart(2, "0");
 
+  // Cumulative metrics calculation
+  const averageRecallTime = useMemo(() => {
+    if (rounds.length === 0) return 0;
+    const total = rounds.reduce((acc, r) => acc + r.timeTakenSeconds, 0);
+    return Number((total / rounds.length).toFixed(2));
+  }, [rounds]);
+
+  const averageRoundAccuracy = useMemo(() => {
+    if (rounds.length === 0) return 0;
+    return Number((totalScore / rounds.length).toFixed(1));
+  }, [rounds, totalScore]);
+
   return (
     <div className="w-full flex flex-col items-center justify-center">
+      {/* ─────────────────────────────────────────────────────────────
+          TOP HUD: Subtle Round Indicator Pill & Match Status
+      ───────────────────────────────────────────────────────────── */}
+      {(phase === "MEMORIZE" || phase === "RECALL" || phase === "ROUND_RESULT") && (
+        <div className="w-full max-w-xl flex items-center justify-between px-2 mb-3 select-none">
+          {/* Round Indicator Pill + Visual Progress Pips */}
+          <div className="flex items-center gap-2 sm:gap-3">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-mono font-bold tracking-wider bg-secondary/80 border border-border/80 text-foreground shadow-xs">
+              <span className="text-primary font-black">ROUND {currentRound}</span>
+              <span className="text-muted-foreground/60">/</span>
+              <span className="text-muted-foreground">{TOTAL_ROUNDS}</span>
+            </div>
+
+            {/* 5-Pip Round Progress Indicator */}
+            <div className="flex items-center gap-1.5" aria-label="Match round progress">
+              {Array.from({ length: TOTAL_ROUNDS }).map((_, idx) => {
+                const roundNum = idx + 1;
+                const isPast = roundNum < currentRound;
+                const isCurrent = roundNum === currentRound;
+                return (
+                  <div
+                    key={roundNum}
+                    className={`w-2 h-2 rounded-full transition-all duration-300 ${
+                      isPast
+                        ? "bg-primary shadow-[0_0_8px_rgba(59,130,246,0.5)] scale-100"
+                        : isCurrent
+                        ? "bg-primary ring-2 ring-primary/40 ring-offset-1 ring-offset-background scale-110"
+                        : "bg-secondary border border-border/70"
+                    }`}
+                    title={`Round ${roundNum}`}
+                  />
+                );
+              })}
+            </div>
+
+            {/* Running Total Match Score (Shown after round 1) */}
+            {roundScores.length > 0 && phase !== "ROUND_RESULT" && (
+              <div className="hidden sm:inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-mono bg-primary/10 text-primary border border-primary/20">
+                <span className="text-muted-foreground text-[10px] uppercase font-semibold">Score:</span>
+                <span className="font-extrabold">{totalScore}</span>
+              </div>
+            )}
+          </div>
+
+          {/* Right Section: Urgent Countdown in Recall Phase */}
+          {phase === "RECALL" && (
+            <div className="flex items-center gap-1.5">
+              <span className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground/70 font-semibold hidden xs:inline">
+                Time:
+              </span>
+              <div
+                className={`font-mono text-2xl sm:text-3xl font-black tabular-nums tracking-tight leading-none transition-all duration-200 ${
+                  recallSeconds <= 5
+                    ? "text-rose-500 animate-[pulse_0.6s_ease-in-out_infinite] scale-105"
+                    : recallSeconds <= 15
+                    ? "text-amber-400 animate-pulse"
+                    : "text-foreground"
+                }`}
+              >
+                <span className="opacity-35 text-base sm:text-lg font-semibold mr-0.5">00:</span>
+                {recallSeconds.toString().padStart(2, "0")}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* ─────────────────────────────────────────────────────────────
           PHASE 1: MEMORIZATION STAGE (5.00 to 0.00 Precision Countdown)
       ───────────────────────────────────────────────────────────── */}
       {phase === "MEMORIZE" && (
-        <div className="w-full max-w-xl flex flex-col items-center gap-6 py-4">
+        <div className="w-full max-w-xl flex flex-col items-center gap-6 py-2">
           {/* Glassmorphic Color Preview Card */}
           <div
             className="w-full h-80 sm:h-96 rounded-3xl shadow-[0_20px_60px_rgba(0,0,0,0.6)] border border-white/15 relative overflow-hidden flex flex-col justify-between p-6 sm:p-8 transition-all duration-300"
             style={{ backgroundColor: hsbToCss(targetColor) }}
           >
-            {/* Top-Right Precision Countdown: Seamless 3-digit Timer (No dot, Equal Font Size) + 'seconds to remember' */}
+            {/* Top-Right Precision Countdown: Seamless 3-digit Timer */}
             <div className="absolute top-6 right-6 sm:top-8 sm:right-8 flex flex-col items-end select-none">
               <div
                 className={`flex items-baseline font-mono tabular-nums tracking-tight leading-none select-none text-5xl sm:text-6xl font-extrabold ${
@@ -279,31 +452,10 @@ export function NotColorBlindGame({ onPhaseChange, onScoreSubmitted }: NotColorB
       )}
 
       {/* ─────────────────────────────────────────────────────────────
-          PHASE 2: RECALL STAGE (Tight 2px Sliders on Left, Prominent Timer)
+          PHASE 2: RECALL STAGE (Tight 2px Sliders on Left, Color Preview on Right)
       ───────────────────────────────────────────────────────────── */}
       {phase === "RECALL" && (
-        <div className="w-full max-w-2xl flex flex-col items-center gap-6 py-2">
-          {/* Top HUD Bar: Prominent Urgent Timer in Upper Right (Subtitle text removed) */}
-          <div className="w-full flex items-center justify-end px-1">
-            <div className="flex flex-col items-end">
-              <span className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground/70 font-semibold mb-0.5">
-                Time Remaining
-              </span>
-              <div
-                className={`font-mono text-4xl sm:text-5xl font-black tabular-nums tracking-tighter leading-none transition-all duration-200 ${
-                  recallSeconds <= 5
-                    ? "text-rose-500 animate-[pulse_0.6s_ease-in-out_infinite] scale-105"
-                    : recallSeconds <= 15
-                    ? "text-amber-400 animate-pulse"
-                    : "text-foreground"
-                }`}
-              >
-                <span className="opacity-35 text-2xl sm:text-3xl font-semibold mr-0.5">00:</span>
-                {recallSeconds.toString().padStart(2, "0")}
-              </div>
-            </div>
-          </div>
-
+        <div className="w-full max-w-2xl flex flex-col items-center gap-6 py-1">
           {/* Interactive Recall Stage: Tight 2px Sliders on the LEFT, Color Preview Card on the RIGHT */}
           <div className="flex flex-col sm:flex-row items-center sm:items-stretch justify-center gap-6 sm:gap-8 w-full">
             {/* 3 Vertical Sliders with exact 2px gap (Zero labels, zero percentage text) */}
@@ -334,12 +486,12 @@ export function NotColorBlindGame({ onPhaseChange, onScoreSubmitted }: NotColorB
               />
             </div>
 
-            {/* Interactive Color Preview Card on the RIGHT ("Live Preview" label removed) */}
+            {/* Interactive Color Preview Card on the RIGHT */}
             <div
               className="flex-1 w-full min-h-[260px] sm:min-h-[300px] rounded-3xl border border-white/15 shadow-2xl relative overflow-hidden flex flex-col justify-between p-6 sm:p-7 transition-colors duration-75"
               style={{ backgroundColor: hsbToCss(prediction) }}
             >
-              {/* Top-Right: Hex value with dynamic contrast (no pill/shadow) */}
+              {/* Top-Right: Hex value with dynamic contrast */}
               <div className="flex justify-end w-full">
                 <span
                   className={`font-mono text-sm sm:text-base font-bold tracking-wider select-none ${
@@ -350,7 +502,7 @@ export function NotColorBlindGame({ onPhaseChange, onScoreSubmitted }: NotColorB
                 </span>
               </div>
 
-              {/* Bottom: HSB readout with dynamic contrast (no pill/shadow) */}
+              {/* Bottom: HSB readout with dynamic contrast */}
               <div
                 className={`font-mono text-xs sm:text-sm font-semibold tracking-tight select-none ${
                   upperIsLight ? "text-neutral-950/80" : "text-white/80"
@@ -376,11 +528,21 @@ export function NotColorBlindGame({ onPhaseChange, onScoreSubmitted }: NotColorB
       )}
 
       {/* ─────────────────────────────────────────────────────────────
-          PHASE 3: MINIMAL SPLIT RESULT CARD (No Pills, Adaptive Contrast)
+          PHASE 3: ROUND RESULT CARD (Current Round Score + Next Round / Final CTA)
       ───────────────────────────────────────────────────────────── */}
-      {phase === "RESULT" && result && (
-        <div className="w-full max-w-lg flex flex-col items-center gap-6 py-2">
-          {/* Single Clean Card Split Horizontally in Half */}
+      {phase === "ROUND_RESULT" && roundResult && (
+        <div className="w-full max-w-lg flex flex-col items-center gap-5 py-1">
+          {/* Running Match Progress Pill */}
+          <div className="w-full flex items-center justify-between px-1 text-xs font-mono text-muted-foreground">
+            <span>Round {currentRound} of {TOTAL_ROUNDS}</span>
+            <div className="flex items-center gap-1.5">
+              <span className="text-[11px] uppercase opacity-75">Running Total:</span>
+              <span className="font-bold text-foreground">{totalScore}</span>
+              <span className="opacity-60">/ {currentRound * 100}</span>
+            </div>
+          </div>
+
+          {/* Single Clean Split Card */}
           <div className="w-full rounded-3xl overflow-hidden border border-border/60 shadow-2xl bg-card">
             {/* Upper Section ("Your Prediction") */}
             <div
@@ -405,7 +567,7 @@ export function NotColorBlindGame({ onPhaseChange, onScoreSubmitted }: NotColorB
                   </div>
                 </div>
 
-                {/* Big bold score cleanly in the upper right with adaptive contrast */}
+                {/* Big bold round score in the upper right with adaptive contrast */}
                 <div className="flex flex-col items-end select-none">
                   <div
                     className={`flex items-baseline gap-1 ${
@@ -413,7 +575,7 @@ export function NotColorBlindGame({ onPhaseChange, onScoreSubmitted }: NotColorB
                     }`}
                   >
                     <span className="text-5xl sm:text-6xl font-mono font-black tracking-tighter leading-none">
-                      {result.score}
+                      {roundResult.score}
                     </span>
                     <span
                       className={`text-sm sm:text-base font-mono font-bold ${
@@ -423,64 +585,13 @@ export function NotColorBlindGame({ onPhaseChange, onScoreSubmitted }: NotColorB
                       / 100
                     </span>
                   </div>
-
-                  {/* Sleek subtle status badge */}
-                  <div className="mt-2 flex items-center">
-                    {submissionState.isSubmitting && (
-                      <span
-                        className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-mono uppercase tracking-wider select-none ${
-                          upperIsLight
-                            ? "bg-neutral-950/10 text-neutral-950/80 border border-neutral-950/20"
-                            : "bg-white/10 text-white/80 border border-white/20"
-                        }`}
-                      >
-                        <span className="w-1.5 h-1.5 rounded-full bg-current animate-ping" />
-                        Saving...
-                      </span>
-                    )}
-
-                    {!submissionState.isSubmitting && submissionState.isSubmitted && submissionState.isPersonalBest && (
-                      <motion.span
-                        initial={{ opacity: 0, scale: 0.92 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold uppercase tracking-wider select-none ${
-                          upperIsLight
-                            ? "bg-emerald-950/15 text-emerald-950 border border-emerald-900/30"
-                            : "bg-emerald-400/20 text-emerald-300 border border-emerald-400/30"
-                        }`}
-                      >
-                        <Sparkles className="w-3 h-3" />
-                        Personal Best!
-                      </motion.span>
-                    )}
-
-                    {!submissionState.isSubmitting && submissionState.isSubmitted && !submissionState.isPersonalBest && (
-                      <motion.span
-                        initial={{ opacity: 0, scale: 0.92 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-mono font-medium uppercase tracking-wider select-none ${
-                          upperIsLight
-                            ? "bg-neutral-950/10 text-neutral-950/80 border border-neutral-950/20"
-                            : "bg-white/10 text-white/85 border border-white/20"
-                        }`}
-                      >
-                        <Check className="w-3 h-3" />
-                        {submissionState.isOffline ? "Saved Locally" : "Score Saved"}
-                      </motion.span>
-                    )}
-
-                    {submissionState.error && (
-                      <span
-                        className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-mono uppercase tracking-wider select-none ${
-                          upperIsLight
-                            ? "bg-amber-950/15 text-amber-950 border border-amber-900/30"
-                            : "bg-amber-400/20 text-amber-300 border border-amber-400/30"
-                        }`}
-                      >
-                        Saved Locally
-                      </span>
-                    )}
-                  </div>
+                  <span
+                    className={`text-[11px] font-mono tracking-wider uppercase mt-1 ${
+                      upperIsLight ? "text-neutral-950/60" : "text-white/60"
+                    }`}
+                  >
+                    Round {currentRound} Score
+                  </span>
                 </div>
               </div>
 
@@ -499,7 +610,7 @@ export function NotColorBlindGame({ onPhaseChange, onScoreSubmitted }: NotColorB
               </div>
             </div>
 
-            {/* Razor-sharp, minimal horizontal dividing line */}
+            {/* Minimal horizontal dividing line */}
             <div className="h-px w-full bg-black/20 dark:bg-white/20" />
 
             {/* Lower Section ("Original") */}
@@ -526,7 +637,7 @@ export function NotColorBlindGame({ onPhaseChange, onScoreSubmitted }: NotColorB
                 </div>
               </div>
 
-              {/* Bottom: HSB readout with dynamic contrast (no pill/shadow) */}
+              {/* Bottom: HSB readout with dynamic contrast */}
               <div
                 className={`mt-auto pt-4 font-mono text-xs sm:text-sm font-semibold tracking-tight select-none ${
                   lowerIsLight ? "text-neutral-950/80" : "text-white/80"
@@ -537,18 +648,237 @@ export function NotColorBlindGame({ onPhaseChange, onScoreSubmitted }: NotColorB
             </div>
           </div>
 
-          {/* Minimal Play Again Button */}
-          <button
-            type="button"
-            onClick={handlePlayAgain}
-            className="inline-flex items-center justify-center gap-2 px-8 py-3 rounded-xl bg-primary text-primary-foreground font-semibold text-sm hover:brightness-110 active:scale-[0.98] transition-all cursor-pointer shadow-lg shadow-primary/20"
-          >
-            <RotateCcw className="w-4 h-4" />
-            <span>Play Again</span>
-          </button>
+          {/* Action Button: Next Round vs View Final Results */}
+          <div className="w-full flex justify-center pt-2">
+            {currentRound < TOTAL_ROUNDS ? (
+              <button
+                type="button"
+                onClick={handleNextRound}
+                className="inline-flex items-center justify-center gap-2 px-8 py-3 rounded-xl bg-primary text-primary-foreground font-semibold text-sm hover:brightness-110 active:scale-[0.98] transition-all cursor-pointer shadow-lg shadow-primary/20"
+              >
+                <span>Next Round ({currentRound + 1}/{TOTAL_ROUNDS})</span>
+                <ArrowRight className="w-4 h-4" />
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={handleViewFinalResults}
+                className="inline-flex items-center justify-center gap-2 px-8 py-3 rounded-xl bg-primary text-primary-foreground font-semibold text-sm hover:brightness-110 active:scale-[0.98] transition-all cursor-pointer shadow-lg shadow-primary/25"
+              >
+                <Trophy className="w-4 h-4 text-amber-300" />
+                <span>View Final Results</span>
+              </button>
+            )}
+          </div>
         </div>
+      )}
+
+      {/* ─────────────────────────────────────────────────────────────
+          PHASE 4: FINAL MATCH SUMMARY (After Round 5)
+      ───────────────────────────────────────────────────────────── */}
+      {phase === "MATCH_SUMMARY" && (
+        <motion.div
+          initial={{ opacity: 0, y: 15 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.35, ease: "easeOut" }}
+          className="w-full max-w-xl flex flex-col items-center gap-6 py-2"
+        >
+          {/* Header Card with Total Score & Submission Status */}
+          <div className="w-full rounded-3xl border border-border/80 bg-card/90 backdrop-blur-xl p-6 sm:p-8 flex flex-col items-center text-center shadow-2xl relative overflow-hidden">
+            {/* Subtle radial ambient highlight */}
+            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(59,130,246,0.12),transparent_70%)] pointer-events-none" />
+
+            {/* Submission Status Badge */}
+            <div className="mb-4">
+              {submissionState.isSubmitting && (
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-mono font-medium uppercase tracking-wider bg-primary/10 text-primary border border-primary/25">
+                  <span className="w-2 h-2 rounded-full bg-primary animate-ping" />
+                  Saving Match Score...
+                </span>
+              )}
+
+              {!submissionState.isSubmitting &&
+                submissionState.isSubmitted &&
+                submissionState.isPersonalBest && (
+                  <motion.span
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full text-xs font-mono font-bold uppercase tracking-wider bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 shadow-xs"
+                  >
+                    <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
+                    New Personal Best!
+                  </motion.span>
+                )}
+
+              {!submissionState.isSubmitting &&
+                submissionState.isSubmitted &&
+                !submissionState.isPersonalBest && (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-mono font-medium uppercase tracking-wider bg-secondary/90 text-muted-foreground border border-border/70">
+                    <Check className="w-3.5 h-3.5 text-emerald-400" />
+                    {submissionState.isOffline ? "Saved Locally" : "Score Recorded"}
+                  </span>
+                )}
+
+              {submissionState.error && (
+                <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-mono uppercase tracking-wider bg-amber-500/15 text-amber-300 border border-amber-500/30">
+                  Saved Locally
+                </span>
+              )}
+            </div>
+
+            {/* Title & Subtitle */}
+            <span className="text-[11px] sm:text-xs font-mono uppercase tracking-widest text-muted-foreground font-semibold">
+              Match Complete
+            </span>
+
+            {/* Cumulative Total Score */}
+            <div className="flex items-baseline justify-center gap-2 mt-2 mb-1">
+              <span className="font-mono text-6xl sm:text-7xl font-black tracking-tight text-foreground drop-shadow-sm">
+                {totalScore}
+              </span>
+              <span className="font-mono text-xl sm:text-2xl font-bold text-muted-foreground">
+                / 500
+              </span>
+            </div>
+
+            <p className="text-xs sm:text-sm text-muted-foreground font-medium mt-1 max-w-sm">
+              5-Round Color Memory Recall Evaluation
+            </p>
+
+            {/* 3 Metric Cards Grid */}
+            <div className="w-full grid grid-cols-3 gap-2.5 sm:gap-3 mt-6">
+              {/* Card 1: Match Score */}
+              <div className="rounded-xl bg-secondary/50 border border-border/70 p-3 flex flex-col items-center text-center">
+                <span className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground font-medium">
+                  Total Score
+                </span>
+                <span className="font-mono text-lg sm:text-xl font-bold text-primary mt-1">
+                  {totalScore}
+                </span>
+              </div>
+
+              {/* Card 2: Average Accuracy */}
+              <div className="rounded-xl bg-secondary/50 border border-border/70 p-3 flex flex-col items-center text-center">
+                <span className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground font-medium">
+                  Avg Accuracy
+                </span>
+                <span className="font-mono text-lg sm:text-xl font-bold text-emerald-400 mt-1">
+                  {averageRoundAccuracy}%
+                </span>
+              </div>
+
+              {/* Card 3: Average Recall Time */}
+              <div className="rounded-xl bg-secondary/50 border border-border/70 p-3 flex flex-col items-center text-center">
+                <span className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground font-medium">
+                  Avg Recall
+                </span>
+                <span className="font-mono text-lg sm:text-xl font-bold text-cyan-400 mt-1">
+                  {averageRecallTime}s
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* 5-Round Breakdown List */}
+          <div className="w-full flex flex-col gap-2.5">
+            <div className="flex items-center justify-between px-2 text-xs font-mono uppercase tracking-wider text-muted-foreground font-semibold">
+              <span>Round Breakdown</span>
+              <span>5 Rounds</span>
+            </div>
+
+            <div className="w-full rounded-2xl border border-border/70 bg-card/70 backdrop-blur-md overflow-hidden divide-y divide-border/40 shadow-lg">
+              {rounds.map((r) => {
+                const scoreColor =
+                  r.score >= 90
+                    ? "text-emerald-400"
+                    : r.score >= 75
+                    ? "text-cyan-400"
+                    : r.score >= 60
+                    ? "text-amber-400"
+                    : "text-muted-foreground";
+
+                return (
+                  <div
+                    key={r.round}
+                    className="flex items-center justify-between px-4 py-3 hover:bg-secondary/30 transition-colors gap-3"
+                  >
+                    {/* Left: Round Number + Dual Swatch */}
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="w-7 h-7 rounded-lg bg-secondary text-muted-foreground font-mono font-bold text-xs flex items-center justify-center shrink-0 border border-border/70">
+                        {r.round}
+                      </div>
+
+                      {/* Split Color Swatch (Top: Predicted, Bottom: Target) */}
+                      <div className="w-9 h-9 rounded-lg overflow-hidden border border-border/80 shrink-0 flex flex-col shadow-xs">
+                        <div
+                          className="flex-1 w-full"
+                          style={{ backgroundColor: hsbToCss(r.predictedHsb) }}
+                          title={`Predicted: ${hsbToHex(r.predictedHsb)}`}
+                        />
+                        <div
+                          className="flex-1 w-full border-t border-black/20"
+                          style={{ backgroundColor: hsbToCss(r.targetHsb) }}
+                          title={`Target: ${hsbToHex(r.targetHsb)}`}
+                        />
+                      </div>
+
+                      {/* Hex Comparison */}
+                      <div className="flex flex-col text-xs font-mono min-w-0 truncate">
+                        <div className="flex items-center gap-1.5">
+                          <span className="font-semibold text-foreground truncate">
+                            {hsbToHex(r.predictedHsb)}
+                          </span>
+                          <span className="text-[10px] text-muted-foreground">vs</span>
+                          <span className="text-muted-foreground/80 truncate">
+                            {hsbToHex(r.targetHsb)}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-1 text-[10px] text-muted-foreground/70 mt-0.5">
+                          <Clock className="w-2.5 h-2.5 opacity-70" />
+                          <span>{r.timeTakenSeconds.toFixed(2)}s recall</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Right: Round Score */}
+                    <div className="text-right shrink-0">
+                      <span className={`font-mono text-base font-extrabold ${scoreColor}`}>
+                        {r.score}
+                      </span>
+                      <span className="text-[10px] font-mono text-muted-foreground ml-1">
+                        / 100
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Action CTAs */}
+          <div className="flex items-center gap-3 pt-2">
+            <button
+              type="button"
+              onClick={handlePlayAgain}
+              className="inline-flex items-center justify-center gap-2 px-8 py-3 rounded-xl bg-primary text-primary-foreground font-semibold text-sm hover:brightness-110 active:scale-[0.98] transition-all cursor-pointer shadow-lg shadow-primary/20"
+            >
+              <RotateCcw className="w-4 h-4" />
+              <span>Play Again</span>
+            </button>
+
+            {onOpenLeaderboard && (
+              <button
+                type="button"
+                onClick={onOpenLeaderboard}
+                className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-secondary/80 hover:bg-secondary text-foreground font-semibold text-sm border border-border transition-all cursor-pointer"
+              >
+                <Trophy className="w-4 h-4 text-amber-400" />
+                <span>Leaderboard</span>
+              </button>
+            )}
+          </div>
+        </motion.div>
       )}
     </div>
   );
 }
-

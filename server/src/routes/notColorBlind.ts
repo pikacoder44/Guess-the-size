@@ -28,9 +28,9 @@ function isValidHsb(val: unknown): val is HsbColor {
 router.post('/', async (req: Request, res: Response): Promise<void> => {
   const { userId, playerName, score, targetHsb, predictedHsb, timeTakenSeconds } = req.body ?? {};
 
-  // Validate score: range [0, 100]
-  if (typeof score !== 'number' || isNaN(score) || score < 0 || score > 100) {
-    res.status(400).json({ error: 'score must be a valid number between 0 and 100.' });
+  // Validate score: range [0, 500] (5 rounds x 100 max)
+  if (typeof score !== 'number' || isNaN(score) || score < 0 || score > 500) {
+    res.status(400).json({ error: 'score must be a valid number between 0 and 500.' });
     return;
   }
 

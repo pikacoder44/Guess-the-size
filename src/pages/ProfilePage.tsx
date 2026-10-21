@@ -530,7 +530,7 @@ function ProfilePageContent({ user, token, onBack, updateProfile, isSubmitting }
                   {colorStats && colorStats.bestScore > 0 ? (
                     <>
                       {colorStats.bestScore}
-                      <span className="text-[10px] text-muted-foreground font-normal ml-0.5">/100</span>
+                      <span className="text-[10px] text-muted-foreground font-normal ml-0.5">/500</span>
                     </>
                   ) : (
                     "—"

@@ -152,7 +152,7 @@ export function NotColorBlindLeaderboardModal({ onClose }: NotColorBlindLeaderbo
                       {entry.score}
                     </span>
                     <span className="text-[10px] font-mono text-muted-foreground ml-1">
-                      / 100
+                      / 500
                     </span>
                   </div>
                 </div>

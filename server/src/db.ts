@@ -871,19 +871,34 @@ export async function initDb(): Promise<void> {
     CREATE INDEX IF NOT EXISTS puzzles_puzzle_type_idx ON puzzles (puzzle_type);
   `);
 
-  // 5. Not Color Blind game scores
+  // 5. Not Color Blind game scores (5-round matches, score up to 500)
   await pool.query(`
     CREATE TABLE IF NOT EXISTS not_color_blind_scores (
       id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
       user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
       player_name TEXT NOT NULL DEFAULT 'Anonymous',
-      score INT NOT NULL CHECK (score >= 0 AND score <= 100),
+      score INT NOT NULL CHECK (score >= 0 AND score <= 500),
       target_hsb JSONB NOT NULL,
       predicted_hsb JSONB NOT NULL,
       time_taken_seconds NUMERIC(5, 2) NOT NULL,
       created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
     );
   `);
+
+  // Migrate existing check constraint if table was created with score <= 100
+  try {
+    await pool.query(`
+      DO $$
+      BEGIN
+        ALTER TABLE not_color_blind_scores DROP CONSTRAINT IF EXISTS not_color_blind_scores_score_check;
+        ALTER TABLE not_color_blind_scores ADD CONSTRAINT not_color_blind_scores_score_check CHECK (score >= 0 AND score <= 500);
+      EXCEPTION
+        WHEN others THEN NULL;
+      END $$;
+    `);
+  } catch {
+    // Non-fatal if permission restricted or table missing
+  }
 
   await pool.query(`
     CREATE INDEX IF NOT EXISTS idx_ncb_scores_leaderboard 

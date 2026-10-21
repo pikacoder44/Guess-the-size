@@ -884,7 +884,7 @@ export function LeaderboardPage({ onNavigate, onBackToGame, onOpenLogin }: Leade
                           <span className={`text-xl font-extrabold ${scoreColor}`}>
                             {entry.score}
                           </span>
-                          <span className="text-xs text-muted-foreground font-bold">/100</span>
+                          <span className="text-xs text-muted-foreground font-bold">/500</span>
                         </div>
                         <div className="text-[11px] font-mono text-muted-foreground">
                           {entry.time_taken_seconds.toFixed(2)}s recall
@@ -955,7 +955,7 @@ export function LeaderboardPage({ onNavigate, onBackToGame, onOpenLogin }: Leade
                       <span className="text-xl font-extrabold text-emerald-400 drop-shadow-[0_0_10px_rgba(52,211,153,0.5)]">
                         {colorEntries[userInColorIndex]?.score ?? 0}
                       </span>
-                      <span className="text-xs text-muted-foreground font-bold">/100</span>
+                      <span className="text-xs text-muted-foreground font-bold">/500</span>
                     </div>
                     <div className="text-[11px] font-mono text-emerald-400/70">
                       {colorEntries[userInColorIndex]?.time_taken_seconds.toFixed(2)}s recall
