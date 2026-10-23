@@ -1,13 +1,13 @@
 import { useState } from "react";
 import { motion } from "motion/react";
-import { Play, ArrowUpRight, Ruler, Eye, Trophy, Star, Sparkles } from "lucide-react";
+import { Play, ArrowUpRight, Star, Sparkles } from "lucide-react";
 
 export interface GameCardProps {
   id: string;
   route: string;
   badge: string;
   title: string;
-  categoryTag: string;
+  categoryTag?: string;
   description: string;
   stats: string;
   tags: string[];
@@ -21,7 +21,6 @@ export function GameCard({
   route,
   badge,
   title,
-  categoryTag,
   description,
   stats,
   tags,
@@ -39,7 +38,7 @@ export function GameCard({
       ? "/assets/banners/scaleguess-cover.jpg"
       : isColorBlind
       ? "/assets/banners/not-color-blind-cover.jpg"
-      : "/assets/banners/daily-challenge-cover.jpg");
+      : "/assets/banners/scaleguess-cover.jpg");
 
   return (
     <motion.div
@@ -83,20 +82,6 @@ export function GameCard({
         />
         <div className="absolute inset-0 bg-gradient-to-t from-neutral-950 via-transparent to-transparent" />
 
-        {/* Category / Mode Tag Overlay */}
-        <div className="absolute top-3 left-3 z-10">
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-neutral-950/85 border border-neutral-700/80 backdrop-blur-md text-[10px] font-mono font-semibold text-neutral-200 shadow-sm">
-            {isScaleGuess ? (
-              <Ruler className="w-3 h-3 text-amber-400" />
-            ) : isColorBlind ? (
-              <Eye className="w-3 h-3 text-violet-400" />
-            ) : (
-              <Trophy className="w-3 h-3 text-amber-400" />
-            )}
-            {categoryTag}
-          </span>
-        </div>
-
         {/* ── Prominent Hover Overlay with Play Button (Steam / Epic Games style) ── */}
         <div
           className={`absolute inset-0 bg-neutral-950/60 backdrop-blur-[2px] flex flex-col items-center justify-center transition-all duration-300 z-20 ${
@@ -115,11 +100,8 @@ export function GameCard({
       {/* ── Card Body: Title, Category Badge, Rating, Description & Bottom HUD ── */}
       <div className="p-5 flex-1 flex flex-col justify-between">
         <div>
-          {/* Category Chip & Rating */}
-          <div className="flex items-center justify-between gap-2">
-            <span className="px-2 py-0.5 rounded bg-neutral-800/80 border border-neutral-700/60 text-[10px] font-mono uppercase tracking-wider font-semibold text-neutral-300">
-              {categoryTag}
-            </span>
+          {/* Rating */}
+          <div className="flex items-center justify-end">
             <div className="flex items-center gap-1 text-[11px] font-mono text-amber-400">
               <Star className="w-3 h-3 fill-current" />
               <span>{rating}</span>

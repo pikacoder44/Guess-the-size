@@ -1,12 +1,5 @@
 import { motion, AnimatePresence } from "motion/react";
-import {
-  Clock,
-  Target,
-  Sparkles,
-  Trophy,
-  Play,
-  Flame,
-} from "lucide-react";
+import { Clock, Target, Trophy, Play } from "lucide-react";
 import type { LauncherGame } from "./launcherData";
 
 interface LauncherHeroProps {
@@ -20,8 +13,6 @@ export function LauncherHero({
   onPlayGame,
   onViewLeaderboard,
 }: LauncherHeroProps) {
-  const isTournament = game.id === "daily-challenge";
-
   return (
     <section
       aria-label="Hero Spotlight Stage"
@@ -60,22 +51,13 @@ export function LauncherHero({
         <div className="absolute inset-0 bg-gradient-to-r from-neutral-950/70 via-transparent to-neutral-950/30" />
       </div>
 
-      {/* ── 2. Top-Right Tag Badge: Floating Glass Pill ── */}
-      <div className="relative z-10 flex justify-end w-full">
-        <motion.div
-          key={game.tagBadge}
-          initial={{ opacity: 0, y: -8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4 }}
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-black/45 hover:bg-black/60 backdrop-blur-xl border border-white/15 text-white/90 text-xs font-medium tracking-wide shadow-2xl transition-all"
-        >
-          {isTournament ? (
-            <Flame className="w-3.5 h-3.5 text-amber-400" />
-          ) : (
-            <Sparkles className="w-3.5 h-3.5 text-amber-300" />
-          )}
-          <span>{game.tagBadge}</span>
-        </motion.div>
+      {/* ── 2. Top-Left Brand Header: Synapse ── */}
+      <div className="relative z-10 flex items-center justify-between w-full">
+        <div className="flex items-baseline gap-3.5">
+          <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black tracking-tight text-white font-sans uppercase drop-shadow-2xl">
+            Synapse
+          </h1>
+        </div>
       </div>
 
       {/* ── 3. Bottom Row: Stats Widgets (Left) + Game Content & Actions (Right) ── */}
@@ -119,15 +101,10 @@ export function LauncherHero({
           transition={{ duration: 0.45, delay: 0.15 }}
           className="flex flex-col items-start md:items-end text-left md:text-right max-w-xl"
         >
-          {/* Category Chip */}
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md bg-white/10 border border-white/10 text-[10px] font-mono font-semibold tracking-wider uppercase text-neutral-300 mb-2 backdrop-blur-md">
-            {game.categoryTag}
-          </span>
-
           {/* Game Title: Bold, Stylized Typography */}
-          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black text-white tracking-tight uppercase font-sans drop-shadow-2xl">
+          <h2 className="text-4xl sm:text-5xl lg:text-6xl font-black text-white tracking-tight uppercase font-sans drop-shadow-2xl">
             {game.title}
-          </h1>
+          </h2>
 
           {/* Short Description: 2-line summary */}
           <p className="text-xs sm:text-sm text-neutral-300 max-w-md mt-2.5 mb-6 leading-relaxed line-clamp-2 drop-shadow">

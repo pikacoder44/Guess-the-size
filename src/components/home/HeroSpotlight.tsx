@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion } from "motion/react";
-import { Play, Trophy, ChevronRight, Sparkles, ShieldCheck } from "lucide-react";
+import { Play, Trophy, ChevronRight } from "lucide-react";
 
 interface HeroSpotlightProps {
   onNavigate: (route: string) => void;
@@ -49,20 +49,6 @@ const SPOTLIGHT_SLIDES: SpotlightSlide[] = [
     chips: ["5s Observation", "Hue / Sat / Val", "Delta-E Evaluation", "Instant Feedback"],
     theme: "violet",
     coverImage: "/assets/banners/not-color-blind-cover.jpg",
-  },
-  {
-    id: "daily-challenge",
-    category: "DAILY TOURNAMENT",
-    badge: "GLOBAL RANKED SEED",
-    title: "Today's Daily Challenge",
-    tagline: "One deterministic 5-puzzle run. Compete for global #1 on today's leaderboard.",
-    description: "A synchronized daily puzzle seed released at 00:00 UTC. Same references, same targets, one shot to set your best score.",
-    playRoute: "/games/scale-guess",
-    leaderboardRoute: "/games/scale-guess/leaderboard",
-    ctaText: "LAUNCH DAILY RUN",
-    chips: ["Synchronized Seed", "Single Daily Attempt", "Global Ladder", "Resets 00:00 UTC"],
-    theme: "gold",
-    coverImage: "/assets/banners/daily-challenge-cover.jpg",
   },
 ];
 
@@ -117,18 +103,14 @@ export function HeroSpotlight({ onNavigate }: HeroSpotlightProps) {
           className={`absolute -top-32 -left-32 w-96 h-96 rounded-full blur-3xl opacity-35 transition-all duration-700 ${
             activeSlide.theme === "amber"
               ? "bg-amber-500/40"
-              : activeSlide.theme === "violet"
-              ? "bg-violet-600/40"
-              : "bg-yellow-500/40"
+              : "bg-violet-600/40"
           }`}
         />
         <div
           className={`absolute -bottom-32 -right-32 w-lg h-128 rounded-full blur-3xl opacity-25 transition-all duration-700 ${
             activeSlide.theme === "amber"
               ? "bg-orange-600/30"
-              : activeSlide.theme === "violet"
-              ? "bg-cyan-500/30"
-              : "bg-amber-600/30"
+              : "bg-cyan-500/30"
           }`}
         />
       </div>
@@ -138,22 +120,18 @@ export function HeroSpotlight({ onNavigate }: HeroSpotlightProps) {
         {/* Left Column: Hero Content & CTAs */}
         <div className="lg:col-span-8 p-6 sm:p-8 lg:p-10 flex flex-col justify-between">
           <div>
-            {/* Top Tag & Badge */}
-            <div className="flex items-center gap-2.5 flex-wrap">
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-neutral-900/90 border border-neutral-700/80 text-[11px] font-mono uppercase tracking-wider font-semibold text-neutral-200 backdrop-blur-md">
-                <Sparkles className="w-3 h-3 text-amber-400" />
-                {activeSlide.category}
+            {/* Brand Title: Synapse */}
+            <div className="flex items-center gap-3 mb-2">
+              <span className="text-2xl sm:text-3xl font-black tracking-tight text-white font-sans uppercase">
+                Synapse
               </span>
-              <span className="inline-flex items-center gap-1 text-[11px] font-mono uppercase tracking-wider text-neutral-300">
-                <ShieldCheck className="w-3 h-3 text-emerald-400" />
-                {activeSlide.badge}
-              </span>
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
             </div>
 
             {/* Title */}
-            <h1 className="mt-3 text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-white font-sans drop-shadow-md">
+            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-white font-sans drop-shadow-md">
               {activeSlide.title}
-            </h1>
+            </h2>
 
             {/* Tagline */}
             <p className="mt-2 text-base sm:text-lg text-neutral-200 font-medium max-w-xl leading-snug drop-shadow-sm">
@@ -206,7 +184,7 @@ export function HeroSpotlight({ onNavigate }: HeroSpotlightProps) {
             FEATURED GAMES
           </div>
 
-          <div className="grid grid-cols-3 lg:grid-cols-1 gap-2">
+          <div className="grid grid-cols-2 lg:grid-cols-1 gap-2">
             {SPOTLIGHT_SLIDES.map((slide, idx) => {
               const isSelected = idx === activeIndex;
               return (

@@ -97,7 +97,11 @@ export function LauncherCatalog({
         {/* Left: Section Heading */}
         <div className="flex items-center gap-3">
           <h2 className="text-xl sm:text-2xl font-bold text-white tracking-tight font-sans">
-            Popular
+            {activeTab === "downloaded"
+              ? "Most Downloaded"
+              : activeTab === "rated"
+              ? "Top Rated"
+              : "Popular"}
           </h2>
           {searchQuery && (
             <span className="text-xs font-mono text-neutral-400">
@@ -163,13 +167,6 @@ export function LauncherCatalog({
                   className="w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-105"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-neutral-950 via-transparent to-transparent" />
-
-                {/* Top-Left Category Badge */}
-                <div className="absolute top-3.5 left-3.5 z-10">
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-neutral-950/80 border border-white/15 backdrop-blur-md text-[10px] font-mono font-bold uppercase tracking-wider text-white shadow-md">
-                    {game.categoryTag}
-                  </span>
-                </div>
 
                 {/* Hover Play Button Overlay */}
                 <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px] opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center gap-3 z-20">

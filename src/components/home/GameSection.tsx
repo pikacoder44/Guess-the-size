@@ -8,7 +8,7 @@ interface GameSectionProps {
   searchQuery?: string;
 }
 
-type FilterTag = "all" | "spatial" | "perceptual" | "daily";
+type FilterTag = "all" | "spatial" | "perceptual";
 
 interface ArcadeGameItem {
   id: string;
@@ -51,19 +51,6 @@ const ARCADE_GAMES: ArcadeGameItem[] = [
     coverImage: "/assets/banners/not-color-blind-cover.jpg",
     categories: ["all", "perceptual"],
   },
-  {
-    id: "daily-challenge",
-    route: "/games/scale-guess",
-    badge: "Daily Tournament",
-    title: "Daily Challenge: Tournament Run",
-    categoryTag: "GLOBAL RANKED",
-    description: "Today's official synchronized tournament match. 5 calibrated puzzle pairs with real-time global leaderboard tie-breaking.",
-    stats: "Ranked • Resets 00:00 UTC",
-    tags: ["Daily", "Ranked", "Spatial"],
-    rating: "5.0",
-    coverImage: "/assets/banners/daily-challenge-cover.jpg",
-    categories: ["all", "daily", "spatial"],
-  },
 ];
 
 export function GameSection({ onNavigate, searchQuery = "" }: GameSectionProps) {
@@ -73,7 +60,6 @@ export function GameSection({ onNavigate, searchQuery = "" }: GameSectionProps) 
     { id: "all", label: "All Games" },
     { id: "spatial", label: "Spatial" },
     { id: "perceptual", label: "Perceptual" },
-    { id: "daily", label: "Daily" },
   ];
 
   const filteredGames = ARCADE_GAMES.filter((game) => {
