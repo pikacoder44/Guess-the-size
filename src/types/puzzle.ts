@@ -1,6 +1,7 @@
 export type ItemCategory = "micro" | "everyday" | "macro" | "cosmic";
 
-export type ItemAxis = "height" | "length" | "diameter";
+export type ItemAxis = "height" | "length" | "width" | "diameter";
+
 
 export interface SilhouetteViewBox {
   x: number;
@@ -18,6 +19,7 @@ export interface PuzzleItem {
   svgUrl: string; // Path to public SVG, e.g. "/silhouettes/blue_whale.svg"
   source: string; // e.g. "Wikidata (Q42196)"
   viewBox?: SilhouetteViewBox;
+  description?: string;
 }
 
 export interface StoredPuzzle {

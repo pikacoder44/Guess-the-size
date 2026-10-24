@@ -1,9 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import {
   ArrowRight,
-  Award,
   Percent,
-  Target,
   CloudCheck,
   Trophy,
   RotateCcw,
@@ -68,7 +66,7 @@ export function ResultPanel({
 
   // Track when each round started so we can compute per-round elapsedMs.
   // We record the timestamp when the phase transitions into a new PLAYING round.
-  const roundStartTimeRef = useRef<number>(performance.now());
+  const roundStartTimeRef = useRef<number | null>(null);
   const lastRoundCountRef = useRef<number>(state.rounds.length);
   const roundElapsedMsRef = useRef<number[]>([]);
 
@@ -80,10 +78,14 @@ export function ResultPanel({
 
   // When a round is completed (rounds array grows), record its elapsed time.
   useEffect(() => {
+    if (roundStartTimeRef.current === null) {
+      roundStartTimeRef.current = performance.now();
+    }
     const prev = lastRoundCountRef.current;
     const curr = state.rounds.length;
     if (curr > prev) {
-      const elapsed = Math.round(performance.now() - roundStartTimeRef.current);
+      const startTime = roundStartTimeRef.current;
+      const elapsed = Math.round(performance.now() - startTime);
       roundElapsedMsRef.current = [...roundElapsedMsRef.current, elapsed];
       lastRoundCountRef.current = curr;
       // Reset timer for next round
@@ -285,8 +287,14 @@ export function ResultPanel({
                   <tr className="border-b border-border/60 bg-secondary/50 text-muted-foreground">
                     <th className="py-2.5 px-3 font-semibold">Round</th>
                     <th className="py-2.5 px-3 font-semibold">Challenge</th>
-                    <th className="py-2.5 px-3 font-semibold">Your Guess</th>
-                    <th className="py-2.5 px-3 font-semibold">Actual</th>
+                    <th className="py-2.5 px-3 font-semibold">
+                      <span className="bg-amber-400 w-2.5 h-2.5 rounded-full inline-block mr-2 shrink-0 shadow-[0_0_8px_rgba(251,191,36,0.6)]" aria-hidden="true" />
+                      Your Guess
+                    </th>
+                    <th className="py-2.5 px-3 font-semibold">
+                      <span className="bg-emerald-400 w-2.5 h-2.5 rounded-full inline-block mr-2 shrink-0 shadow-[0_0_8px_rgba(52,211,153,0.6)]" aria-hidden="true" />
+                      Actual
+                    </th>
                     <th className="py-2.5 px-3 font-semibold">Off By</th>
                     <th className="py-2.5 px-3 font-semibold text-right">Score</th>
                   </tr>
@@ -301,10 +309,10 @@ export function ResultPanel({
                         <span className="text-foreground font-medium">{r.puzzle.target.name}</span>
                         <span className="text-muted-foreground/60"> vs {r.puzzle.reference.name}</span>
                       </td>
-                      <td className="py-2.5 px-3 text-target font-medium">
+                      <td className="py-2.5 px-3 text-amber-400 font-medium">
                         {formatMeasurement(r.guessScale)}
                       </td>
-                      <td className="py-2.5 px-3 text-correct font-medium">
+                      <td className="py-2.5 px-3 text-emerald-400 font-medium">
                         {formatMeasurement(r.actualMeasurement)}
                       </td>
                       <td className="py-2.5 px-3 text-muted-foreground">
@@ -384,16 +392,16 @@ export function ResultPanel({
         <Stat
           label="Your Answer"
           value={formatMeasurement(guess)}
-          tone="text-target"
-          icon={<Target className="h-3.5 w-3.5 opacity-70" />}
+          tone="text-amber-400"
+          swatch={<span className="bg-amber-400 w-2.5 h-2.5 rounded-full inline-block mr-2 shrink-0 shadow-[0_0_8px_rgba(251,191,36,0.6)]" aria-hidden="true" />}
         />
 
         {/* 3. Actual */}
         <Stat
           label="Actual"
           value={formatMeasurement(correct)}
-          tone="text-correct"
-          icon={<Award className="h-3.5 w-3.5 opacity-70" />}
+          tone="text-emerald-400"
+          swatch={<span className="bg-emerald-400 w-2.5 h-2.5 rounded-full inline-block mr-2 shrink-0 shadow-[0_0_8px_rgba(52,211,153,0.6)]" aria-hidden="true" />}
         />
 
         {/* 4. Off by */}
@@ -434,17 +442,17 @@ function Stat({
   label,
   value,
   tone,
-  icon,
+  swatch,
 }: {
   label: string;
   value: string;
   tone?: string;
-  icon?: React.ReactNode;
+  swatch?: React.ReactNode;
 }) {
   return (
     <div className="min-w-0 flex flex-col justify-center">
-      <div className="text-xs uppercase tracking-wider text-muted-foreground flex items-center gap-1">
-        {icon}
+      <div className="text-xs uppercase tracking-wider text-muted-foreground flex items-center whitespace-nowrap">
+        {swatch}
         <span>{label}</span>
       </div>
       <div className={`font-mono text-xl font-semibold mt-1 ${tone ?? "text-foreground"}`}>

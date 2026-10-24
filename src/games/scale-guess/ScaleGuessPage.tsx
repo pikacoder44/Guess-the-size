@@ -1,7 +1,8 @@
 import { useGame } from "@/game/useGame";
-import { GameBoard } from "@/components/game/GameBoard";
+import { ScaleGuessCanvas } from "./ScaleGuessCanvas";
 import { ResultPanel } from "@/components/game/ResultPanel";
-import { ArrowLeft, HelpCircle, Trophy } from "lucide-react";
+import { ArrowLeft, Trophy } from "lucide-react";
+import { formatUnit } from "./utils/formatUnit";
 
 interface ScaleGuessPageProps {
   onBackToHome: () => void;
@@ -15,108 +16,77 @@ export function ScaleGuessPage({ onBackToHome, onNavigateLeaderboard }: ScaleGue
 
   return (
     <main className="flex-1 max-w-4xl w-full mx-auto p-4 sm:p-6 flex flex-col gap-4">
-      {/* Sub-navigation & Header Bar */}
-      <div className="flex items-center justify-between flex-nowrap shrink-0 gap-2 pb-2 border-b border-border/50 w-full overflow-hidden">
-        <div className="flex items-center flex-nowrap shrink-0 gap-2 sm:gap-3 min-w-0">
+      {/* Minimal Top Header Bar */}
+      <div className="flex items-center justify-between shrink-0 gap-3 pb-3 border-b border-border/40 w-full">
+        {/* Left: Back button & Title */}
+        <div className="flex items-center gap-2.5">
           <button
             type="button"
             onClick={onBackToHome}
-            className="inline-flex items-center gap-1.5 text-xs font-mono px-2.5 sm:px-3 py-1.5 rounded-lg bg-secondary/80 hover:bg-secondary text-muted-foreground hover:text-foreground border border-border active:scale-95 transition-all duration-100 will-change-transform transform-gpu cursor-pointer shrink-0 whitespace-nowrap"
+            aria-label="Back to all games"
+            className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-secondary/80 hover:bg-secondary text-muted-foreground hover:text-foreground border border-border/60 active:scale-95 transition-all cursor-pointer"
           >
-            <ArrowLeft className="w-3.5 h-3.5 shrink-0" />
-            <span className="hidden xs:inline">All Games</span>
+            <ArrowLeft className="w-4 h-4" />
           </button>
-
-          <div className="flex items-center flex-nowrap shrink-0 gap-1.5 sm:gap-2">
-            <span className="font-display font-bold text-base sm:text-lg text-foreground tracking-tight shrink-0 whitespace-nowrap">
-              ScaleGuess
-            </span>
-            <div className="flex items-center flex-nowrap shrink-0 gap-1.5 ml-1 whitespace-nowrap">
-              <span className="text-[11px] font-mono font-bold px-2.5 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/25 whitespace-nowrap shrink-0 inline-flex items-center">
-                {`Round ${state?.currentRound ?? 1} / ${state?.totalRounds ?? 5}`}
-              </span>
-              <span className="text-[10px] sm:text-[11px] font-mono uppercase tracking-wider px-2 py-0.5 rounded-full bg-secondary text-muted-foreground border border-border hidden md:inline-block whitespace-nowrap shrink-0">
-                {playing
-                  ? "Estimating"
-                  : state?.phase === "FINISHED"
-                    ? "Game Complete"
-                    : "Round Result"}
-              </span>
-            </div>
-          </div>
+          <span className="font-display font-bold text-base sm:text-lg text-foreground tracking-tight">
+            ScaleGuess
+          </span>
         </div>
 
-        {/* Puzzle Target Info & Progress HUD */}
-        {state && (
-          <div className="flex items-center flex-nowrap shrink-0 gap-2 sm:gap-3 text-xs font-mono ml-auto">
-            {/* Visual round progress pips */}
-            <div className="hidden lg:flex items-center gap-1.5 shrink-0" aria-label="Round progress">
-              {Array.from({ length: state.totalRounds }).map((_, idx) => {
-                const roundNum = idx + 1;
-                const isPast =
-                  roundNum < state.currentRound ||
-                  (state.phase === "FINISHED" && roundNum <= state.roundScores.length);
-                const isCurrent = state.currentRound === roundNum && state.phase !== "FINISHED";
-                return (
-                  <div
-                    key={roundNum}
-                    className={`w-2.5 h-2.5 rounded-full transition-all duration-300 shrink-0 ${
-                      isPast
-                        ? "bg-primary shadow-[0_0_6px_rgba(59,130,246,0.6)]"
-                        : isCurrent
-                          ? "bg-primary/40 ring-2 ring-primary ring-offset-1 ring-offset-background scale-110"
-                          : "bg-secondary border border-border/80"
-                    }`}
-                    title={`Round ${roundNum}`}
-                  />
-                );
-              })}
-            </div>
+        {/* Center: Round Indicator Pill + Score */}
+        <div className="flex items-center gap-2 text-xs font-mono">
+          <span className="px-3 py-1 rounded-full bg-secondary/80 text-foreground border border-border/60 font-medium">
+            Round {state?.currentRound ?? 1} / {state?.totalRounds ?? 5}
+          </span>
+          <span className="px-3 py-1 rounded-full bg-primary/10 text-primary border border-primary/20 font-semibold">
+            Score: {state?.totalScore ?? 0} / 500
+          </span>
+        </div>
 
-            {/* Running Total Score */}
-            {state.roundScores.length > 0 && (
-              <div className="flex items-center gap-1 bg-secondary/80 px-2 py-0.5 rounded border border-border/70 text-foreground shrink-0 whitespace-nowrap">
-                <span className="text-[10px] text-muted-foreground uppercase">Score:</span>
-                <span className="font-bold text-primary">{state.totalScore}</span>
-                <span className="text-[10px] text-muted-foreground">/500</span>
-              </div>
-            )}
-
-            <div className="flex items-center flex-nowrap gap-1.5 shrink-0 whitespace-nowrap">
-              <span className="text-muted-foreground uppercase text-[10px] hidden sm:inline">
-                Ref:
-              </span>
-              <span className="font-medium text-foreground bg-secondary/60 px-2 py-0.5 rounded border border-border/50 truncate max-w-20 sm:max-w-none">
-                {state.puzzle.reference.name}
-              </span>
-              <span className="text-muted-foreground opacity-30">vs</span>
-              <span className="text-muted-foreground uppercase text-[10px] hidden sm:inline">
-                Target:
-              </span>
-              <span className="font-semibold text-primary bg-primary/10 px-2 py-0.5 rounded border border-primary/20 truncate max-w-20 sm:max-w-none">
-                {state.puzzle.target.name}
-              </span>
-            </div>
-          </div>
-        )}
+        {/* Right: Balanced visual spacer */}
+        <div className="w-8 sm:w-28 hidden xs:block" aria-hidden="true" />
       </div>
 
-      {/* The Primary Game Board */}
-      <GameBoard game={game} />
+      {/* The Primary Game Board Canvas */}
+      <ScaleGuessCanvas game={game} />
 
-      {/* Bottom Controls & Result Panel */}
+      {/* Single Minimal Footer Legend & Result Panel */}
       <div className="flex flex-col gap-4 pt-1">
         {playing ? (
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-card/40 border border-border/60 p-3 sm:p-4 rounded-xl">
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              <HelpCircle className="w-4 h-4 text-primary shrink-0" />
-              <p>
-                Drag target to reposition · Drag top-right handle to resize (or use Arrow keys &amp; +/-)
-              </p>
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-3.5 sm:px-5 sm:py-3.5 rounded-xl bg-card/60 border border-border/60 shadow-lg backdrop-blur-md">
+            {/* Reference & Target Info */}
+            <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-xs sm:text-sm">
+              {/* Reference Info */}
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-slate-300 shrink-0" aria-hidden="true" />
+                <span className="text-muted-foreground">Reference:</span>
+                <span className="font-semibold text-foreground">
+                  {state?.puzzle.reference.name}
+                </span>
+                <span className="font-mono text-xs text-muted-foreground">
+                  ({state ? formatUnit(state.puzzle.reference.actualMeasurement) : ""})
+                </span>
+              </div>
+
+              {/* Target Info */}
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-amber-400 shrink-0" aria-hidden="true" />
+                <span className="text-muted-foreground">Target:</span>
+                <span className="font-semibold text-amber-200">
+                  {state?.puzzle.target.name}
+                </span>
+                {state?.puzzle.target.axis && (
+                  <span className="text-[10px] font-mono text-amber-300/80 uppercase bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/20">
+                    {state.puzzle.target.axis}
+                  </span>
+                )}
+              </div>
             </div>
+
+            {/* Action: Prominent Lock In CTA Button */}
             <button
               type="button"
-              className="lock-btn w-full sm:w-auto shadow-md shadow-primary/20 active:scale-[0.96] transition-all duration-100 will-change-transform transform-gpu cursor-pointer"
+              className="lock-btn w-full sm:w-auto px-6 py-2.5 rounded-xl font-semibold shadow-md shadow-primary/20 active:scale-[0.96] transition-all duration-100 will-change-transform transform-gpu cursor-pointer shrink-0"
               onClick={(e) => {
                 e.preventDefault();
                 game.lockIn();

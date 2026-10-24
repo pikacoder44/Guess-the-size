@@ -17,9 +17,11 @@ import {
 } from "./geometry";
 import { calculateScore, percentError } from "./scoring";
 import { pickRandomPuzzle, generateGameSession } from "./puzzles";
+import { initialGuessScaleFor } from "@/games/scale-guess/data/items";
 import type { GamePhase, Puzzle, RoundRecord } from "./types";
 
 export { generateGameSession, pickRandomPuzzle } from "./puzzles";
+
 
 export const TOTAL_ROUNDS = 5;
 
@@ -83,8 +85,8 @@ function fitCameraToFloor(
   const availH = Math.max(1, vp.height - FLOOR_BOTTOM_PADDING_PX - 40);
   const availW = Math.max(1, vp.width * margin);
 
-  const sceneW = Math.max(0.1, rect.maxX - rect.minX);
-  const sceneH = Math.max(0.1, rect.maxY - 0);
+  const sceneW = Math.max(1e-9, rect.maxX - rect.minX);
+  const sceneH = Math.max(1e-9, rect.maxY - 0);
 
   const zoomW = availW / sceneW;
   const zoomH = availH / sceneH;
@@ -126,10 +128,8 @@ export function correctRect(s: GameState): Rect {
   // Safe screen-space gap converted to world units, clamped so it never explodes
   const zoom = s.camera?.zoom && s.camera.zoom > 1e-9 ? s.camera.zoom : 1;
   const screenGapPx = 16;
-  const gapMeters = Math.min(
-    Math.max(ref.maxX * 0.15, screenGapPx / zoom),
-    Math.max(10, actualSize.w * 0.05),
-  );
+  const gapMeters = Math.max(ref.maxX * 0.15, screenGapPx / zoom);
+
 
   const centerX = ref.maxX + gapMeters + actualSize.w / 2;
   const centerY = actualSize.h / 2;
@@ -165,14 +165,9 @@ function createInitialState(
       ];
   const puzzle = sessionPuzzles[0]!;
   const refSize = sizeFor(puzzle.reference, puzzle.reference.actualMeasurement);
-  const isVertical =
-    puzzle.target.axis === "height" || puzzle.target.axis === "diameter";
-  const startSize = sizeFor(puzzle.target, isVertical ? refSize.h : 1);
-  const guessScale = isVertical
-    ? refSize.h
-    : refSize.h * (startSize.w / startSize.h);
+  const guessScale = initialGuessScaleFor(puzzle.reference, puzzle.target);
   const targetSize = sizeFor(puzzle.target, guessScale);
-  const gap = refSize.w * REFERENCE_GAP;
+  const gap = Math.max(1e-9, refSize.w * REFERENCE_GAP);
 
   const base: GameState = {
     puzzle,
@@ -380,18 +375,9 @@ function reducer(state: GameState | null, action: Action): GameState | null {
         nextPuzzle.reference,
         nextPuzzle.reference.actualMeasurement,
       );
-      const isNextVertical =
-        nextPuzzle.target.axis === "height" ||
-        nextPuzzle.target.axis === "diameter";
-      const startSize = sizeFor(
-        nextPuzzle.target,
-        isNextVertical ? refSize.h : 1,
-      );
-      const guessScale = isNextVertical
-        ? refSize.h
-        : refSize.h * (startSize.w / startSize.h);
+      const guessScale = initialGuessScaleFor(nextPuzzle.reference, nextPuzzle.target);
       const targetSize = sizeFor(nextPuzzle.target, guessScale);
-      const gap = refSize.w * REFERENCE_GAP;
+      const gap = Math.max(1e-9, refSize.w * REFERENCE_GAP);
 
       const nextBase: GameState = {
         ...state,

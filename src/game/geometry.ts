@@ -11,7 +11,7 @@ export type Viewport = { width: number; height: number };
 export const VIEW_PADDING = 12;
 export const MIN_ZOOM_FRACTION = 0.2;
 export const MAX_ZOOM_MULTIPLIER = 4;
-export const MIN_TARGET_PX = 14;
+export const MIN_TARGET_PX = 24;
 
 export const FLOOR_BOTTOM_PADDING_PX = 32;
 export const FLOOR_LEFT_PADDING_PX = 5;
@@ -32,23 +32,54 @@ export function worldToScreen(pt: Vec, camera: Camera, vp: Viewport): Vec {
   };
 }
 
-export function aspectOf(obj: GameObject): number {
-  const vb = obj.silhouette.viewBox;
-  return vb.width / vb.height;
+export function aspectOf(obj: { silhouette: { viewBox: { width: number; height: number } } } | { svgViewBox: { width: number; height: number } }): number {
+  const vb = "svgViewBox" in obj ? obj.svgViewBox : obj.silhouette.viewBox;
+  return vb.width / Math.max(1e-9, vb.height);
 }
 
-/** World dimensions of an object for a given measurement along its axis. */
-export function sizeFor(obj: GameObject, measurement: number): Size {
-  const aspect = aspectOf(obj);
-  return obj.axis === "height" || obj.axis === "diameter"
-    ? { w: measurement * aspect, h: measurement }
-    : { w: measurement, h: measurement / aspect };
+/** World dimensions of an object for a given measurement along its axis or primary dimension. */
+export function sizeFor(
+  obj: GameObject | { axis?: string; primaryDimension?: string; silhouette?: { viewBox: { width: number; height: number } }; svgViewBox?: { width: number; height: number } },
+  measurement: number,
+): Size {
+  const vb = "svgViewBox" in obj && obj.svgViewBox ? obj.svgViewBox : obj.silhouette?.viewBox ?? { width: 100, height: 100 };
+  const primaryDim = ("primaryDimension" in obj && obj.primaryDimension) ? obj.primaryDimension : (obj.axis ?? "height");
+  const aspect = vb.width / Math.max(1e-9, vb.height);
+
+  if (primaryDim === "height") {
+    return { w: measurement * aspect, h: measurement };
+  }
+
+  if (primaryDim === "length" || primaryDim === "width") {
+    return { w: measurement, h: measurement / aspect };
+  }
+
+  // diameter: if distinctly vertical cylinder or strand, diameter is the width
+  if (vb.height > vb.width * 1.5) {
+    return { w: measurement, h: measurement / aspect };
+  }
+
+  if (aspect >= 1) {
+    return { w: measurement, h: measurement / aspect };
+  }
+
+  return { w: measurement * aspect, h: measurement };
 }
 
 /** Inverse of sizeFor: the measurement along the object's axis. */
-export function measurementFor(obj: GameObject, size: Size): number {
-  return obj.axis === "height" || obj.axis === "diameter" ? size.h : size.w;
+export function measurementFor(
+  obj: GameObject | { axis?: string; primaryDimension?: string; silhouette?: { viewBox: { width: number; height: number } }; svgViewBox?: { width: number; height: number } },
+  size: Size,
+): number {
+  const primaryDim = ("primaryDimension" in obj && obj.primaryDimension) ? obj.primaryDimension : (obj.axis ?? "height");
+  const vb = "svgViewBox" in obj && obj.svgViewBox ? obj.svgViewBox : obj.silhouette?.viewBox ?? { width: 100, height: 100 };
+
+  if (primaryDim === "height") return size.h;
+  if (primaryDim === "length" || primaryDim === "width") return size.w;
+  if (vb.height > vb.width * 1.5) return size.w;
+  return Math.max(size.w, size.h);
 }
+
 
 /** Smallest measurement scale so the object's smallest screen dimension is at least `minPx`. */
 export function minScaleForPx(
@@ -58,9 +89,10 @@ export function minScaleForPx(
   minPx = MIN_TARGET_PX,
 ): number {
   const minSidePx = Math.min(size.w, size.h) * zoom;
-  if (minSidePx <= 1e-6) return scale;
+  if (minSidePx <= 1e-9) return scale;
   return (scale * minPx) / minSidePx;
 }
+
 
 export function rectFromCenter(c: Vec, s: Size): Rect {
   return {
@@ -118,8 +150,8 @@ export function fitResultCamera(
   const availW = Math.max(20, vp.width - 2 * padW);
   const availH = Math.max(20, vp.height - FLOOR_BOTTOM_PADDING_PX - padH);
 
-  const sceneW = Math.max(0.01, scene.maxX - scene.minX);
-  const sceneH = Math.max(0.01, scene.maxY - 0);
+  const sceneW = Math.max(1e-9, scene.maxX - scene.minX);
+  const sceneH = Math.max(1e-9, scene.maxY - 0);
 
   const zoom = Math.min(availW / sceneW, availH / sceneH);
   const cy = (vp.height / 2 - FLOOR_BOTTOM_PADDING_PX) / zoom;
@@ -139,21 +171,22 @@ export function zoomLimits(
 
   // Reference dimensions
   const ref = refRect ?? scene;
-  const refW = Math.max(0.01, ref.maxX - ref.minX);
-  const refH = Math.max(0.01, ref.maxY - 0); // baseline is y = 0
+  const refW = Math.max(1e-9, ref.maxX - ref.minX);
+  const refH = Math.max(1e-9, ref.maxY - 0); // baseline is y = 0
 
-  // 1. MAX ZOOM (Zoom In Limit):
-  const max = Math.min(availW / refW, availH / refH);
+  // 1. MAX ZOOM (Zoom In Limit): Allow zooming in closer than framing the reference item
+  const max = Math.min(availW / refW, availH / refH) * 4;
 
   // 2. MIN ZOOM (Zoom Out Limit):
-  const sceneW = Math.max(0.1, scene.maxX - scene.minX);
-  const sceneH = Math.max(0.1, scene.maxY - 0);
+  const sceneW = Math.max(1e-9, scene.maxX - scene.minX);
+  const sceneH = Math.max(1e-9, scene.maxY - 0);
   const fitZoomVal = Math.min(availW / sceneW, availH / sceneH);
 
-  const min = Math.min(max * 0.3, fitZoomVal * 0.9);
+  const min = Math.min(max * 0.2, fitZoomVal * 0.8);
 
   return { min, max: Math.max(min, max) };
 }
+
 
 /** Moves the camera centre so baseline and left padding stay anchored cleanly. */
 export function clampCamera(

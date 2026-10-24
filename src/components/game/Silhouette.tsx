@@ -23,7 +23,6 @@ export function SilhouetteSvg({
   object,
   puzzle,
   variant = "target",
-  outcome,
   isDragging = false,
   isResizing = false,
   className = "",
@@ -33,56 +32,63 @@ export function SilhouetteSvg({
   const svgUrl = item?.svgUrl || object?.silhouette?.svgUrl;
   const name = item?.name || "Silhouette";
 
-  // Determine color theme based on variant and outcome
-  let gradientClass = "bg-gradient-to-b from-amber-300 via-amber-400 to-amber-600";
-  let filterGlowClass = "drop-shadow-[0_4px_16px_rgba(245,158,11,0.35)]";
+  // Unified color scheme & layering opacity:
+  // - User's Guess Silhouette: Amber/Gold (#f59e0b / rgba(245, 158, 11, 0.65)) in both guessing and result phase
+  // - Actual True Silhouette: Emerald Green (#10b981 / rgba(16, 185, 129, 0.65))
+  // - Both rendered with translucent fills (opacity-60) and crisp 2px stroke outlines so overlapping shapes remain distinct
+  let fillClass = "bg-amber-400/65 opacity-65";
+  let strokeClass = "stroke-amber-400";
+  let filterStyle =
+    "drop-shadow(2px 0 0 #f59e0b) drop-shadow(-2px 0 0 #f59e0b) drop-shadow(0 2px 0 #f59e0b) drop-shadow(0 -2px 0 #f59e0b) drop-shadow(0 0 10px rgba(245, 158, 11, 0.4))";
 
   if (variant === "reference") {
-    // High-contrast cool silver-white translucent glass style
-    gradientClass = "bg-gradient-to-b from-white via-slate-100 to-slate-300 opacity-75";
-    filterGlowClass = "filter saturate-0 brightness-150 drop-shadow-[0_2px_8px_rgba(255,255,255,0.1)]";
+    // Reference guide object: cool silver-white translucent glass
+    fillClass = "bg-slate-100/75 opacity-75";
+    strokeClass = "stroke-slate-300";
+    filterStyle =
+      "drop-shadow(1px 0 0 rgba(255, 255, 255, 0.75)) drop-shadow(-1px 0 0 rgba(255, 255, 255, 0.75)) drop-shadow(0 1px 0 rgba(255, 255, 255, 0.75)) drop-shadow(0 -1px 0 rgba(255, 255, 255, 0.75)) drop-shadow(0 0 10px rgba(255, 255, 255, 0.2))";
   } else if (variant === "actual") {
-    // Actual comparison benchmark in RESULT mode: translucent emerald guide
-    gradientClass = "bg-gradient-to-b from-emerald-200 via-teal-300 to-emerald-500 opacity-60";
-    filterGlowClass = "filter brightness-110 drop-shadow-[0_0_14px_rgba(52,211,153,0.45)]";
-  } else if (outcome === "elite") {
-    // < 5% error: Vibrant emerald celebration glow
-    gradientClass = "bg-gradient-to-b from-emerald-300 via-emerald-400 to-emerald-600 opacity-95";
-    filterGlowClass = "filter brightness-125 drop-shadow-[0_4px_24px_rgba(16,185,129,0.75)]";
-  } else if (outcome === "good") {
-    // 5-15% error: Warm amber golden glow
-    gradientClass = "bg-gradient-to-b from-amber-300 via-amber-400 to-amber-600 opacity-95";
-    filterGlowClass = "filter brightness-115 drop-shadow-[0_4px_18px_rgba(245,158,11,0.55)]";
-  } else if (outcome === "miss") {
-    // > 15% error: Soft crimson warning glow
-    gradientClass = "bg-gradient-to-b from-rose-400 via-red-500 to-rose-700 opacity-90";
-    filterGlowClass = "filter brightness-110 drop-shadow-[0_4px_18px_rgba(239,68,68,0.6)]";
+    // Actual true comparison benchmark in RESULT mode: translucent emerald green with crisp 2px emerald outline
+    fillClass = "bg-emerald-400/60 opacity-60";
+    strokeClass = "stroke-emerald-400";
+    filterStyle =
+      "drop-shadow(2px 0 0 #10b981) drop-shadow(-2px 0 0 #10b981) drop-shadow(0 2px 0 #10b981) drop-shadow(0 -2px 0 #10b981) drop-shadow(0 0 12px rgba(16, 185, 129, 0.4))";
+  } else if (variant === "guess") {
+    // User's locked guess silhouette in RESULT mode: translucent amber gold with crisp 2px amber outline
+    fillClass = "bg-amber-400/60 opacity-60";
+    strokeClass = "stroke-amber-400";
+    filterStyle =
+      "drop-shadow(2px 0 0 #f59e0b) drop-shadow(-2px 0 0 #f59e0b) drop-shadow(0 2px 0 #f59e0b) drop-shadow(0 -2px 0 #f59e0b) drop-shadow(0 0 12px rgba(245, 158, 11, 0.4))";
   } else {
-    // Standard target playing state (golden tinted translucent gradient)
-    gradientClass = "bg-gradient-to-b from-amber-200 via-amber-400 to-amber-500 opacity-90";
-    filterGlowClass = "filter brightness-110 drop-shadow-[0_4px_16px_rgba(245,158,11,0.35)]";
-  }
+    // Standard target active guessing state: amber gold
+    fillClass = "bg-amber-400/65 opacity-65";
+    strokeClass = "stroke-amber-400";
+    filterStyle =
+      "drop-shadow(2px 0 0 #f59e0b) drop-shadow(-2px 0 0 #f59e0b) drop-shadow(0 2px 0 #f59e0b) drop-shadow(0 -2px 0 #f59e0b) drop-shadow(0 0 10px rgba(245, 158, 11, 0.4))";
 
-  // Active state transitions: golden drop-shadow Pulse
-  if (isDragging || isResizing) {
-    filterGlowClass = "filter brightness-125 drop-shadow-[0_0_28px_rgba(245,158,11,0.9)] animate-pulse";
+    if (isDragging || isResizing) {
+      filterStyle =
+        "drop-shadow(2px 0 0 #fbbf24) drop-shadow(-2px 0 0 #fbbf24) drop-shadow(0 2px 0 #fbbf24) drop-shadow(0 -2px 0 #fbbf24) drop-shadow(0 0 20px rgba(245, 158, 11, 0.85))";
+    }
   }
 
   if (isGhost) {
-    gradientClass += " opacity-35";
-    filterGlowClass = "drop-shadow-[0_0_8px_rgba(255,255,255,0.15)]";
+    fillClass += " opacity-30";
+    filterStyle = "drop-shadow(0 0 6px rgba(255,255,255,0.15))";
   }
 
   if (svgUrl) {
     return (
       <div
-        className={`relative w-full h-full overflow-hidden flex items-end justify-center select-none pointer-events-none transition-all duration-300 ${filterGlowClass} ${className}`}
+        className={`relative w-full h-full overflow-visible flex items-end justify-center select-none pointer-events-none transition-all duration-300 ${strokeClass} ${className}`}
+        style={{ overflow: "visible", filter: filterStyle }}
         aria-hidden="true"
       >
-        {/* CSS Mask Layer: Fills the SVG path with glowing linear gradient */}
+        {/* CSS Mask Layer: Fills the SVG path with translucent glowing tint */}
         <div
-          className={`w-full h-full transition-all duration-300 ${gradientClass}`}
+          className={`w-full h-full overflow-visible transition-all duration-300 ${fillClass}`}
           style={{
+            overflow: "visible",
             maskImage: `url("${svgUrl}")`,
             WebkitMaskImage: `url("${svgUrl}")`,
             maskSize: "contain",
@@ -94,7 +100,15 @@ export function SilhouetteSvg({
           }}
         />
 
-        {/* Dynamic SVG / img element with filters */}
+        {/* Dynamic SVG wrapper element with overflow: visible */}
+        <svg
+          className="overflow-visible sr-only"
+          style={{ overflow: "visible" }}
+          viewBox={object?.silhouette?.viewBox ? `${object.silhouette.viewBox.x} ${object.silhouette.viewBox.y} ${object.silhouette.viewBox.width} ${object.silhouette.viewBox.height}` : undefined}
+          aria-hidden="true"
+        />
+
+        {/* Dynamic img element for accessibility */}
         <img
           src={svgUrl}
           alt={name}
@@ -107,15 +121,30 @@ export function SilhouetteSvg({
 
   if (object?.silhouette?.Shape) {
     const { viewBox, Shape } = object.silhouette;
-    const textTone = variant === "reference" ? "text-slate-100" : "text-amber-400";
+    let strokeColor = "#f59e0b";
+    let svgFill = "rgba(245, 158, 11, 0.60)";
+    if (variant === "reference") {
+      strokeColor = "#ffffff";
+      svgFill = "rgba(241, 245, 249, 0.75)";
+    } else if (variant === "actual") {
+      strokeColor = "#10b981";
+      svgFill = "rgba(16, 185, 129, 0.60)";
+    }
+
     return (
       <svg
         viewBox={`${viewBox.x} ${viewBox.y} ${viewBox.width} ${viewBox.height}`}
-        preserveAspectRatio="xMidYMid meet"
-        className={`block h-full w-full overflow-hidden transition-opacity duration-300 ${filterGlowClass} ${
+        preserveAspectRatio="xMidYBottom meet"
+        className={`block h-full w-full overflow-visible transition-all duration-300 ${strokeClass} ${
           isGhost ? "ghost pointer-events-none" : ""
-        } ${textTone} ${className}`}
-        fill="currentColor"
+        } ${className}`}
+        style={{
+          overflow: "visible",
+          filter: filterStyle,
+          fill: svgFill,
+          stroke: strokeColor,
+          strokeWidth: 2,
+        }}
         aria-hidden="true"
       >
         <Shape />

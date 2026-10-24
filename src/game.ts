@@ -69,14 +69,14 @@ export function getRandomPracticePuzzles(): Puzzle[] {
 
 // ─────────────────────────────── Formatting ──────────────────────────────────
 
-export function formatMeasurement(value: number, unit: string): string {
-  if (unit === "km") return `${value.toFixed(0)} km`;
-  if (value >= 1000) return `${(value / 1000).toFixed(1)} km`;
-  if (value >= 100) return `${value.toFixed(0)} m`;
-  if (value >= 10) return `${value.toFixed(1)} m`;
-  if (value >= 1) return `${value.toFixed(2)} m`;
-  return `${(value * 100).toFixed(0)} cm`;
+import { formatUnit } from "./games/scale-guess/utils/formatUnit";
+
+export function formatMeasurement(value: number, unit?: string): string {
+  if (unit === "km" && value >= 1000) return formatUnit(value);
+  if (unit === "km") return formatUnit(value * 1000);
+  return formatUnit(value);
 }
+
 
 export function getTodayString(): string {
   return new Date().toISOString().slice(0, 10);

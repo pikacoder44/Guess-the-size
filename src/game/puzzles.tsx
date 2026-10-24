@@ -7,14 +7,14 @@ import rawPuzzleSets from "../data/puzzleSets.json";
  * Fallback viewBox cache in case an item doesn't specify an explicit viewBox.
  */
 const SILHOUETTE_VIEWBOXES: Record<string, { x: number; y: number; width: number; height: number }> = {
-  "burj-khalifa": { x: 0, y: 0, width: 90, height: 828 },
-  "eiffel-tower": { x: 0, y: 0, width: 90, height: 330 },
-  "moon": { x: 0, y: 0, width: 100, height: 100 },
-  "saturn-v": { x: 0, y: 0, width: 40, height: 435 },
-  "blue-whale": { x: 0, y: 0, width: 300, height: 94.58 },
-  "human": { x: 0, y: 0, width: 52, height: 185.91 },
-  "dog": { x: 0, y: 0, width: 92, height: 74 },
-  "car-sedan": { x: 0, y: 0, width: 188, height: 62 },
+  "burj-khalifa": { x: -9, y: -82.8, width: 108, height: 993.6 },
+  "eiffel-tower": { x: -9, y: -33, width: 108, height: 396 },
+  "moon": { x: -10, y: -10, width: 120, height: 120 },
+  "saturn-v": { x: -4, y: -43.5, width: 48, height: 522 },
+  "blue-whale": { x: -30, y: -9.46, width: 360, height: 113.5 },
+  "human": { x: -5.2, y: -18.59, width: 62.4, height: 223.09 },
+  "dog": { x: -9.2, y: -7.4, width: 110.4, height: 88.8 },
+  "car-sedan": { x: -18.8, y: -6.2, width: 225.6, height: 74.4 },
 };
 
 /**
@@ -28,7 +28,10 @@ export const GAME_OBJECTS: Record<string, GameObject> = Object.fromEntries(
       id: item.id,
       name: item.name,
       actualMeasurement: item.actualMeasurementMeters,
+      valueInMeters: item.actualMeasurementMeters,
       axis: item.axis,
+      primaryDimension: item.axis,
+      description: item.description,
       category: item.category,
       svgUrl: item.svgUrl,
       source: item.source,
@@ -62,14 +65,27 @@ export function getObjectsByCategory(category: ItemCategory): GameObject[] {
   return OBJECTS_BY_CATEGORY[category] || [];
 }
 
+import { isCompatiblePair, generateSmartSession } from "@/games/scale-guess/data/items";
+
 /**
- * Dynamic reference-target puzzle pairings loaded from database/JSON.
+ * Dynamic reference-target puzzle pairings loaded from database/JSON,
+ * strictly filtered to enforce category bounds and scale tier compatibility.
  */
 export const PUZZLES: Puzzle[] = (rawPuzzleSets as StoredPuzzle[])
   .map((p): Puzzle | null => {
     const ref = GAME_OBJECTS[p.referenceId];
     const target = GAME_OBJECTS[p.targetId];
     if (!ref || !target) return null;
+    if (
+      !isCompatiblePair(
+        ref.actualMeasurement,
+        ref.category,
+        target.actualMeasurement,
+        target.category,
+      )
+    ) {
+      return null;
+    }
     return {
       id: p.id,
       reference: ref,
@@ -78,6 +94,7 @@ export const PUZZLES: Puzzle[] = (rawPuzzleSets as StoredPuzzle[])
     };
   })
   .filter((p): p is Puzzle => p !== null);
+
 
 /**
  * Filter puzzles by scale tier.
@@ -105,55 +122,14 @@ export function pickRandomPuzzle(
 }
 
 /**
- * Generates a game session with unique target items across the match.
+ * Generates a game session with unique target items across the match,
+ * adhering to strict scale tier compatibility and category bounds.
  */
 export function generateGameSession(options?: {
   count?: number;
   category?: ItemCategory;
   excludeIds?: string[];
 }): Puzzle[] {
-  const count = options?.count ?? 5;
-  const excludeSet = new Set(options?.excludeIds || []);
-  const pool = options?.category
-    ? getPuzzlesByCategory(options.category)
-    : PUZZLES;
-
-  // Shuffle candidate puzzles
-  const shuffled = [...pool]
-    .filter((p) => !excludeSet.has(p.id))
-    .sort(() => Math.random() - 0.5);
-
-  const session: Puzzle[] = [];
-  const usedTargetIds = new Set<string>();
-
-  // 1. First pass: Pick puzzles with completely unique target items
-  for (const puzzle of shuffled) {
-    if (session.length >= count) break;
-    if (!usedTargetIds.has(puzzle.target.id)) {
-      usedTargetIds.add(puzzle.target.id);
-      session.push(puzzle);
-    }
-  }
-
-  // 2. Second pass: If still needed, fill remaining slots with unique puzzle pairs
-  if (session.length < count) {
-    for (const puzzle of shuffled) {
-      if (session.length >= count) break;
-      if (!session.some((s) => s.id === puzzle.id)) {
-        session.push(puzzle);
-      }
-    }
-  }
-
-  // 3. Fallback: if pool is small, take from main PUZZLES
-  if (session.length < count) {
-    for (const puzzle of PUZZLES) {
-      if (session.length >= count) break;
-      if (!session.some((s) => s.id === puzzle.id)) {
-        session.push(puzzle);
-      }
-    }
-  }
-
-  return session;
+  return generateSmartSession(options);
 }
+

@@ -8,26 +8,28 @@
     "svgUrl": "/silhouettes/water_molecule.svg",
     "source": "Wikidata (Q283)",
     "viewBox": {
-      "x": 0,
-      "y": 0,
-      "width": 84,
-      "height": 65
-    }
+      "x": -8.4,
+      "y": -6.5,
+      "width": 100.8,
+      "height": 78
+    },
+    "description": "Water molecule (H₂O) van der Waals diameter (~0.28 nm)"
   },
   {
     "id": "dna-strand",
     "name": "DNA Double Helix",
     "category": "micro",
     "actualMeasurementMeters": 2.5e-9,
-    "axis": "diameter",
+    "axis": "width",
     "svgUrl": "/silhouettes/dna_strand.svg",
     "source": "Wikidata (Q7430)",
     "viewBox": {
-      "x": 0,
-      "y": 0,
-      "width": 60,
-      "height": 200
-    }
+      "x": -6,
+      "y": -20,
+      "width": 72,
+      "height": 240
+    },
+    "description": "Width of a canonical B-form DNA double helix (~2.5 nm)"
   },
   {
     "id": "coronavirus",
@@ -38,11 +40,12 @@
     "svgUrl": "/silhouettes/coronavirus.svg",
     "source": "Wikidata (Q820655)",
     "viewBox": {
-      "x": 0,
-      "y": 0,
-      "width": 96,
-      "height": 96
-    }
+      "x": -9.6,
+      "y": -9.6,
+      "width": 115.2,
+      "height": 115.2
+    },
+    "description": "SARS-CoV-2 spherical viral capsid diameter (~120 nm)"
   },
   {
     "id": "bacteriophage",
@@ -53,11 +56,12 @@
     "svgUrl": "/silhouettes/bacteriophage.svg",
     "source": "Wikidata (Q165103)",
     "viewBox": {
-      "x": 0,
-      "y": 0,
-      "width": 70,
-      "height": 133
-    }
+      "x": -7,
+      "y": -13.3,
+      "width": 84,
+      "height": 159.6
+    },
+    "description": "T4 bacteriophage virus total vertical height (~200 nm)"
   },
   {
     "id": "red-blood-cell",
@@ -68,26 +72,28 @@
     "svgUrl": "/silhouettes/red_blood_cell.svg",
     "source": "Wikidata (Q11083)",
     "viewBox": {
-      "x": 0,
-      "y": 0,
-      "width": 92,
-      "height": 60
-    }
+      "x": -9.2,
+      "y": -6,
+      "width": 110.4,
+      "height": 72
+    },
+    "description": "Human erythrocyte biconcave disc diameter (~7.5 µm)"
   },
   {
     "id": "human-hair",
     "name": "Human Hair Width",
     "category": "micro",
     "actualMeasurementMeters": 0.00008,
-    "axis": "diameter",
+    "axis": "width",
     "svgUrl": "/silhouettes/human_hair.svg",
     "source": "Wikidata (Q80074)",
     "viewBox": {
-      "x": 0,
-      "y": 0,
-      "width": 21.66,
-      "height": 180
-    }
+      "x": -2.17,
+      "y": -18,
+      "width": 26,
+      "height": 216
+    },
+    "description": "Average thickness of a human hair strand (~80 µm)"
   },
   {
     "id": "tardigrade",
@@ -98,11 +104,12 @@
     "svgUrl": "/silhouettes/tardigrade.svg",
     "source": "Wikidata (Q178257)",
     "viewBox": {
-      "x": 0,
-      "y": 0,
-      "width": 116,
-      "height": 54.6
-    }
+      "x": -11.6,
+      "y": -5.46,
+      "width": 139.2,
+      "height": 65.52
+    },
+    "description": "Microscopic eight-legged water bear body length (~0.5 mm)"
   },
   {
     "id": "grain-of-sand",
@@ -113,11 +120,12 @@
     "svgUrl": "/silhouettes/grain_of_sand.svg",
     "source": "Wikidata (Q34679)",
     "viewBox": {
-      "x": 0,
-      "y": 0,
-      "width": 67,
-      "height": 67
-    }
+      "x": -6.7,
+      "y": -6.7,
+      "width": 80.4,
+      "height": 80.4
+    },
+    "description": "Coarse sand grain average diameter (~1 mm)"
   },
   {
     "id": "ant",
@@ -128,11 +136,12 @@
     "svgUrl": "/silhouettes/ant.svg",
     "source": "Wikidata (Q7386)",
     "viewBox": {
-      "x": 0,
-      "y": 0,
-      "width": 98,
-      "height": 54
-    }
+      "x": -9.8,
+      "y": -5.4,
+      "width": 117.6,
+      "height": 64.8
+    },
+    "description": "Common black garden worker ant body length (~4 mm)"
   },
   {
     "id": "housefly",
@@ -143,11 +152,12 @@
     "svgUrl": "/silhouettes/housefly.svg",
     "source": "Wikidata (Q166111)",
     "viewBox": {
-      "x": 0,
-      "y": 0,
-      "width": 75,
-      "height": 56
-    }
+      "x": -7.5,
+      "y": -5.6,
+      "width": 90,
+      "height": 67.2
+    },
+    "description": "Adult Musca domestica housefly body length (~7 mm)"
   },
   {
     "id": "quarter-coin",
@@ -158,11 +168,12 @@
     "svgUrl": "/silhouettes/quarter_coin.svg",
     "source": "Wikidata (Q179224)",
     "viewBox": {
-      "x": 0,
-      "y": 0,
-      "width": 96,
-      "height": 96
-    }
+      "x": -9.6,
+      "y": -9.6,
+      "width": 115.2,
+      "height": 115.2
+    },
+    "description": "Official United States quarter dollar diameter (24.26 mm)"
   },
   {
     "id": "tennis-ball",
@@ -173,11 +184,12 @@
     "svgUrl": "/silhouettes/tennis_ball.svg",
     "source": "Wikidata (Q815758)",
     "viewBox": {
-      "x": 0,
-      "y": 0,
-      "width": 96,
-      "height": 96
-    }
+      "x": -9.6,
+      "y": -9.6,
+      "width": 115.2,
+      "height": 115.2
+    },
+    "description": "ITF regulation tennis ball diameter (6.7 cm)"
   },
   {
     "id": "coffee-mug",
@@ -188,26 +200,28 @@
     "svgUrl": "/silhouettes/coffee_mug.svg",
     "source": "Wikidata (Q153978)",
     "viewBox": {
-      "x": 0,
-      "y": 0,
-      "width": 78.75,
-      "height": 70
-    }
+      "x": -7.88,
+      "y": -7,
+      "width": 94.51,
+      "height": 84
+    },
+    "description": "Standard kitchen ceramic mug vertical height (10 cm)"
   },
   {
     "id": "iphone",
     "name": "iPhone 15",
     "category": "everyday",
-    "actualMeasurementMeters": 0.148,
+    "actualMeasurementMeters": 0.1476,
     "axis": "height",
     "svgUrl": "/silhouettes/iphone.svg",
     "source": "Wikidata (Q121992935) [Live Claim: height]",
     "viewBox": {
-      "x": 0,
-      "y": 0,
-      "width": 65,
-      "height": 140
-    }
+      "x": -6.5,
+      "y": -14,
+      "width": 78,
+      "height": 168
+    },
+    "description": "Apple iPhone 15 standard smartphone vertical height (14.76 cm)"
   },
   {
     "id": "banana",
@@ -218,26 +232,28 @@
     "svgUrl": "/silhouettes/banana.svg",
     "source": "Wikidata (Q503)",
     "viewBox": {
-      "x": 0,
-      "y": 0,
-      "width": 129,
-      "height": 35
-    }
+      "x": -12.9,
+      "y": -3.5,
+      "width": 154.8,
+      "height": 42
+    },
+    "description": "Medium Cavendish banana horizontal tip-to-stem length (18 cm)"
   },
   {
     "id": "laptop",
     "name": "Laptop Computer",
     "category": "everyday",
     "actualMeasurementMeters": 0.31,
-    "axis": "length",
+    "axis": "width",
     "svgUrl": "/silhouettes/laptop.svg",
     "source": "Wikidata (Q3962)",
     "viewBox": {
-      "x": 0,
-      "y": 0,
-      "width": 130,
-      "height": 70
-    }
+      "x": -13,
+      "y": -7,
+      "width": 156,
+      "height": 84
+    },
+    "description": "13-inch modern laptop computer horizontal width (31 cm)"
   },
   {
     "id": "cat",
@@ -248,41 +264,44 @@
     "svgUrl": "/silhouettes/cat.svg",
     "source": "Wikidata (Q146)",
     "viewBox": {
-      "x": 0,
-      "y": 0,
-      "width": 90.02,
-      "height": 64
-    }
+      "x": -9,
+      "y": -6.4,
+      "width": 108.02,
+      "height": 76.8
+    },
+    "description": "Average adult domestic cat head-and-body length (46 cm)"
   },
   {
     "id": "dog",
     "name": "Golden Retriever Dog",
     "category": "everyday",
     "actualMeasurementMeters": 0.8,
-    "axis": "height",
+    "axis": "length",
     "svgUrl": "/silhouettes/dog.svg",
     "source": "Wikidata (Q144)",
     "viewBox": {
-      "x": 0,
-      "y": 0,
-      "width": 92,
-      "height": 74
-    }
+      "x": -9.2,
+      "y": -7.4,
+      "width": 110.4,
+      "height": 88.8
+    },
+    "description": "Adult Golden Retriever nose-to-rump body length (80 cm)"
   },
   {
     "id": "guitar",
     "name": "Acoustic Guitar",
     "category": "everyday",
     "actualMeasurementMeters": 1,
-    "axis": "length",
+    "axis": "height",
     "svgUrl": "/silhouettes/guitar.svg",
     "source": "Wikidata (Q6607)",
     "viewBox": {
-      "x": 0,
-      "y": 0,
-      "width": 37,
-      "height": 141.25
-    }
+      "x": -3.7,
+      "y": -14.13,
+      "width": 44.4,
+      "height": 169.51
+    },
+    "description": "Full-size standard acoustic guitar total vertical height (100 cm)"
   },
   {
     "id": "penguin",
@@ -293,11 +312,12 @@
     "svgUrl": "/silhouettes/penguin.svg",
     "source": "Wikidata (Q133356)",
     "viewBox": {
-      "x": 0,
-      "y": 0,
-      "width": 41.4,
-      "height": 111
-    }
+      "x": -4.14,
+      "y": -11.1,
+      "width": 49.68,
+      "height": 133.2
+    },
+    "description": "Adult Emperor penguin upright standing height (1.15 m)"
   },
   {
     "id": "child",
@@ -308,26 +328,28 @@
     "svgUrl": "/silhouettes/child.svg",
     "source": "Wikidata (Q7569)",
     "viewBox": {
-      "x": 0,
-      "y": 0,
-      "width": 36,
-      "height": 111
-    }
+      "x": -3.6,
+      "y": -11.1,
+      "width": 43.2,
+      "height": 133.2
+    },
+    "description": "Average 7-year-old child upright standing height (1.20 m)"
   },
   {
     "id": "polar-bear",
     "name": "Polar Bear",
     "category": "everyday",
-    "actualMeasurementMeters": 1.6,
-    "axis": "height",
+    "actualMeasurementMeters": 2.5,
+    "axis": "length",
     "svgUrl": "/silhouettes/polar_bear.svg",
     "source": "Wikidata (Q33609)",
     "viewBox": {
-      "x": 0,
-      "y": 0,
-      "width": 146,
-      "height": 69
-    }
+      "x": -14.6,
+      "y": -6.9,
+      "width": 175.2,
+      "height": 82.8
+    },
+    "description": "Adult male polar bear quadrupedal body length (2.50 m)"
   },
   {
     "id": "human",
@@ -338,11 +360,12 @@
     "svgUrl": "/silhouettes/human.svg",
     "source": "Wikidata (Q180)",
     "viewBox": {
-      "x": 0,
-      "y": 0,
-      "width": 52,
-      "height": 185.91
-    }
+      "x": -5.2,
+      "y": -18.59,
+      "width": 62.4,
+      "height": 223.09
+    },
+    "description": "Global average adult human standing height (1.75 m)"
   },
   {
     "id": "bicycle",
@@ -353,11 +376,12 @@
     "svgUrl": "/silhouettes/bicycle.svg",
     "source": "Wikidata (Q11442)",
     "viewBox": {
-      "x": 0,
-      "y": 0,
-      "width": 150,
-      "height": 67
-    }
+      "x": -15,
+      "y": -6.7,
+      "width": 180,
+      "height": 80.4
+    },
+    "description": "Standard adult commuter bicycle wheel-to-wheel length (1.75 m)"
   },
   {
     "id": "door",
@@ -368,11 +392,12 @@
     "svgUrl": "/silhouettes/door.svg",
     "source": "Wikidata (Q36794)",
     "viewBox": {
-      "x": 0,
-      "y": 0,
-      "width": 80,
-      "height": 180
-    }
+      "x": -8,
+      "y": -18,
+      "width": 96,
+      "height": 216
+    },
+    "description": "Standard architectural interior door vertical height (2.03 m)"
   },
   {
     "id": "motorcycle",
@@ -383,11 +408,12 @@
     "svgUrl": "/silhouettes/motorcycle.svg",
     "source": "Wikidata (Q34493)",
     "viewBox": {
-      "x": 0,
-      "y": 0,
-      "width": 158,
-      "height": 69
-    }
+      "x": -15.8,
+      "y": -6.9,
+      "width": 189.6,
+      "height": 82.8
+    },
+    "description": "Standard cruiser motorcycle bumper-to-bumper length (2.15 m)"
   },
   {
     "id": "piano",
@@ -398,26 +424,28 @@
     "svgUrl": "/silhouettes/piano.svg",
     "source": "Wikidata (Q592)",
     "viewBox": {
-      "x": 0,
-      "y": 0,
-      "width": 150,
-      "height": 113
-    }
+      "x": -15,
+      "y": -11.3,
+      "width": 180,
+      "height": 135.6
+    },
+    "description": "Concert grand piano lengthwise casing dimension (2.75 m)"
   },
   {
     "id": "elephant",
     "name": "African Bush Elephant",
     "category": "everyday",
-    "actualMeasurementMeters": 4,
+    "actualMeasurementMeters": 3.3,
     "axis": "height",
     "svgUrl": "/silhouettes/elephant.svg",
     "source": "Wikidata (Q7378) [Live Claim: height]",
     "viewBox": {
-      "x": 0,
-      "y": 0,
-      "width": 161.97,
-      "height": 100
-    }
+      "x": -16.2,
+      "y": -10,
+      "width": 194.37,
+      "height": 120
+    },
+    "description": "Adult African bush elephant shoulder height (3.30 m)"
   },
   {
     "id": "car-sedan",
@@ -428,11 +456,12 @@
     "svgUrl": "/silhouettes/car_sedan.svg",
     "source": "Wikidata (Q1420)",
     "viewBox": {
-      "x": 0,
-      "y": 0,
-      "width": 188,
-      "height": 62
-    }
+      "x": -18.8,
+      "y": -6.2,
+      "width": 225.6,
+      "height": 74.4
+    },
+    "description": "Mid-size family passenger sedan bumper-to-bumper length (4.50 m)"
   },
   {
     "id": "giraffe",
@@ -443,11 +472,12 @@
     "svgUrl": "/silhouettes/giraffe.svg",
     "source": "Wikidata (Q15083) [Live Claim: height]",
     "viewBox": {
-      "x": 0,
-      "y": 0,
-      "width": 76,
-      "height": 171
-    }
+      "x": -7.6,
+      "y": -17.1,
+      "width": 91.2,
+      "height": 205.2
+    },
+    "description": "Adult bull giraffe total vertical height to ossicones (5.50 m)"
   },
   {
     "id": "school-bus",
@@ -458,11 +488,12 @@
     "svgUrl": "/silhouettes/school_bus.svg",
     "source": "Wikidata (Q836306)",
     "viewBox": {
-      "x": 0,
-      "y": 0,
-      "width": 204,
-      "height": 57
-    }
+      "x": -20.4,
+      "y": -5.7,
+      "width": 244.8,
+      "height": 68.4
+    },
+    "description": "Full-size American school bus overall length (12.0 m)"
   },
   {
     "id": "trex",
@@ -473,11 +504,12 @@
     "svgUrl": "/silhouettes/trex.svg",
     "source": "Wikidata (Q130982)",
     "viewBox": {
-      "x": 0,
-      "y": 0,
-      "width": 185,
-      "height": 94.14
-    }
+      "x": -18.5,
+      "y": -9.41,
+      "width": 222,
+      "height": 112.96
+    },
+    "description": "Adult Tyrannosaurus rex skeleton snout-to-tail length (12.3 m)"
   },
   {
     "id": "tennis-court",
@@ -488,11 +520,12 @@
     "svgUrl": "/silhouettes/tennis_court.svg",
     "source": "Wikidata (Q1067215)",
     "viewBox": {
-      "x": 0,
-      "y": 0,
-      "width": 190,
-      "height": 88
-    }
+      "x": -19,
+      "y": -8.8,
+      "width": 228,
+      "height": 105.6
+    },
+    "description": "ITF official regulation tennis court baseline length (23.77 m)"
   },
   {
     "id": "blue-whale",
@@ -503,26 +536,28 @@
     "svgUrl": "/silhouettes/blue_whale.svg",
     "source": "Wikidata (Q42196) [Live Claim: length]",
     "viewBox": {
-      "x": 0,
-      "y": 0,
-      "width": 300,
-      "height": 94.58
-    }
+      "x": -30,
+      "y": -9.46,
+      "width": 360,
+      "height": 113.5
+    },
+    "description": "Adult blue whale rostrum-to-fluke total body length (27.1 m)"
   },
   {
     "id": "boeing-737",
     "name": "Boeing 737 Airliner",
     "category": "macro",
-    "actualMeasurementMeters": 12.5,
+    "actualMeasurementMeters": 35.5,
     "axis": "length",
     "svgUrl": "/silhouettes/boeing_737.svg",
     "source": "Wikidata (Q6387) [Live Claim: height]",
     "viewBox": {
-      "x": 0,
-      "y": 0,
-      "width": 225,
-      "height": 65
-    }
+      "x": -22.5,
+      "y": -6.5,
+      "width": 270,
+      "height": 78
+    },
+    "description": "Commercial Boeing 737 twin-jet fuselage length (35.5 m)"
   },
   {
     "id": "colosseum",
@@ -533,11 +568,12 @@
     "svgUrl": "/silhouettes/colosseum.svg",
     "source": "Wikidata (Q10285) [Live Claim: height]",
     "viewBox": {
-      "x": 0,
-      "y": 0,
-      "width": 180,
-      "height": 68
-    }
+      "x": -18,
+      "y": -6.8,
+      "width": 216,
+      "height": 81.6
+    },
+    "description": "Flavian Amphitheatre exterior travertine wall height (48.0 m)"
   },
   {
     "id": "swimming-pool",
@@ -548,11 +584,12 @@
     "svgUrl": "/silhouettes/swimming_pool.svg",
     "source": "Wikidata (Q1508006)",
     "viewBox": {
-      "x": 0,
-      "y": 0,
-      "width": 204,
-      "height": 90
-    }
+      "x": -20.4,
+      "y": -9,
+      "width": 244.8,
+      "height": 108
+    },
+    "description": "World Aquatics official Olympic competition pool length (50.0 m)"
   },
   {
     "id": "space-shuttle",
@@ -563,11 +600,12 @@
     "svgUrl": "/silhouettes/space_shuttle.svg",
     "source": "Wikidata (Q131262)",
     "viewBox": {
-      "x": 0,
-      "y": 0,
-      "width": 52,
-      "height": 150
-    }
+      "x": -5.2,
+      "y": -15,
+      "width": 62.4,
+      "height": 180
+    },
+    "description": "NASA Space Shuttle launch vehicle stack total height (56.1 m)"
   },
   {
     "id": "statue-of-liberty",
@@ -578,11 +616,12 @@
     "svgUrl": "/silhouettes/statue_of_liberty.svg",
     "source": "Wikidata (Q9202) [Live Claim: height]",
     "viewBox": {
-      "x": 0,
-      "y": 0,
-      "width": 53,
-      "height": 168
-    }
+      "x": -5.3,
+      "y": -16.8,
+      "width": 63.6,
+      "height": 201.6
+    },
+    "description": "Statue height from heel to the tip of the torch (46.0 m)"
   },
   {
     "id": "football-pitch",
@@ -593,11 +632,12 @@
     "svgUrl": "/silhouettes/football_pitch.svg",
     "source": "Wikidata (Q854541)",
     "viewBox": {
-      "x": 0,
-      "y": 0,
-      "width": 204,
-      "height": 120
-    }
+      "x": -20.4,
+      "y": -12,
+      "width": 244.8,
+      "height": 144
+    },
+    "description": "FIFA standard international soccer pitch touchline length (105 m)"
   },
   {
     "id": "saturn-v",
@@ -608,11 +648,12 @@
     "svgUrl": "/silhouettes/saturn_v.svg",
     "source": "Wikidata (Q54363) [Live Claim: height]",
     "viewBox": {
-      "x": 0,
-      "y": 0,
-      "width": 40,
-      "height": 435
-    }
+      "x": -4,
+      "y": -43.5,
+      "width": 48,
+      "height": 522
+    },
+    "description": "Apollo program Saturn V three-stage rocket total height (110.65 m)"
   },
   {
     "id": "pyramid-giza",
@@ -623,11 +664,12 @@
     "svgUrl": "/silhouettes/pyramid_giza.svg",
     "source": "Wikidata (Q12588)",
     "viewBox": {
-      "x": 0,
-      "y": 0,
-      "width": 200,
-      "height": 124
-    }
+      "x": -20,
+      "y": -12.4,
+      "width": 240,
+      "height": 148.8
+    },
+    "description": "Ancient Egyptian Great Pyramid present-day height (138.8 m)"
   },
   {
     "id": "wind-turbine",
@@ -638,11 +680,12 @@
     "svgUrl": "/silhouettes/wind_turbine.svg",
     "source": "Wikidata (Q49833)",
     "viewBox": {
-      "x": 0,
-      "y": 0,
-      "width": 110,
-      "height": 207
-    }
+      "x": -11,
+      "y": -20.7,
+      "width": 132,
+      "height": 248.4
+    },
+    "description": "Commercial offshore wind turbine tip height (150 m)"
   },
   {
     "id": "titanic",
@@ -653,11 +696,12 @@
     "svgUrl": "/silhouettes/titanic.svg",
     "source": "Wikidata (Q25273)",
     "viewBox": {
-      "x": 0,
-      "y": 0,
-      "width": 235,
-      "height": 54
-    }
+      "x": -23.5,
+      "y": -5.4,
+      "width": 282,
+      "height": 64.8
+    },
+    "description": "Olympic-class ocean liner total length overall (269.1 m)"
   },
   {
     "id": "eiffel-tower",
@@ -668,26 +712,28 @@
     "svgUrl": "/silhouettes/eiffel_tower.svg",
     "source": "Wikidata (Q243) [Live Claim: height]",
     "viewBox": {
-      "x": 0,
-      "y": 0,
-      "width": 90,
-      "height": 330
-    }
+      "x": -9,
+      "y": -33,
+      "width": 108,
+      "height": 396
+    },
+    "description": "Paris wrought-iron lattice landmark total architectural height (324 m)"
   },
   {
     "id": "empire-state",
     "name": "Empire State Building",
     "category": "macro",
-    "actualMeasurementMeters": 453,
+    "actualMeasurementMeters": 443.2,
     "axis": "height",
     "svgUrl": "/silhouettes/empire_state.svg",
     "source": "Wikidata (Q9188) [Live Claim: height]",
     "viewBox": {
-      "x": 0,
-      "y": 0,
-      "width": 60,
-      "height": 236
-    }
+      "x": -6,
+      "y": -23.6,
+      "width": 72,
+      "height": 283.2
+    },
+    "description": "Manhattan Art Deco skyscraper height to spire tip (443.2 m)"
   },
   {
     "id": "seawise-giant",
@@ -698,11 +744,12 @@
     "svgUrl": "/silhouettes/seawise_giant.svg",
     "source": "Wikidata (Q516104)",
     "viewBox": {
-      "x": 0,
-      "y": 0,
-      "width": 270,
-      "height": 44
-    }
+      "x": -27,
+      "y": -4.4,
+      "width": 324,
+      "height": 52.8
+    },
+    "description": "Longest self-propelled ship ever built length overall (458.45 m)"
   },
   {
     "id": "burj-khalifa",
@@ -713,11 +760,12 @@
     "svgUrl": "/silhouettes/burj_khalifa.svg",
     "source": "Wikidata (Q12495) [Live Claim: height]",
     "viewBox": {
-      "x": 0,
-      "y": 0,
-      "width": 90,
-      "height": 828
-    }
+      "x": -9,
+      "y": -82.8,
+      "width": 108,
+      "height": 993.6
+    },
+    "description": "World's tallest artificial structure total architectural height (828 m)"
   },
   {
     "id": "golden-gate",
@@ -728,26 +776,28 @@
     "svgUrl": "/silhouettes/golden_gate.svg",
     "source": "Wikidata (Q44203)",
     "viewBox": {
-      "x": 0,
-      "y": 0,
-      "width": 290,
-      "height": 100
-    }
+      "x": -29,
+      "y": -10,
+      "width": 348,
+      "height": 120
+    },
+    "description": "San Francisco suspension bridge total length (2,737 m)"
   },
   {
     "id": "mount-everest",
     "name": "Mount Everest",
     "category": "cosmic",
-    "actualMeasurementMeters": 3650,
+    "actualMeasurementMeters": 8849,
     "axis": "height",
     "svgUrl": "/silhouettes/mount_everest.svg",
     "source": "Wikidata (Q513) [Live Claim: height]",
     "viewBox": {
-      "x": 0,
-      "y": 0,
-      "width": 215,
-      "height": 123
-    }
+      "x": -21.5,
+      "y": -12.3,
+      "width": 258,
+      "height": 147.6
+    },
+    "description": "Earth's highest mountain peak elevation above sea level (8,849 m)"
   },
   {
     "id": "neutron-star",
@@ -758,11 +808,12 @@
     "svgUrl": "/silhouettes/neutron_star.svg",
     "source": "Wikidata (Q4202)",
     "viewBox": {
-      "x": 0,
-      "y": 0,
-      "width": 64,
-      "height": 132
-    }
+      "x": -6.4,
+      "y": -13.2,
+      "width": 76.8,
+      "height": 158.4
+    },
+    "description": "Dense collapsed stellar core typical diameter (20 km)"
   },
   {
     "id": "olympus-mons",
@@ -773,11 +824,12 @@
     "svgUrl": "/silhouettes/olympus_mons.svg",
     "source": "Wikidata (Q522)",
     "viewBox": {
-      "x": 0,
-      "y": 0,
-      "width": 260,
-      "height": 61
-    }
+      "x": -26,
+      "y": -6.1,
+      "width": 312,
+      "height": 73.2
+    },
+    "description": "Martian shield volcano peak height above datum (21.9 km)"
   },
   {
     "id": "ceres",
@@ -788,41 +840,44 @@
     "svgUrl": "/silhouettes/ceres.svg",
     "source": "Wikidata (Q596) [Live Claim: diameter]",
     "viewBox": {
-      "x": 0,
-      "y": 0,
-      "width": 96,
-      "height": 96
-    }
+      "x": -9.6,
+      "y": -9.6,
+      "width": 115.2,
+      "height": 115.2
+    },
+    "description": "Asteroid belt dwarf planet mean spherical diameter (939.4 km)"
   },
   {
     "id": "moon",
     "name": "The Moon",
     "category": "cosmic",
-    "actualMeasurementMeters": 3476200,
+    "actualMeasurementMeters": 3474800,
     "axis": "diameter",
     "svgUrl": "/silhouettes/moon.svg",
     "source": "Wikidata (Q405) [Live Claim: diameter]",
     "viewBox": {
-      "x": 0,
-      "y": 0,
-      "width": 100,
-      "height": 100
-    }
+      "x": -10,
+      "y": -10,
+      "width": 120,
+      "height": 120
+    },
+    "description": "Earth's natural satellite equatorial diameter (3,474.8 km)"
   },
   {
     "id": "mercury",
     "name": "Planet Mercury",
     "category": "cosmic",
-    "actualMeasurementMeters": 4878000,
+    "actualMeasurementMeters": 4879400,
     "axis": "diameter",
     "svgUrl": "/silhouettes/mercury.svg",
     "source": "Wikidata (Q308) [Live Claim: diameter]",
     "viewBox": {
-      "x": 0,
-      "y": 0,
-      "width": 96,
-      "height": 96
-    }
+      "x": -9.6,
+      "y": -9.6,
+      "width": 115.2,
+      "height": 115.2
+    },
+    "description": "Innermost terrestrial planet equatorial diameter (4,879.4 km)"
   },
   {
     "id": "mars",
@@ -833,11 +888,12 @@
     "svgUrl": "/silhouettes/mars.svg",
     "source": "Wikidata (Q111)",
     "viewBox": {
-      "x": 0,
-      "y": 0,
-      "width": 96,
-      "height": 96
-    }
+      "x": -9.6,
+      "y": -9.6,
+      "width": 115.2,
+      "height": 115.2
+    },
+    "description": "Red planet equatorial diameter (6,779 km)"
   },
   {
     "id": "earth",
@@ -848,11 +904,12 @@
     "svgUrl": "/silhouettes/earth.svg",
     "source": "Wikidata (Q2) [Live Claim: diameter]",
     "viewBox": {
-      "x": 0,
-      "y": 0,
-      "width": 96,
-      "height": 96
-    }
+      "x": -9.6,
+      "y": -9.6,
+      "width": 115.2,
+      "height": 115.2
+    },
+    "description": "Earth mean spherical diameter (12,742 km)"
   },
   {
     "id": "saturn",
@@ -863,26 +920,28 @@
     "svgUrl": "/silhouettes/saturn.svg",
     "source": "Wikidata (Q183)",
     "viewBox": {
-      "x": 0,
-      "y": 0,
-      "width": 160,
-      "height": 64
-    }
+      "x": -16,
+      "y": -6.4,
+      "width": 192,
+      "height": 76.8
+    },
+    "description": "Ringed gas giant planetary equatorial diameter (116,464 km)"
   },
   {
     "id": "jupiter",
     "name": "Planet Jupiter",
     "category": "cosmic",
-    "actualMeasurementMeters": 142984000,
+    "actualMeasurementMeters": 139820000,
     "axis": "diameter",
     "svgUrl": "/silhouettes/jupiter.svg",
     "source": "Wikidata (Q319) [Live Claim: diameter]",
     "viewBox": {
-      "x": 0,
-      "y": 0,
-      "width": 96,
-      "height": 96
-    }
+      "x": -9.6,
+      "y": -9.6,
+      "width": 115.2,
+      "height": 115.2
+    },
+    "description": "Largest Solar System planet equatorial diameter (139,820 km)"
   },
   {
     "id": "sun",
@@ -893,10 +952,11 @@
     "svgUrl": "/silhouettes/sun.svg",
     "source": "Wikidata (Q525)",
     "viewBox": {
-      "x": 0,
-      "y": 0,
-      "width": 120,
-      "height": 120
-    }
+      "x": -12,
+      "y": -12,
+      "width": 144,
+      "height": 144
+    },
+    "description": "Central G-type main-sequence star solar diameter (1,392,700 km)"
   }
 ]
