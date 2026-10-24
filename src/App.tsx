@@ -7,6 +7,8 @@ import { ScaleGuessPage } from "@/games/scale-guess/ScaleGuessPage";
 import { ScaleGuessLeaderboardPage } from "@/games/scale-guess/ScaleGuessLeaderboardPage";
 import { NotColorBlindPage } from "@/games/not-color-blind/NotColorBlindPage";
 import { NotColorBlindLeaderboardPage } from "@/games/not-color-blind/NotColorBlindLeaderboardPage";
+import { HumanBenchmarkPage } from "@/games/human-benchmark/HumanBenchmarkPage";
+import { HumanBenchmarkLeaderboardPage } from "@/games/human-benchmark/HumanBenchmarkLeaderboardPage";
 import { ProfilePage } from "@/pages/ProfilePage";
 import { Footer } from "@/components/home/Footer";
 import { PublicProfilePage } from "@/pages/PublicProfilePage";
@@ -32,6 +34,8 @@ export type AppRoute =
   | "scaleGuessLeaderboard"
   | "notColorBlind"
   | "notColorBlindLeaderboard"
+  | "humanBenchmark"
+  | "humanBenchmarkLeaderboard"
   | "login"
   | "register"
   | "profile"
@@ -63,6 +67,15 @@ function getRouteInfoFromPath(pathname: string): RouteState {
   }
   if (path === "/games/not-color-blind" || path === "/notcolorblind") {
     return { route: "notColorBlind" };
+  }
+  if (
+    path === "/games/human-benchmark/leaderboard" ||
+    path === "/humanbenchmark/leaderboard"
+  ) {
+    return { route: "humanBenchmarkLeaderboard" };
+  }
+  if (path === "/games/human-benchmark" || path === "/humanbenchmark") {
+    return { route: "humanBenchmark" };
   }
   if (path === "/login") return { route: "login" };
   if (path === "/register") return { route: "register" };
@@ -120,6 +133,10 @@ export function App() {
         ? "/games/not-color-blind"
         : canonicalRoute === "notColorBlindLeaderboard"
         ? "/games/not-color-blind/leaderboard"
+        : canonicalRoute === "humanBenchmark"
+        ? "/games/human-benchmark"
+        : canonicalRoute === "humanBenchmarkLeaderboard"
+        ? "/games/human-benchmark/leaderboard"
         : `/${canonicalRoute}`;
 
     if (window.location.pathname !== targetPath) {
@@ -174,6 +191,7 @@ export function App() {
               className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-mono font-medium active:scale-95 transition-all duration-100 will-change-transform transform-gpu cursor-pointer ${
                 currentRoute === "scaleGuessLeaderboard" ||
                 currentRoute === "notColorBlindLeaderboard" ||
+                currentRoute === "humanBenchmarkLeaderboard" ||
                 currentRoute === "leaderboard"
                   ? "bg-neutral-850 text-white font-semibold shadow-inner border border-neutral-700/80"
                   : "text-neutral-400 hover:text-neutral-200 hover:bg-neutral-900"
@@ -282,8 +300,10 @@ export function App() {
                   if (
                     currentRoute === "scaleGuess" ||
                     currentRoute === "notColorBlind" ||
+                    currentRoute === "humanBenchmark" ||
                     currentRoute === "scaleGuessLeaderboard" ||
                     currentRoute === "notColorBlindLeaderboard" ||
+                    currentRoute === "humanBenchmarkLeaderboard" ||
                     currentRoute === "leaderboard"
                   ) {
                     openLogin();
@@ -302,8 +322,10 @@ export function App() {
                   if (
                     currentRoute === "scaleGuess" ||
                     currentRoute === "notColorBlind" ||
+                    currentRoute === "humanBenchmark" ||
                     currentRoute === "scaleGuessLeaderboard" ||
                     currentRoute === "notColorBlindLeaderboard" ||
+                    currentRoute === "humanBenchmarkLeaderboard" ||
                     currentRoute === "leaderboard"
                   ) {
                     openRegister();
@@ -375,6 +397,18 @@ export function App() {
             <NotColorBlindLeaderboardPage
               onNavigate={navigateTo}
               onBackToGame={() => navigateTo("notColorBlind")}
+              onOpenLogin={openLogin}
+            />
+          ) : currentRoute === "humanBenchmark" ? (
+            <HumanBenchmarkPage
+              onBackToHome={() => navigateTo("home")}
+              onNavigateLeaderboard={() => navigateTo("humanBenchmarkLeaderboard")}
+              onOpenLogin={openLogin}
+            />
+          ) : currentRoute === "humanBenchmarkLeaderboard" ? (
+            <HumanBenchmarkLeaderboardPage
+              onNavigate={navigateTo}
+              onBackToGame={() => navigateTo("humanBenchmark")}
               onOpenLogin={openLogin}
             />
           ) : currentRoute === "publicProfile" ? (

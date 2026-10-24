@@ -6,7 +6,16 @@
 
 ## Quick-Reference Workflows & Guidelines
 
-**Synapse** is a multi-game cognitive platform featuring games like **ScaleGuess** (spatial scale estimation) and **Not Color Blind** (HSB visual memory recall), powered by a React 19 frontend and an Express 5 backend with PostgreSQL / in-memory fallback.
+**Synapse** is a full-stack multi-game cognitive training platform featuring three core micro-games:
+1. **ScaleGuess** (`/games/scale-guess`) — Spatial scale estimation (5 rounds, scored out of 500).
+2. **Not Color Blind** (`/games/not-color-blind`) — HSB visual memory recall (5 rounds, scored out of 500).
+3. **Human Benchmark** (`/games/human-benchmark`) — Visual reflex reaction speed (5 rounds, ranked by lowest average ms latency).
+
+### Game & Route Architecture
+- **Directory Structure:** All game code is isolated under `src/games/<game-id>/` containing state machines, views, components, and API helpers.
+- **Route Architecture:**
+  - Game Page: `/games/<game-id>`
+  - Dedicated Leaderboard Page: `/games/<game-id>/leaderboard`
 
 ---
 

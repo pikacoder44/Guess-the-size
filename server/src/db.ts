@@ -1211,4 +1211,251 @@ export async function getUserNotColorBlindScores(
   }
 }
 
+// ---------------------------------------------------------------------------
+// Human Benchmark Query Methods & In-Memory Store
+// ---------------------------------------------------------------------------
+
+export interface HumanBenchmarkScoreRecord {
+  id: string;
+  user_id: string | null;
+  player_name: string;
+  average_reaction_ms: number;
+  rounds: number[];
+  created_at: string;
+}
+
+export interface SaveHumanBenchmarkScoreInput {
+  userId?: string | null;
+  playerName?: string;
+  averageReactionMs: number;
+  rounds: number[];
+}
+
+const memoryHumanBenchmarkScores: HumanBenchmarkScoreRecord[] = [
+  {
+    id: 'hb-champ-001',
+    user_id: null,
+    player_name: 'VoltReflex',
+    average_reaction_ms: 162,
+    rounds: [158, 164, 160, 165, 163],
+    created_at: new Date(Date.now() - 3600000 * 2).toISOString(),
+  },
+  {
+    id: 'hb-champ-002',
+    user_id: null,
+    player_name: 'SynapseStriker',
+    average_reaction_ms: 174,
+    rounds: [170, 178, 172, 175, 175],
+    created_at: new Date(Date.now() - 3600000 * 4).toISOString(),
+  },
+  {
+    id: 'hb-champ-003',
+    user_id: null,
+    player_name: 'NeuralFlash',
+    average_reaction_ms: 182,
+    rounds: [180, 185, 179, 184, 182],
+    created_at: new Date(Date.now() - 3600000 * 7).toISOString(),
+  },
+  {
+    id: 'hb-champ-004',
+    user_id: null,
+    player_name: 'ApexImpulse',
+    average_reaction_ms: 191,
+    rounds: [188, 195, 190, 192, 190],
+    created_at: new Date(Date.now() - 3600000 * 11).toISOString(),
+  },
+  {
+    id: 'hb-champ-005',
+    user_id: null,
+    player_name: 'ChronoTrigger',
+    average_reaction_ms: 204,
+    rounds: [200, 208, 202, 205, 205],
+    created_at: new Date(Date.now() - 3600000 * 16).toISOString(),
+  },
+  {
+    id: 'hb-champ-006',
+    user_id: null,
+    player_name: 'QuantumTwitch',
+    average_reaction_ms: 215,
+    rounds: [212, 218, 214, 216, 215],
+    created_at: new Date(Date.now() - 3600000 * 22).toISOString(),
+  },
+  {
+    id: 'hb-champ-007',
+    user_id: null,
+    player_name: 'CyberSynapse',
+    average_reaction_ms: 226,
+    rounds: [222, 230, 224, 228, 226],
+    created_at: new Date(Date.now() - 3600000 * 29).toISOString(),
+  },
+  {
+    id: 'hb-champ-008',
+    user_id: null,
+    player_name: 'OpticSurge',
+    average_reaction_ms: 238,
+    rounds: [234, 242, 236, 240, 238],
+    created_at: new Date(Date.now() - 3600000 * 37).toISOString(),
+  },
+  {
+    id: 'hb-champ-009',
+    user_id: null,
+    player_name: 'SwiftSynapse',
+    average_reaction_ms: 249,
+    rounds: [245, 252, 248, 251, 249],
+    created_at: new Date(Date.now() - 3600000 * 46).toISOString(),
+  },
+  {
+    id: 'hb-champ-010',
+    user_id: null,
+    player_name: 'RapidRetina',
+    average_reaction_ms: 262,
+    rounds: [258, 266, 260, 264, 262],
+    created_at: new Date(Date.now() - 3600000 * 56).toISOString(),
+  },
+];
+
+export async function saveHumanBenchmarkScore(
+  scoreData: SaveHumanBenchmarkScoreInput
+): Promise<HumanBenchmarkScoreRecord> {
+  const isUuid = Boolean(
+    scoreData.userId &&
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(scoreData.userId)
+  );
+  const userId = isUuid ? scoreData.userId! : null;
+  const playerName = scoreData.playerName?.trim() || 'Anonymous';
+  const averageMs = Math.round(scoreData.averageReactionMs);
+  const rounds = Array.isArray(scoreData.rounds) ? scoreData.rounds.map((r) => Math.round(r)) : [];
+
+  if (isUsingMemoryStore) {
+    const record: HumanBenchmarkScoreRecord = {
+      id: crypto.randomUUID(),
+      user_id: userId,
+      player_name: playerName,
+      average_reaction_ms: averageMs,
+      rounds,
+      created_at: new Date().toISOString(),
+    };
+    memoryHumanBenchmarkScores.push(record);
+    return record;
+  }
+
+  try {
+    const { rows } = await pool.query(
+      `INSERT INTO public.human_benchmark_scores (
+         user_id, player_name, average_reaction_ms, rounds
+       ) VALUES ($1, $2, $3, $4)
+       RETURNING id, user_id, player_name, average_reaction_ms, rounds, created_at`,
+      [userId, playerName, averageMs, JSON.stringify(rounds)]
+    );
+
+    const row = rows[0];
+    return {
+      id: row.id,
+      user_id: row.user_id,
+      player_name: row.player_name,
+      average_reaction_ms: Number(row.average_reaction_ms),
+      rounds: typeof row.rounds === 'string' ? JSON.parse(row.rounds) : row.rounds,
+      created_at: row.created_at,
+    };
+  } catch (err) {
+    console.warn('PostgreSQL saveHumanBenchmarkScore failed, falling back to memory store:', (err as Error).message);
+    const fallbackRecord: HumanBenchmarkScoreRecord = {
+      id: crypto.randomUUID(),
+      user_id: userId,
+      player_name: playerName,
+      average_reaction_ms: averageMs,
+      rounds,
+      created_at: new Date().toISOString(),
+    };
+    memoryHumanBenchmarkScores.push(fallbackRecord);
+    return fallbackRecord;
+  }
+}
+
+export async function getHumanBenchmarkLeaderboard(
+  limit = 50
+): Promise<HumanBenchmarkScoreRecord[]> {
+  const safeLimit = Math.max(1, Math.min(limit, 100));
+
+  if (isUsingMemoryStore) {
+    return [...memoryHumanBenchmarkScores]
+      .sort((a, b) => {
+        if (a.average_reaction_ms !== b.average_reaction_ms) {
+          return a.average_reaction_ms - b.average_reaction_ms;
+        }
+        return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+      })
+      .slice(0, safeLimit);
+  }
+
+  try {
+    const { rows } = await pool.query(
+      `SELECT id, user_id, player_name, average_reaction_ms, rounds, created_at
+       FROM public.human_benchmark_scores
+       ORDER BY average_reaction_ms ASC, created_at ASC
+       LIMIT $1`,
+      [safeLimit]
+    );
+
+    return rows.map((row) => ({
+      id: row.id,
+      user_id: row.user_id,
+      player_name: row.player_name,
+      average_reaction_ms: Number(row.average_reaction_ms),
+      rounds: typeof row.rounds === 'string' ? JSON.parse(row.rounds) : row.rounds,
+      created_at: row.created_at,
+    }));
+  } catch (err) {
+    console.warn('PostgreSQL getHumanBenchmarkLeaderboard failed, falling back to memory store:', (err as Error).message);
+    return [...memoryHumanBenchmarkScores]
+      .sort((a, b) => {
+        if (a.average_reaction_ms !== b.average_reaction_ms) {
+          return a.average_reaction_ms - b.average_reaction_ms;
+        }
+        return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+      })
+      .slice(0, safeLimit);
+  }
+}
+
+export async function getUserHumanBenchmarkScores(
+  userId: string,
+  limit = 10
+): Promise<HumanBenchmarkScoreRecord[]> {
+  const safeLimit = Math.max(1, Math.min(limit, 100));
+
+  if (isUsingMemoryStore) {
+    return memoryHumanBenchmarkScores
+      .filter((s) => s.user_id === userId)
+      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+      .slice(0, safeLimit);
+  }
+
+  try {
+    const { rows } = await pool.query(
+      `SELECT id, user_id, player_name, average_reaction_ms, rounds, created_at
+       FROM public.human_benchmark_scores
+       WHERE user_id = $1
+       ORDER BY created_at DESC
+       LIMIT $2`,
+      [userId, safeLimit]
+    );
+
+    return rows.map((row) => ({
+      id: row.id,
+      user_id: row.user_id,
+      player_name: row.player_name,
+      average_reaction_ms: Number(row.average_reaction_ms),
+      rounds: typeof row.rounds === 'string' ? JSON.parse(row.rounds) : row.rounds,
+      created_at: row.created_at,
+    }));
+  } catch (err) {
+    console.warn('PostgreSQL getUserHumanBenchmarkScores failed, falling back to memory store:', (err as Error).message);
+    return memoryHumanBenchmarkScores
+      .filter((s) => s.user_id === userId)
+      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+      .slice(0, safeLimit);
+  }
+}
+
 export default pool;

@@ -65,6 +65,28 @@ export const LAUNCHER_GAMES: LauncherGame[] = [
     stats: "5s Memory • HSB Space",
     tags: ["Perceptual", "HSB", "Delta-E"],
   },
+  {
+    id: "human-benchmark",
+    route: "/games/human-benchmark",
+    leaderboardRoute: "/games/human-benchmark/leaderboard",
+    title: "HUMAN BENCHMARK",
+    subtitle: "REACTION TIME SPEED",
+    categoryTag: "VISUAL REFLEX",
+    tagBadge: "New Reflex Benchmark",
+    description:
+      "Test your visual neural reflexes across 5 calibrated rounds. Click as fast as you can when the target color flashes.",
+    avgPlayTime: "8hs",
+    accuracyScore: "99%",
+    rating: "4.9",
+    ratingNum: 4.9,
+    downloads: "28.9k",
+    downloadsNum: 28900,
+    popularityRank: 3,
+    coverImage: "/assets/banners/human-benchmark-cover.jpg",
+    thumbnail: "/assets/banners/human-benchmark-cover.jpg",
+    stats: "5 Rounds • Millisecond Latency",
+    tags: ["Reflex", "Latency", "Benchmark"],
+  },
 ];
 
 export type CatalogFilterTab = "popular" | "downloaded" | "rated";

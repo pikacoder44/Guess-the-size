@@ -12,12 +12,16 @@ This document is the canonical source of truth for AI agents (including Claude C
 
 | Game | Workspace Path / Route | Cognitive Domain | Description |
 | :--- | :--- | :--- | :--- |
-| **ScaleGuess** | `/games/scale-guess`<br>`/scaleGuess` | Spatial Estimation | Players drag, pan, zoom, and resize 2D SVG silhouettes to estimate real-world dimensions against calibrated reference objects. Driven by real-world metric scales (meters) and logarithmic scoring curves. |
-| **Not Color Blind** | `/games/not-color-blind`<br>`/notColorBlind` | HSB Visual Memory Recall | Players observe dynamic target color swatches across hue, saturation, and brightness (HSB) color spaces before they decay, reconstructing the exact color parameters from visual memory. |
+| **ScaleGuess** | `/games/scale-guess`<br>`/scaleGuess` | Spatial Estimation | Players drag, pan, zoom, and resize 2D SVG silhouettes to estimate real-world dimensions against calibrated reference objects (5 rounds, scored out of 500). Driven by real-world metric scales (meters) and logarithmic scoring curves. |
+| **Not Color Blind** | `/games/not-color-blind`<br>`/notColorBlind` | HSB Visual Memory Recall | Players observe dynamic target color swatches across hue, saturation, and brightness (HSB) color spaces before decay, reconstructing the exact color parameters from visual memory (5 rounds, scored out of 500). |
+| **Human Benchmark** | `/games/human-benchmark`<br>`/humanBenchmark` | Visual Reaction Speed | Players test raw neural response time by reacting to sudden high-contrast visual color flashes with millisecond resolution (5 rounds, ranked by lowest average ms response latency). |
 
 ### Architectural Vision for Additional Games
 Each game in Synapse is structured to be modular and self-contained:
-- **Game Engine Isolation:** Game state machines, coordinate math, and mechanics live strictly within their dedicated domain directory.
+- **Game Engine Isolation:** Game state machines, coordinate math, and mechanics live strictly within their dedicated domain directory (`src/games/<game-id>/`).
+- **Standardized Route Architecture:**
+  - Game Page: `/games/<game-id>`
+  - Dedicated Leaderboard Page: `/games/<game-id>/leaderboard`
 - **Shared Contracts:** Games integrate with shared platform abstractions for authentication, session submission, score storage, and leaderboard aggregation.
 - **Future Expansions:** Modular foundation accommodates upcoming titles such as `SequenceMind` (working memory grid sequencing) and `FlashCount` (subitizing and sensory perception).
 
@@ -47,7 +51,8 @@ Each game in Synapse is structured to be modular and self-contained:
 .
 ├── .agents/skills/            # Curated AI agent skills library (DO NOT delete or modify existing skills)
 ├── .claude/                   # Claude Code integration files and skills symlinks
-├── public/                    # Static assets served as-is by Vite (e.g., SVG silhouettes)
+├── public/                    # Static assets served as-is by Vite (e.g., SVG silhouettes, banner covers)
+│   ├── assets/banners/        # 16:9 high-resolution game showcase banner artworks
 │   └── silhouettes/           # Calibrated zero-padded SVG silhouette assets
 ├── server/                    # Express backend application
 │   ├── src/
@@ -57,54 +62,42 @@ Each game in Synapse is structured to be modular and self-contained:
 │   │   └── routes/            # Modular API endpoints
 │   │       ├── auth/          # Authentication routes (login, register, google, github, me)
 │   │       ├── scores/        # Scores & leaderboard endpoints (submit, me, leaderboard, user)
+│   │       ├── notColorBlind.ts # Not Color Blind scores and leaderboard router
+│   │       ├── humanBenchmark.ts # Human Benchmark reaction scores and leaderboard router
 │   │       └── puzzles.ts     # Puzzles & catalog endpoints (session, daily, items)
 │   ├── scripts/               # Puzzle data pipeline & silhouette normalizers
-│   │   ├── fetchWikidataPuzzles.ts # SPARQL & Wikidata automated puzzle pipeline
-│   │   ├── generateSilhouettes.ts  # Silhouette generation runner
-│   │   └── normalizeSvg.ts         # Zero-padding bounding-box normalization algorithm
 │   ├── package.json           # Server dependencies and scripts (CommonJS)
 │   └── tsconfig.json          # Server TypeScript configuration
 ├── src/                       # React client application (ESM, path alias: "@/")
 │   ├── App.tsx                # Platform application shell, navigation state, and topbar
 │   ├── main.tsx               # React DOM root render, Google OAuth provider
 │   ├── styles.css             # Tailwind v4 stylesheet and OKLCH color tokens
-│   ├── components/            # UI components organized by domain:
-│   │   ├── auth/              # Login, registration, and OAuth modal/pages
-│   │   ├── game/              # ScaleGuess canvas UI (GameBoard, Silhouette, CameraControls, ResultPanel)
-│   │   ├── home/              # Synapse hub sections (HeroSection, PlayerStats, GameSection, Footer)
-│   │   ├── leaderboard/       # Leaderboard modals and ranking displays
-│   │   ├── profile/           # User profile settings and avatar management
-│   │   └── ui/                # Reusable primitives (button, dialog, input, label, card, etc.)
+│   ├── components/            # UI components organized by domain (auth, home, leaderboard, profile, ui)
 │   ├── context/               # Global state providers (AuthContext.tsx)
 │   ├── data/                  # Game catalog definitions, puzzle sets, and mock metrics
-│   ├── game/                  # ScaleGuess game engine & coordinate mathematics:
-│   │   ├── geometry.ts        # World meters-to-canvas pixel transforms, zoom, and viewport math
-│   │   ├── puzzles.tsx        # Puzzle pairing configurations & SVG shape data
-│   │   ├── scoring.ts         # Logarithmic scoring algorithms and percentage error calculations
-│   │   ├── types.ts           # ScaleGuess engine interfaces
-│   │   └── useGame.ts         # useReducer state machine managing the active game loop
 │   ├── games/                 # Multi-game modular engine workspace:
-│   │   ├── scale-guess/       # Dedicated ScaleGuess game modules and views
-│   │   └── not-color-blind/   # Dedicated Not Color Blind HSB color memory game modules
+│   │   ├── scale-guess/       # Dedicated ScaleGuess game modules, pages, and leaderboard
+│   │   ├── not-color-blind/   # Dedicated Not Color Blind HSB memory game modules, pages, and leaderboard
+│   │   └── human-benchmark/  # Dedicated Human Benchmark visual reaction speed game modules, pages, and leaderboard
 │   ├── hooks/                 # Reusable React hooks (useCamera, useTheme, etc.)
-│   ├── lib/                   # Shared client utilities & API clients (authApi.ts, supabase.ts, utils.ts)
-│   ├── pages/                 # Full-page platform route views:
-│   │   ├── HomePage.tsx       # Main Synapse game hub
-│   │   ├── ScaleGuessPage.tsx # ScaleGuess game view
-│   │   ├── LeaderboardPage.tsx# Global rankings and performance statistics
-│   │   ├── ProfilePage.tsx    # Authenticated user settings & stats
-│   │   └── PublicProfilePage.tsx # Public player profiles
-│   └── types/                 # Shared TypeScript interfaces (auth.ts, puzzle.ts, etc.)
+│   ├── lib/                   # Shared client utilities & API clients (authApi.ts, scoreApi.ts, notColorBlindApi.ts, humanBenchmarkApi.ts)
+│   ├── pages/                 # Full-page platform route views
+│   └── types/                 # Shared TypeScript interfaces
 ├── package.json               # Root and client dependencies and scripts
 └── vite.config.ts             # Vite configuration with proxy /api -> :3001
 ```
 
-### Modular Code Placement Guidelines
+### Modular Code Placement & Routing Guidelines
 
-1. **New Game Implementations:** Place game-specific logic under `src/games/<game-name>/` or co-located engine folders. Keep state machines, scoring algorithms, and rendering pipelines fully isolated.
+1. **Game Workspace Convention (`src/games/<game-id>/`):**
+   - Every game lives in its dedicated subdirectory under `src/games/<game-id>/`.
+   - Contains all game-specific state machines, UI components, calculation algorithms, and dedicated pages.
+   - Standard route architecture:
+     - Game Page: `/games/<game-id>`
+     - Dedicated Leaderboard Page: `/games/<game-id>/leaderboard`
 2. **Shared Services:** Place cross-cutting logic in `src/lib/`, `src/components/ui/`, or `server/src/`. Never import game-specific internals into platform-wide hubs.
 3. **SVG Assets:** Store raw and normalized SVG silhouettes in `public/silhouettes/` with corresponding entries in `puzzle_items`.
-4. **Backend Endpoints:** Add modular sub-routers under `server/src/routes/` and mount them in `server/src/index.ts`.
+4. **Backend Endpoints:** Add modular sub-routers under `server/src/routes/` and mount them in `server/src/routes/scores/` or `server/src/index.ts`.
 
 ---
 
@@ -117,19 +110,26 @@ The persistence layer operates in **dual-mode**:
 
 #### Core Tables:
 - **`users`:** Identity records containing `username`, `name`, `email`, `password` (bcrypt hash, nullable for OAuth), `google_id`, `github_id`, `avatar_url` (TEXT for arbitrary URLs or base64 data), `email_verified`, `is_history_public`, and timestamps. Case-insensitive unique indexes on `LOWER(username)` and `LOWER(email)`.
-- **`game_results`:** Historical game records storing `user_id` (foreign key to `users(id)`), `mode` (`daily` vs `practice`), `date` (`YYYY-MM-DD`), `total_score` (0–500), `average_error` (percentage error), `elapsed_ms` (time taken in milliseconds), `rounds` (JSONB round breakdowns), and `completed_at`.
+- **`game_results`:** ScaleGuess historical game records storing `user_id` (foreign key to `users(id)`), `mode` (`daily` vs `practice`), `date` (`YYYY-MM-DD`), `total_score` (0–500), `average_error` (percentage error), `elapsed_ms` (time taken in milliseconds), `rounds` (JSONB round breakdowns), and `completed_at`.
+- **`not_color_blind_scores`:** Not Color Blind records (`score` 0-500, `target_hsb`, `predicted_hsb`, `time_taken_seconds`).
+- **`human_benchmark_scores`:** Human Benchmark records (`average_reaction_ms`, `rounds` JSONB array of ms values, `player_name`, `user_id`).
 - **`puzzle_items`:** Object catalog storing `id`, `name`, `category` (`macro`, `micro`, `everyday`, `cosmic`), `actual_measurement_meters` (ground-truth metric size), `axis` (`height`, `width`, `length`, `diameter`), `svg_url`, `view_box` (JSONB `{ x, y, width, height }`), `source`, and timestamps.
 - **`puzzles`:** Puzzle pairings containing `id`, `reference_item_id` (FK to `puzzle_items`), `target_item_id` (FK to `puzzle_items`), `category`, `puzzle_type` (`standard`, `daily`), and `active_date`.
 
 ### 3.2 Global Leaderboard System
 The leaderboard system ranks player performances across game modes with strict determinism.
 
-- **Ranking Hierarchy (4-Tier Tie-Breaker):**
+- **ScaleGuess Ranking Hierarchy (4-Tier Tie-Breaker):**
   1. `total_score DESC` — Highest cumulative score wins.
   2. `average_error ASC` — Lowest average error percentage breaks score ties.
   3. `elapsed_ms ASC` — Faster completion breaks precision ties.
   4. `completed_at ASC` — Earliest submission wins final tie-breaker.
-- **Aggregation:** Provides daily challenge leaderboards, all-time global rankings, and personal best metrics (`/api/scores/leaderboard`).
+- **Not Color Blind Ranking:**
+  1. `score DESC` — Highest recall score wins.
+  2. `time_taken_seconds ASC` — Faster recall breaks ties.
+- **Human Benchmark Ranking:**
+  1. `average_reaction_ms ASC` — Lowest average reaction latency in milliseconds wins (fastest neural reflex).
+  2. `created_at ASC` — Earliest submission breaks latency ties.
 
 ### 3.3 REST APIs
 
@@ -141,10 +141,16 @@ The leaderboard system ranks player performances across game modes with strict d
 | `/api/auth/google` | POST | Exchange Google ID token for authenticated session | No |
 | `/api/auth/github` | POST | Authenticate with GitHub OAuth code | No |
 | `/api/auth/me` | GET / PUT | Fetch or update current user profile & avatar | Optional / Required |
-| `/api/scores` | POST | Submit game session results (`totalScore`, `averageError`, `elapsedMs`, `rounds`) | Optional |
+| `/api/scores` | POST | Submit ScaleGuess session results (`totalScore`, `averageError`, `elapsedMs`, `rounds`) | Optional |
 | `/api/scores/me` | GET | Fetch authenticated player's personal score history | Required |
-| `/api/scores/leaderboard` | GET | Retrieve global rankings filtered by `mode` or `date` | No |
+| `/api/scores/leaderboard` | GET | Retrieve ScaleGuess global rankings filtered by `mode` or `date` | No |
 | `/api/scores/user/:id` | GET | Fetch public player profile and recent match history | No |
+| `/api/scores/not-color-blind` | POST | Submit Not Color Blind score record | Optional |
+| `/api/scores/not-color-blind/leaderboard` | GET | Fetch Not Color Blind top 50 rankings | No |
+| `/api/scores/not-color-blind/user/:userId` | GET | Fetch Not Color Blind player score history | No |
+| `/api/scores/human-benchmark` | POST | Submit Human Benchmark 5-round reaction speed result (`averageReactionMs`, `rounds`) | Optional |
+| `/api/scores/human-benchmark/leaderboard` | GET | Fetch Human Benchmark top 50 fastest reflex rankings | No |
+| `/api/scores/human-benchmark/user/:userId` | GET | Fetch Human Benchmark player reflex history | No |
 | `/api/puzzles/session` | GET | Retrieve a set of 5 randomized calibrated puzzle pairs | No |
 | `/api/puzzles/daily` | GET | Retrieve today's deterministic daily challenge set | No |
 | `/api/puzzles/items` | GET | List catalogued reference and target items | No |

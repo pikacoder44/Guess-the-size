@@ -30,6 +30,7 @@ export function GameCard({
 }: GameCardProps) {
   const isScaleGuess = id === "scale-guess" || route.includes("scale-guess");
   const isColorBlind = id === "not-color-blind" || route.includes("not-color-blind");
+  const isHumanBenchmark = id === "human-benchmark" || route.includes("human-benchmark");
   const [isHovered, setIsHovered] = useState(false);
 
   const resolvedCoverImage =
@@ -38,6 +39,8 @@ export function GameCard({
       ? "/assets/banners/scaleguess-cover.jpg"
       : isColorBlind
       ? "/assets/banners/not-color-blind-cover.jpg"
+      : isHumanBenchmark
+      ? "/assets/banners/human-benchmark-cover.jpg"
       : "/assets/banners/scaleguess-cover.jpg");
 
   return (
@@ -69,7 +72,7 @@ export function GameCard({
       {/* Subtle Steam Ambient Backlight on Hover */}
       <div
         className={`absolute -top-24 -left-24 w-60 h-60 rounded-full blur-3xl opacity-0 group-hover:opacity-30 transition-opacity duration-500 pointer-events-none ${
-          isScaleGuess ? "bg-amber-500" : isColorBlind ? "bg-violet-600" : "bg-cyan-500"
+          isScaleGuess ? "bg-amber-500" : isColorBlind ? "bg-violet-600" : isHumanBenchmark ? "bg-emerald-500" : "bg-cyan-500"
         }`}
       />
 

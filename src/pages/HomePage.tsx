@@ -36,6 +36,11 @@ export function HomePage({
     ) {
       onNavigate("notColorBlind");
     } else if (
+      cleanHref === "/games/human-benchmark" ||
+      cleanHref === "/humanbenchmark"
+    ) {
+      onNavigate("humanBenchmark");
+    } else if (
       cleanHref === "/games/scale-guess/leaderboard" ||
       cleanHref === "/scaleguess/leaderboard" ||
       cleanHref === "/leaderboard"
@@ -46,6 +51,11 @@ export function HomePage({
       cleanHref === "/notcolorblind/leaderboard"
     ) {
       onNavigate("notColorBlindLeaderboard");
+    } else if (
+      cleanHref === "/games/human-benchmark/leaderboard" ||
+      cleanHref === "/humanbenchmark/leaderboard"
+    ) {
+      onNavigate("humanBenchmarkLeaderboard");
     } else if (cleanHref === "/profile") {
       onNavigate("profile");
     } else if (cleanHref === "/login") {

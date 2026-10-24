@@ -76,4 +76,31 @@ export const GAMES: GameCardData[] = [
       </svg>
     ),
   },
+  {
+    id: "human-benchmark",
+    title: "Human Benchmark",
+    tagline: "Reaction Speed",
+    description:
+      "Test your visual reflexes across 5 calibrated rounds. Click as fast as you can when the target color appears.",
+    category: "Visual Reaction Speed",
+    accentColor: "oklch(0.75 0.19 165)", // Mint emerald / reflex green
+    accentGlow: "oklch(0.75 0.19 165 / 0.25)",
+    badge: "Live",
+    href: "/games/human-benchmark",
+    available: true,
+    icon: (
+      <svg
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth={2}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        className="w-6 h-6"
+        aria-hidden="true"
+      >
+        <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+      </svg>
+    ),
+  },
 ];

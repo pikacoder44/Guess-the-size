@@ -17,7 +17,7 @@ interface SpotlightSlide {
   leaderboardRoute: string;
   ctaText: string;
   chips: string[];
-  theme: "amber" | "violet" | "gold";
+  theme: "amber" | "violet" | "gold" | "emerald";
   coverImage: string;
 }
 
@@ -49,6 +49,20 @@ const SPOTLIGHT_SLIDES: SpotlightSlide[] = [
     chips: ["5s Observation", "Hue / Sat / Val", "Delta-E Evaluation", "Instant Feedback"],
     theme: "violet",
     coverImage: "/assets/banners/not-color-blind-cover.jpg",
+  },
+  {
+    id: "human-benchmark",
+    category: "VISUAL REACTION SPEED",
+    badge: "MILLISECOND REFLEX TIMER",
+    title: "Human Benchmark",
+    tagline: "Test your visual reflexes across 5 rounds. Click as fast as you can when the target color flashes.",
+    description: "Challenge raw neural response times. Instant false-start detection, high-resolution performance timer, and global latency ranking.",
+    playRoute: "/games/human-benchmark",
+    leaderboardRoute: "/games/human-benchmark/leaderboard",
+    ctaText: "PLAY HUMAN BENCHMARK",
+    chips: ["5 Rounds", "High-Res ms Timing", "False-Start Detection", "Global Hall of Fame"],
+    theme: "emerald",
+    coverImage: "/assets/banners/human-benchmark-cover.jpg",
   },
 ];
 
@@ -103,6 +117,8 @@ export function HeroSpotlight({ onNavigate }: HeroSpotlightProps) {
           className={`absolute -top-32 -left-32 w-96 h-96 rounded-full blur-3xl opacity-35 transition-all duration-700 ${
             activeSlide.theme === "amber"
               ? "bg-amber-500/40"
+              : activeSlide.theme === "emerald"
+              ? "bg-emerald-500/40"
               : "bg-violet-600/40"
           }`}
         />
@@ -110,6 +126,8 @@ export function HeroSpotlight({ onNavigate }: HeroSpotlightProps) {
           className={`absolute -bottom-32 -right-32 w-lg h-128 rounded-full blur-3xl opacity-25 transition-all duration-700 ${
             activeSlide.theme === "amber"
               ? "bg-orange-600/30"
+              : activeSlide.theme === "emerald"
+              ? "bg-teal-500/30"
               : "bg-cyan-500/30"
           }`}
         />

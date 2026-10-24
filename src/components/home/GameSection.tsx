@@ -8,7 +8,7 @@ interface GameSectionProps {
   searchQuery?: string;
 }
 
-type FilterTag = "all" | "spatial" | "perceptual";
+type FilterTag = "all" | "spatial" | "perceptual" | "reflex";
 
 interface ArcadeGameItem {
   id: string;
@@ -51,6 +51,19 @@ const ARCADE_GAMES: ArcadeGameItem[] = [
     coverImage: "/assets/banners/not-color-blind-cover.jpg",
     categories: ["all", "perceptual"],
   },
+  {
+    id: "human-benchmark",
+    route: "/games/human-benchmark",
+    badge: "Reflex Benchmark",
+    title: "Human Benchmark",
+    categoryTag: "VISUAL REFLEX",
+    description: "Test your visual reflexes across 5 calibrated rounds. Click as fast as you can when the target color appears.",
+    stats: "5 Rounds • ms Latency",
+    tags: ["Reflex", "Latency", "Speed"],
+    rating: "4.9",
+    coverImage: "/assets/banners/human-benchmark-cover.jpg",
+    categories: ["all", "reflex"],
+  },
 ];
 
 export function GameSection({ onNavigate, searchQuery = "" }: GameSectionProps) {
@@ -60,6 +73,7 @@ export function GameSection({ onNavigate, searchQuery = "" }: GameSectionProps) 
     { id: "all", label: "All Games" },
     { id: "spatial", label: "Spatial" },
     { id: "perceptual", label: "Perceptual" },
+    { id: "reflex", label: "Reflex" },
   ];
 
   const filteredGames = ARCADE_GAMES.filter((game) => {
