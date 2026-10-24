@@ -4,15 +4,16 @@ import {
   getHumanBenchmarkLeaderboard,
   getUserHumanBenchmarkScores,
 } from '../db.js';
+import { requireAuth } from '../middleware/auth.js';
 
 const router = Router();
 
 /**
  * POST /api/scores/human-benchmark
- * Save a completed Human Benchmark 5-round reaction speed result.
+ * Save a completed Human Benchmark 5-round reaction speed result. Requires authenticated user.
  */
-router.post('/', async (req: Request, res: Response): Promise<void> => {
-  const { userId, playerName, averageReactionMs, rounds } = req.body ?? {};
+router.post('/', requireAuth, async (req: Request, res: Response): Promise<void> => {
+  const { averageReactionMs, rounds } = req.body ?? {};
 
   // Validate rounds array
   if (!Array.isArray(rounds) || rounds.length === 0 || rounds.length > 5) {
@@ -37,9 +38,8 @@ router.post('/', async (req: Request, res: Response): Promise<void> => {
     : calculatedAverage;
 
   try {
-    const effectiveUserId = typeof userId === 'string' && userId.trim() ? userId.trim() : null;
-    const effectivePlayerName =
-      typeof playerName === 'string' && playerName.trim() ? playerName.trim() : 'Anonymous';
+    const effectiveUserId = String(req.user!.userId);
+    const effectivePlayerName = req.user!.username || 'Player';
 
     const scoreRecord = await saveHumanBenchmarkScore({
       userId: effectiveUserId,

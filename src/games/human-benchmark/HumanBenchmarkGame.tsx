@@ -10,6 +10,7 @@ import {
   Sparkles,
   Gauge,
   CheckCircle2,
+  LogIn,
 } from "lucide-react";
 import {
   type GamePhase,
@@ -29,10 +30,15 @@ export interface HumanBenchmarkGameProps {
   onOpenLogin?: () => void;
 }
 
+interface PendingBenchmarkMatch {
+  averageMs: number;
+  rounds: number[];
+}
+
 export function HumanBenchmarkGame({
   onViewLeaderboard,
 }: HumanBenchmarkGameProps) {
-  const { user } = useAuth();
+  const { user, token, isAuthenticated, openLogin } = useAuth();
 
   const [phase, setPhase] = useState<GamePhase>("IDLE");
   const [currentRound, setCurrentRound] = useState<number>(1);
@@ -46,8 +52,10 @@ export function HumanBenchmarkGame({
 
   // Final match submission state
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const [isScoreSaved, setIsScoreSaved] = useState<boolean>(false);
   const [isPersonalBest, setIsPersonalBest] = useState<boolean>(false);
   const [personalBest, setPersonalBest] = useState<number>(() => getHumanBenchmarkPersonalBest());
+  const [pendingMatchData, setPendingMatchData] = useState<PendingBenchmarkMatch | null>(null);
 
   // Cleanup pending timer on unmount
   useEffect(() => {
@@ -89,6 +97,8 @@ export function HumanBenchmarkGame({
     setRoundResults([]);
     setLatestRoundResult(null);
     setIsPersonalBest(false);
+    setIsScoreSaved(false);
+    setPendingMatchData(null);
     startRound(1);
   };
 
@@ -127,25 +137,34 @@ export function HumanBenchmarkGame({
       setLatestRoundResult(result);
 
       if (currentRound >= 5) {
-        // Match completed! Calculate average and submit to server
+        // Match completed! Calculate average
         const averageMs = Math.round(
           updatedResults.reduce((acc, r) => acc + r.reactionMs, 0) / updatedResults.length
         );
+        const roundsList = updatedResults.map((r) => r.reactionMs);
 
         setPhase("MATCH_SUMMARY");
-        setIsSubmitting(true);
 
-        const currentToken = localStorage.getItem("auth_token") || null;
+        // If user is unauthenticated / guest, skip calling POST score API and cache pending match
+        if (!isAuthenticated || !token || !user) {
+          setPendingMatchData({ averageMs, rounds: roundsList });
+          setIsSubmitting(false);
+          return;
+        }
+
+        setIsSubmitting(true);
         submitHumanBenchmarkScore(
           {
             userId: user?.id ? String(user.id) : null,
-            playerName: user?.name || user?.username || "Anonymous",
+            playerName: user?.name || user?.username || "Player",
             averageReactionMs: averageMs,
-            rounds: updatedResults.map((r) => r.reactionMs),
+            rounds: roundsList,
           },
-          currentToken
+          token
         )
           .then((res) => {
+            setIsScoreSaved(true);
+            setPendingMatchData(null);
             if (res.isPersonalBest) {
               setIsPersonalBest(true);
               setPersonalBest(averageMs);
@@ -161,7 +180,37 @@ export function HumanBenchmarkGame({
         setPhase("ROUND_RESULT");
       }
     }
-  }, [phase, currentRound, targetColor, roundResults, user]);
+  }, [phase, currentRound, targetColor, roundResults, user, token, isAuthenticated]);
+
+  // Auto-submit pending completed match if user signs in while on MATCH_SUMMARY
+  useEffect(() => {
+    if (isAuthenticated && token && user && pendingMatchData && phase === "MATCH_SUMMARY") {
+      setIsSubmitting(true);
+      submitHumanBenchmarkScore(
+        {
+          userId: user?.id ? String(user.id) : null,
+          playerName: user?.name || user?.username || "Player",
+          averageReactionMs: pendingMatchData.averageMs,
+          rounds: pendingMatchData.rounds,
+        },
+        token
+      )
+        .then((res) => {
+          setIsScoreSaved(true);
+          setPendingMatchData(null);
+          if (res.isPersonalBest) {
+            setIsPersonalBest(true);
+            setPersonalBest(pendingMatchData.averageMs);
+          }
+        })
+        .catch((err) => {
+          console.warn("Failed to auto-submit score upon login:", err);
+        })
+        .finally(() => {
+          setIsSubmitting(false);
+        });
+    }
+  }, [isAuthenticated, token, user, pendingMatchData, phase]);
 
   /**
    * Global keyboard Spacebar handler for low-latency testing.
@@ -474,6 +523,33 @@ export function HumanBenchmarkGame({
                 </div>
               </div>
 
+              {/* Unauthenticated / Guest Leaderboard Guard Banner */}
+              {!isAuthenticated && !isScoreSaved && (
+                <div className="my-5 relative overflow-hidden rounded-2xl bg-amber-500/10 border border-amber-500/30 p-4 sm:p-5 backdrop-blur-xl shadow-lg flex flex-col sm:flex-row items-center justify-between gap-4">
+                  <div className="flex items-center gap-3.5 text-center sm:text-left">
+                    <div className="p-2.5 rounded-xl bg-amber-400/20 border border-amber-400/30 text-amber-300 shrink-0">
+                      <Trophy className="w-5 h-5 drop-shadow-[0_0_8px_rgba(251,191,36,0.6)]" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-white">
+                        Sign in to save your score and join the global leaderboard.
+                      </p>
+                      <p className="text-xs text-neutral-400 font-mono mt-0.5">
+                        Your {averageReactionMs}ms benchmark will be submitted automatically once signed in.
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={openLogin}
+                    className="shrink-0 inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-stone-950 font-bold text-xs shadow-lg shadow-amber-400/25 active:scale-95 transition-all cursor-pointer whitespace-nowrap"
+                  >
+                    <LogIn className="w-4 h-4" />
+                    <span>Sign In to Submit</span>
+                  </button>
+                </div>
+              )}
+
               {/* 5-Round Breakdown Table / Bar Chart */}
               <div className="rounded-xl border border-neutral-800/80 bg-neutral-900/40 p-4">
                 <div className="text-xs font-mono uppercase tracking-wider text-neutral-400 mb-3 flex items-center justify-between">
@@ -537,8 +613,16 @@ export function HumanBenchmarkGame({
                   <span className="inline-flex items-center gap-1 text-emerald-400">
                     <RotateCw className="w-3.5 h-3.5 animate-spin" /> Recording score to Global Hall of Fame...
                   </span>
+                ) : isScoreSaved ? (
+                  <span className="inline-flex items-center gap-1.5 text-emerald-400">
+                    <CheckCircle2 className="w-3.5 h-3.5" /> Verified &amp; recorded to Synapse platform.
+                  </span>
+                ) : !isAuthenticated ? (
+                  <span className="text-amber-400/90 font-medium">
+                    Guest attempt · Sign in above to save rank to global leaderboard.
+                  </span>
                 ) : (
-                  <span>Verified & recorded to Synapse platform.</span>
+                  <span>Verified &amp; recorded to Synapse platform.</span>
                 )}
               </div>
 

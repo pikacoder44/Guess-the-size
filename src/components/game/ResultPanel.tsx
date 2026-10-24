@@ -8,6 +8,7 @@ import {
   Trophy,
   RotateCcw,
   Sparkles,
+  LogIn,
 } from "lucide-react";
 import { formatMeasurement } from "@/game/scoring";
 import { useAuth } from "@/context/AuthContext";
@@ -60,9 +61,10 @@ export function ResultPanel({
   onNavigateLeaderboard,
 }: ResultPanelProps) {
   const primaryBtnRef = useRef<HTMLButtonElement>(null);
-  const { token } = useAuth();
+  const { token, isAuthenticated, openLogin } = useAuth();
   const submittedSessionRef = useRef<boolean>(false);
   const [saved, setSaved] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Track when each round started so we can compute per-round elapsedMs.
   // We record the timestamp when the phase transitions into a new PLAYING round.
@@ -95,10 +97,17 @@ export function ResultPanel({
   const animatedRoundScore = useCountUp(currentRoundScore);
   const animatedFinalScore = useCountUp(state.totalScore, 1000);
 
-  // Submit final cumulative score on completion of Round 5
+  // Submit final cumulative score on completion of Round 5 only if authenticated.
+  // If unauthenticated guest logs in afterwards, this effect auto-submits their score.
   useEffect(() => {
-    if (!token || !isFinalRound || submittedSessionRef.current) return;
+    if (!isFinalRound || submittedSessionRef.current) return;
+    if (!token || !isAuthenticated) {
+      // Unauthenticated guest: skip calling submitScore API
+      return;
+    }
+
     submittedSessionRef.current = true;
+    setIsSubmitting(true);
 
     // Build the rounds payload that the server uses to recalculate scores
     const roundsPayload = state.rounds.map((r, i) => ({
@@ -119,9 +128,13 @@ export function ResultPanel({
     })
       .then(() => setSaved(true))
       .catch((err) => {
+        submittedSessionRef.current = false;
         console.error("Failed to submit classic game score:", err);
+      })
+      .finally(() => {
+        setIsSubmitting(false);
       });
-  }, [token, isFinalRound, state.rounds]);
+  }, [token, isAuthenticated, isFinalRound, state.rounds]);
 
   // Focus progression button without scrolling the page
   useEffect(() => {
@@ -180,10 +193,21 @@ export function ResultPanel({
               <span className={`text-xs font-mono font-semibold px-3 py-1 rounded-full border ${tier.color}`}>
                 {tier.label}
               </span>
+              {isSubmitting && (
+                <span className="inline-flex items-center gap-1.5 text-primary text-xs font-mono bg-primary/10 px-2.5 py-1 rounded-full border border-primary/20">
+                  <RotateCcw className="w-3.5 h-3.5 animate-spin" />
+                  <span>Submitting...</span>
+                </span>
+              )}
               {saved && (
                 <span className="inline-flex items-center gap-1 text-emerald-400 text-xs font-mono bg-emerald-400/10 px-2.5 py-1 rounded-full border border-emerald-400/20">
                   <CloudCheck className="w-3.5 h-3.5" />
                   <span>Saved</span>
+                </span>
+              )}
+              {!isAuthenticated && !saved && !isSubmitting && (
+                <span className="inline-flex items-center gap-1 text-amber-400 text-xs font-mono bg-amber-400/10 px-2.5 py-1 rounded-full border border-amber-400/20">
+                  <span>Guest Match</span>
                 </span>
               )}
             </div>
@@ -222,6 +246,33 @@ export function ResultPanel({
               </div>
             </div>
           </div>
+
+          {/* Unauthenticated / Guest Leaderboard Guard Banner */}
+          {!isAuthenticated && !saved && (
+            <div className="relative overflow-hidden rounded-2xl bg-amber-500/10 border border-amber-500/30 p-4 sm:p-5 backdrop-blur-xl shadow-lg flex flex-col sm:flex-row items-center justify-between gap-4 z-10">
+              <div className="flex items-center gap-3.5 text-center sm:text-left">
+                <div className="p-2.5 rounded-xl bg-amber-400/20 border border-amber-400/30 text-amber-300 shrink-0">
+                  <Trophy className="w-5 h-5 drop-shadow-[0_0_8px_rgba(251,191,36,0.6)]" />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-foreground">
+                    Sign in to save your score and join the global leaderboard.
+                  </p>
+                  <p className="text-xs text-muted-foreground font-mono mt-0.5">
+                    Your 5-round score ({state.totalScore}/500) will be submitted automatically upon sign in.
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={openLogin}
+                className="shrink-0 inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-stone-950 font-bold text-xs shadow-lg shadow-amber-400/25 active:scale-95 transition-all cursor-pointer whitespace-nowrap"
+              >
+                <LogIn className="w-4 h-4" />
+                <span>Sign In to Submit</span>
+              </button>
+            </div>
+          )}
 
           {/* Round-by-Round Breakdown */}
           <div className="relative z-10 flex flex-col gap-2">

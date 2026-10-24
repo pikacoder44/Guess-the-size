@@ -5,6 +5,7 @@ import {
   getUserNotColorBlindScores,
   HsbColor,
 } from '../db.js';
+import { requireAuth } from '../middleware/auth.js';
 
 const router = Router();
 
@@ -23,10 +24,10 @@ function isValidHsb(val: unknown): val is HsbColor {
 
 /**
  * POST /api/scores/not-color-blind
- * Save a completed Not Color Blind score.
+ * Save a completed Not Color Blind score. Requires authenticated user.
  */
-router.post('/', async (req: Request, res: Response): Promise<void> => {
-  const { userId, playerName, score, targetHsb, predictedHsb, timeTakenSeconds } = req.body ?? {};
+router.post('/', requireAuth, async (req: Request, res: Response): Promise<void> => {
+  const { score, targetHsb, predictedHsb, timeTakenSeconds } = req.body ?? {};
 
   // Validate score: range [0, 500] (5 rounds x 100 max)
   if (typeof score !== 'number' || isNaN(score) || score < 0 || score > 500) {
@@ -49,9 +50,8 @@ router.post('/', async (req: Request, res: Response): Promise<void> => {
   }
 
   try {
-    const effectiveUserId = typeof userId === 'string' && userId.trim() ? userId.trim() : null;
-    const effectivePlayerName =
-      typeof playerName === 'string' && playerName.trim() ? playerName.trim() : 'Anonymous';
+    const effectiveUserId = String(req.user!.userId);
+    const effectivePlayerName = req.user!.username || 'Player';
 
     const scoreRecord = await saveNotColorBlindScore({
       userId: effectiveUserId,

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
-import { Check, RotateCcw, Sparkles, ArrowRight, Trophy, Clock, X } from "lucide-react";
+import { Check, RotateCcw, Sparkles, ArrowRight, Trophy, Clock, X, LogIn } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import type { ColorHSB, GamePhase, ScoreBreakdown, NotColorBlindRoundRecord } from "./types";
 import {
@@ -29,6 +29,11 @@ export interface ScoreSubmissionState {
   error: string | null;
 }
 
+interface PendingMatchScore {
+  completedRounds: NotColorBlindRoundRecord[];
+  matchScore: number;
+}
+
 interface NotColorBlindGameProps {
   onPhaseChange?: (phase: GamePhase) => void;
   onScoreSubmitted?: (record: NotColorBlindScoreRecord, isPersonalBest: boolean) => void;
@@ -42,8 +47,9 @@ export function NotColorBlindGame({
   onOpenLeaderboard,
   onBackToHome,
 }: NotColorBlindGameProps) {
-  // Auth context for identity and token
-  const { user, token } = useAuth();
+  // Auth context for identity, authentication state, and modal trigger
+  const { user, token, isAuthenticated, openLogin } = useAuth();
+  const [pendingMatchScore, setPendingMatchScore] = useState<PendingMatchScore | null>(null);
 
   // Multi-Round Match State
   const [currentRound, setCurrentRound] = useState<number>(1);
@@ -127,6 +133,19 @@ export function NotColorBlindGame({
     async (completedRounds: NotColorBlindRoundRecord[], matchScore: number) => {
       if (completedRounds.length === 0) return;
 
+      // If user is unauthenticated / guest, skip calling POST score API and cache pending match
+      if (!isAuthenticated || !token || !user) {
+        setPendingMatchScore({ completedRounds, matchScore });
+        setSubmissionState({
+          isSubmitting: false,
+          isSubmitted: false,
+          isPersonalBest: false,
+          isOffline: false,
+          error: null,
+        });
+        return;
+      }
+
       setSubmissionState({
         isSubmitting: true,
         isSubmitted: false,
@@ -140,7 +159,7 @@ export function NotColorBlindGame({
       const lastRound = completedRounds[completedRounds.length - 1];
 
       try {
-        const playerName = user?.name || user?.username || "Anonymous";
+        const playerName = user?.name || user?.username || "Player";
         const userId = user?.id ? String(user.id) : null;
 
         const res = await submitNotColorBlindScore(
@@ -162,6 +181,7 @@ export function NotColorBlindGame({
           isOffline: Boolean(res.offlineFallback),
           error: null,
         });
+        setPendingMatchScore(null);
 
         onScoreSubmitted?.(res.scoreRecord, Boolean(res.isPersonalBest));
       } catch (err: unknown) {
@@ -174,8 +194,15 @@ export function NotColorBlindGame({
         });
       }
     },
-    [user, token, onScoreSubmitted]
+    [user, token, isAuthenticated, onScoreSubmitted]
   );
+
+  // Auto-submit pending completed match if user logs in on MATCH_SUMMARY screen
+  useEffect(() => {
+    if (isAuthenticated && token && user && pendingMatchScore && phase === "MATCH_SUMMARY") {
+      submitFinalMatchScore(pendingMatchScore.completedRounds, pendingMatchScore.matchScore);
+    }
+  }, [isAuthenticated, token, user, pendingMatchScore, phase, submitFinalMatchScore]);
 
   // Lock in guess and transition to ROUND_RESULT phase
   const handleLockIn = useCallback(() => {
@@ -258,6 +285,7 @@ export function NotColorBlindGame({
     setRecallSeconds(RECALL_DURATION_SECONDS);
     setRoundResult(null);
     setTimeTakenSeconds(0);
+    setPendingMatchScore(null);
     setSubmissionState({
       isSubmitting: false,
       isSubmitted: false,
@@ -838,9 +866,17 @@ export function NotColorBlindGame({
                   </span>
                 )}
 
+              {!submissionState.isSubmitting &&
+                !submissionState.isSubmitted &&
+                !isAuthenticated && (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-mono font-medium uppercase tracking-wider bg-amber-500/10 text-amber-300 border border-amber-500/25">
+                    Guest Match
+                  </span>
+                )}
+
               {submissionState.error && (
-                <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-mono uppercase tracking-wider bg-amber-500/15 text-amber-300 border border-amber-500/30">
-                  Saved Locally
+                <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-mono uppercase tracking-wider bg-red-500/15 text-red-300 border border-red-500/30">
+                  Submission Failed
                 </span>
               )}
             </div>
@@ -897,6 +933,33 @@ export function NotColorBlindGame({
               </div>
             </div>
           </div>
+
+          {/* Unauthenticated / Guest Leaderboard Guard Banner */}
+          {!isAuthenticated && !submissionState.isSubmitted && (
+            <div className="w-full relative overflow-hidden rounded-2xl bg-amber-500/10 border border-amber-500/30 p-4 sm:p-5 backdrop-blur-xl shadow-lg flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className="flex items-center gap-3.5 text-center sm:text-left">
+                <div className="p-2.5 rounded-xl bg-amber-400/20 border border-amber-400/30 text-amber-300 shrink-0">
+                  <Trophy className="w-5 h-5 drop-shadow-[0_0_8px_rgba(251,191,36,0.6)]" />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-foreground">
+                    Sign in to save your score and join the global leaderboard.
+                  </p>
+                  <p className="text-xs text-muted-foreground font-mono mt-0.5">
+                    Your score of {totalScore}/500 will be automatically submitted once signed in.
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={openLogin}
+                className="shrink-0 inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-stone-950 font-bold text-xs shadow-lg shadow-amber-400/25 active:scale-95 transition-all cursor-pointer whitespace-nowrap"
+              >
+                <LogIn className="w-4 h-4" />
+                <span>Sign In to Submit</span>
+              </button>
+            </div>
+          )}
 
           {/* 5-Round Breakdown List */}
           <div className="w-full flex flex-col gap-2.5">

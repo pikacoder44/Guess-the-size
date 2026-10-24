@@ -1,5 +1,6 @@
 import { Router, Request, Response } from 'express';
 import pool from '../../db.js';
+import { requireAuth } from '../../middleware/auth.js';
 import { GameResultRow } from './types.js';
 
 const router = Router();
@@ -21,12 +22,12 @@ interface RoundGuess {
 }
 
 /**
- * POST /api/scores
- * Record a completed game result.
+ * POST /api/scores and POST /api/scores/scale-guess
+ * Record a completed game result. Requires authenticated user.
  * Accepts an array of per-round guesses and RECALCULATES all scores server-side,
  * ignoring any client-submitted totalScore to prevent score tampering.
  */
-router.post('/', async (req: Request, res: Response): Promise<void> => {
+router.post(['/', '/scale-guess'], requireAuth, async (req: Request, res: Response): Promise<void> => {
   const { mode = 'practice', date, rounds } = req.body ?? {};
 
   // Validate that rounds is a non-empty array of up to 5 entries
@@ -64,7 +65,7 @@ router.post('/', async (req: Request, res: Response): Promise<void> => {
 
   const cleanMode = ['daily', 'classic', 'practice'].includes(mode) ? mode : 'practice';
   const cleanDate = typeof date === 'string' ? date.slice(0, 10) : null;
-  const userId = req.user?.userId ?? null;
+  const userId = req.user!.userId;
 
   // Merge server-calculated scores back into round records for storage
   const enrichedRounds = (req.body.rounds as Record<string, unknown>[]).map(

@@ -44,7 +44,7 @@ export function optionalAuth(req: Request, _res: Response, next: NextFunction) {
 export function requireAuth(req: Request, res: Response, next: NextFunction) {
   optionalAuth(req, res, () => {
     if (!req.user) {
-      res.status(401).json({ error: 'Authentication required.' });
+      res.status(401).json({ error: 'Authentication required to submit scores' });
       return;
     }
     next();
